@@ -22,6 +22,7 @@ export const galleries = pgTable("galleries", {
   firebaseId: text("firebase_id").notNull().unique(),
   slug: text("slug").notNull().unique(),
   eventName: text("event_name").notNull(),
+  theme: text("theme").notNull().default("hochzeit"),
   ownerName: text("owner_name"),
   ownerEmail: text("owner_email"),
   password: text("password"),

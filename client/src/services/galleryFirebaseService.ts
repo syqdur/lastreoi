@@ -183,15 +183,7 @@ export const deleteGalleryMediaItem = async (
   const mediaCollection = `galleries/${galleryId}/media`;
   await deleteDoc(doc(db, mediaCollection, item.id));
 
-  // Delete from Storage if it's not a note
-  if (item.type !== 'note' && item.name) {
-    try {
-      const storageRef = ref(storage, `galleries/${galleryId}/uploads/${item.name}`);
-      await deleteObject(storageRef);
-    } catch (error) {
-      console.warn('Could not delete from storage:', error);
-    }
-  }
+  // Note: Storage deletion removed - using base64 data directly in Firestore
 
   // Delete associated comments
   const commentsCollection = `galleries/${galleryId}/comments`;
@@ -405,11 +397,15 @@ export const uploadGalleryUserProfilePicture = async (
   deviceId: string,
   galleryId: string
 ): Promise<string> => {
-  const fileName = `profile-${userName}-${deviceId}-${Date.now()}.${file.name.split('.').pop()}`;
-  const storageRef = ref(storage, `galleries/${galleryId}/profile-pictures/${fileName}`);
+  // Convert profile picture to base64 instead of uploading to Firebase Storage
+  const reader = new FileReader();
+  const base64Data = await new Promise<string>((resolve, reject) => {
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
   
-  await uploadBytes(storageRef, file);
-  return await getDownloadURL(storageRef);
+  return base64Data;
 };
 
 // Gallery-specific stories functions
@@ -425,9 +421,6 @@ export const addGalleryStory = async (
   console.log(`🎪 Gallery: ${galleryId}`);
   console.log(`📁 File: ${file.name}`);
   
-  let storageRef: any = null;
-  let uploadedToStorage = false;
-  
   try {
     // Validate file size (100MB max)
     const maxSize = 100 * 1024 * 1024;
@@ -440,30 +433,32 @@ export const addGalleryStory = async (
       throw new Error(`Ungültiger Dateityp: ${file.type}`);
     }
     
-    // Generate filename
+    console.log(`📸 Converting story file to base64...`);
+    
+    // Convert file to base64 instead of uploading to Firebase Storage
+    const reader = new FileReader();
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    
+    console.log(`✅ Story file converted to base64 successfully`);
+    
+    // Generate filename for reference
     const timestamp = Date.now();
     const cleanUserName = userName.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_');
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || (mediaType === 'video' ? 'mp4' : 'jpg');
     const fileName = `STORY_${timestamp}_${cleanUserName}.${fileExtension}`;
     
-    // Upload to gallery-specific storage path
-    storageRef = ref(storage, `galleries/${galleryId}/stories/${fileName}`);
-    
-    console.log(`📤 Uploading to: galleries/${galleryId}/stories/${fileName}`);
-    await uploadBytes(storageRef, file);
-    uploadedToStorage = true;
-    
-    const mediaUrl = await getDownloadURL(storageRef);
-    console.log(`✅ Story uploaded successfully`);
-    
     // Set expiry time (24 hours from now)
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     
-    // Save to gallery-specific stories collection
+    // Save to gallery-specific stories collection with base64 data
     const storiesCollection = `galleries/${galleryId}/stories`;
     const storyData = {
-      mediaUrl,
+      mediaUrl: base64Data, // Using base64 data directly
       mediaType,
       userName,
       deviceId,
@@ -471,7 +466,8 @@ export const addGalleryStory = async (
       expiresAt: expiresAt.toISOString(),
       views: [],
       fileName: fileName,
-      isStory: true
+      isStory: true,
+      base64Data: base64Data // Store base64 for consistency
     };
     
     console.log(`💾 Saving to gallery stories collection: ${storiesCollection}`);
@@ -480,16 +476,6 @@ export const addGalleryStory = async (
     
   } catch (error: any) {
     console.error(`❌ Gallery story upload failed:`, error);
-    
-    // Clean up uploaded file if Firestore save failed
-    if (uploadedToStorage && storageRef) {
-      try {
-        await deleteObject(storageRef);
-        console.log(`🧹 Cleaned up uploaded file after error`);
-      } catch (cleanupError) {
-        console.warn(`⚠️ Could not clean up uploaded file:`, cleanupError);
-      }
-    }
     
     // Re-throw with user-friendly message
     if (error instanceof Error) {

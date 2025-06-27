@@ -11,6 +11,8 @@ interface UploadSectionProps {
   progress: number;
   isDarkMode: boolean;
   storiesEnabled?: boolean;
+  themeTexts?: any;
+  themeStyles?: any;
 }
 
 export const UploadSection: React.FC<UploadSectionProps> = ({
@@ -21,7 +23,9 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
   isUploading,
   progress,
   isDarkMode,
-  storiesEnabled = true
+  storiesEnabled = true,
+  themeTexts,
+  themeStyles
 }) => {
   const [files, setFiles] = useState<FileList | null>(null);
   const [showUploadOptions, setShowUploadOptions] = useState(false);
@@ -138,10 +142,10 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
             {/* Header */}
             <div className="text-center mb-6">
               <div className={`w-16 h-16 mx-auto mb-4 p-4 rounded-2xl ${
-                isDarkMode ? 'bg-pink-500/20' : 'bg-pink-500/10'
+                isDarkMode ? `bg-${themeStyles?.primaryColor || 'pink-500'}/20` : `bg-${themeStyles?.primaryColor || 'pink-500'}/10`
               }`}>
                 <Plus className={`w-full h-full ${
-                  isDarkMode ? 'text-pink-400' : 'text-pink-600'
+                  isDarkMode ? `text-${themeStyles?.secondaryColor || 'pink-400'}` : `text-${themeStyles?.accentColor || 'pink-600'}`
                 }`} />
               </div>
               <h3 className={`text-xl font-bold mb-2 ${
@@ -152,7 +156,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
               <p className={`text-sm ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
-                Was möchtest du mit dem Brautpaar teilen?
+                {themeTexts?.uploadPrompt || 'Teilt eure schönsten Momente'}
               </p>
             </div>
             
@@ -181,7 +185,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                   <h4 className={`font-semibold ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>
-                    Foto oder Video
+                    {themeTexts?.uploadPhoto || 'Foto oder Video'}
                   </h4>
                   <p className={`text-sm ${
                     isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -236,8 +240,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                 }}
                 className={`group flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] w-full ${
                   isDarkMode 
-                    ? 'bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30' 
-                    : 'bg-purple-50 hover:bg-purple-100 border border-purple-200'
+                    ? `bg-${themeStyles?.primaryColor || 'purple-500'}/10 hover:bg-${themeStyles?.primaryColor || 'purple-500'}/20 border border-${themeStyles?.primaryColor || 'purple-500'}/30` 
+                    : `bg-${themeStyles?.primaryColor || 'purple-500'}/10 hover:bg-${themeStyles?.primaryColor || 'purple-500'}/20 border border-${themeStyles?.primaryColor || 'purple-500'}/30`
                 }`}
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${

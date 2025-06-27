@@ -10,6 +10,7 @@ interface LandingPageProps {
 export interface GalleryCreationData {
   eventName: string;
   slug: string;
+  theme: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes';
   password?: string;
   eventDate?: string;
   endDate?: string;
@@ -18,15 +19,64 @@ export interface GalleryCreationData {
   ownerEmail?: string;
 }
 
+// Theme definitions with German text and styling
+const THEMES = {
+  hochzeit: {
+    id: 'hochzeit',
+    name: 'Hochzeit',
+    icon: '💍',
+    color: 'pink',
+    description: 'Für euren schönsten Tag - Teilt eure Lieblingsmomente der Hochzeit',
+    defaultTexts: {
+      description: 'Wir sagen JA! ✨ Teilt eure schönsten Momente unserer Hochzeit mit uns!',
+      welcome: 'Herzlich willkommen zu unserer Hochzeit! 💕'
+    }
+  },
+  geburtstag: {
+    id: 'geburtstag',
+    name: 'Geburtstag',
+    icon: '🎂',
+    color: 'purple',
+    description: 'Feiert mit uns - Sammelt alle Erinnerungen der Geburtstagsparty',
+    defaultTexts: {
+      description: 'Let\'s Party! 🎉 Sammelt hier alle tollen Momente meiner Geburtstagsfeier!',
+      welcome: 'Willkommen zu meiner Geburtstagsparty! 🎂'
+    }
+  },
+  urlaub: {
+    id: 'urlaub',
+    name: 'Urlaub',
+    icon: '🏖️',
+    color: 'blue',
+    description: 'Urlaubserinnerungen sammeln - Die schönsten Momente eurer Reise',
+    defaultTexts: {
+      description: 'Unser Traumurlaub! 🌴 Hier sammeln wir alle Highlights unserer Reise!',
+      welcome: 'Willkommen zu unseren Urlaubserinnerungen! ✈️'
+    }
+  },
+  eigenes: {
+    id: 'eigenes',
+    name: 'Eigenes Event',
+    icon: '🎊',
+    color: 'green',
+    description: 'Für jeden Anlass - Gestaltet eure ganz persönliche Galerie',
+    defaultTexts: {
+      description: 'Unser besonderes Event! ✨ Teilt hier eure schönsten Momente mit uns!',
+      welcome: 'Herzlich willkommen! 🎊'
+    }
+  }
+} as const;
+
 export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGallery, onRootAdminLogin }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState<GalleryCreationData>({
     eventName: '',
     slug: '',
+    theme: 'hochzeit',
     password: '',
     eventDate: '',
     endDate: '',
-    description: '',
+    description: THEMES.hochzeit.defaultTexts.description,
     ownerName: '',
     ownerEmail: ''
   });
@@ -49,6 +99,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
       slug: generateSlug(value)
     }));
     setSlugError('');
+  };
+
+  const handleThemeChange = (themeId: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes') => {
+    const theme = THEMES[themeId];
+    setFormData(prev => ({
+      ...prev,
+      theme: themeId,
+      description: theme.defaultTexts.description
+    }));
   };
 
   const validateSlug = (slug: string) => {
@@ -164,7 +223,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
               <h1 className={`text-4xl font-bold ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                WeddingPix
+                EventPix
               </h1>
             </div>
 
@@ -172,7 +231,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
             <h2 className={`text-5xl md:text-6xl font-bold mb-6 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              Eure Hochzeit,
+              Eure Momente,
               <br />
               <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
                 unvergesslich geteilt
@@ -182,7 +241,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
             <p className={`text-xl md:text-2xl mb-12 max-w-3xl mx-auto ${
               isDarkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              Erstellt eure eigene private Hochzeitsgalerie in Sekunden. 
+              Erstellt eure eigene private Galerie in Sekunden. 
               Gäste teilen Momente in Echtzeit – ohne Registrierung, ohne Kompliziertes.
             </p>
 
@@ -383,6 +442,56 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                 />
               </div>
 
+              {/* Theme Selection */}
+              <div>
+                <label className={`block text-sm font-medium mb-3 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Anlass auswählen *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.values(THEMES).map((theme) => (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => handleThemeChange(theme.id as any)}
+                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left ${
+                        formData.theme === theme.id
+                          ? isDarkMode
+                            ? 'border-pink-500 bg-pink-500/10 ring-2 ring-pink-500/20'
+                            : 'border-pink-500 bg-pink-50 ring-2 ring-pink-500/20'
+                          : isDarkMode
+                            ? 'border-gray-600 bg-gray-700/50 hover:border-gray-500'
+                            : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-2xl">{theme.icon}</span>
+                        <h4 className={`font-semibold ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          {theme.name}
+                        </h4>
+                      </div>
+                      <p className={`text-sm ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                      }`}>
+                        {theme.description}
+                      </p>
+                      {formData.theme === theme.id && (
+                        <div className="absolute top-2 right-2">
+                          <div className="w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* URL Slug */}
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
@@ -425,7 +534,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Hochzeitsdatum (optional)
+                    {formData.theme === 'hochzeit' ? 'Hochzeitsdatum' : 
+                     formData.theme === 'geburtstag' ? 'Geburtstagsdatum' : 
+                     formData.theme === 'urlaub' ? 'Reisedatum' : 'Eventdatum'} (optional)
                   </label>
                   <input
                     type="date"

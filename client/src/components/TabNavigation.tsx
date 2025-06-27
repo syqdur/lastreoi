@@ -7,6 +7,8 @@ interface TabNavigationProps {
   isDarkMode: boolean;
   galleryEnabled?: boolean;
   musicWishlistEnabled?: boolean;
+  themeTexts?: any;
+  themeIcon?: string;
 }
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({
@@ -14,26 +16,28 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
   onTabChange,
   isDarkMode,
   galleryEnabled = true,
-  musicWishlistEnabled = true
+  musicWishlistEnabled = true,
+  themeTexts,
+  themeIcon
 }) => {
   const allTabs = [
     {
       id: 'gallery' as const,
-      label: 'Galerie',
+      label: themeTexts?.galleryTab || 'Galerie',
       icon: <Camera className="w-5 h-5" />,
       emoji: '📸',
       enabled: galleryEnabled
     },
     {
       id: 'timeline' as const,
-      label: 'Timeline',
+      label: themeTexts?.timelineTab || 'Timeline',
       icon: <Heart className="w-5 h-5" />,
-      emoji: '💕',
+      emoji: themeIcon || '💕',
       enabled: true // Timeline is always enabled
     },
     {
       id: 'music' as const,
-      label: 'Musikwünsche',
+      label: themeTexts?.musicTab || 'Musikwünsche',
       icon: <Music className="w-5 h-5" />,
       emoji: '🎵',
       enabled: musicWishlistEnabled

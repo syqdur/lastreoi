@@ -27,6 +27,7 @@ import { NotificationCenter } from './components/NotificationCenter';
 import { useUser } from './hooks/useUser';
 import { MediaItem, Comment, Like } from './types';
 import { Gallery, galleryService } from './services/galleryService';
+import { getThemeConfig, getThemeTexts, getThemeStyles } from './config/themes';
 import { storage, db } from './config/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
@@ -96,6 +97,11 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
 }) => {
   // Check if user was deleted and prevent app initialization
   const isUserDeleted = localStorage.getItem('userDeleted') === 'true';
+  
+  // Get theme configuration
+  const themeConfig = getThemeConfig(gallery.theme || 'hochzeit');
+  const themeTexts = getThemeTexts(gallery.theme || 'hochzeit');
+  const themeStyles = getThemeStyles(gallery.theme || 'hochzeit');
   
   const { userName, deviceId, showNamePrompt, setUserName } = useUser();
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -719,7 +725,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           const defaultProfile = {
             name: gallery.eventName,
             bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-            countdownDate: gallery.eventDate,
+            countdownDate: null, // Disabled by default
             countdownEndMessage: 'Der große Tag ist da! 🎉',
             countdownMessageDismissed: false,
             createdAt: new Date().toISOString(),
@@ -733,7 +739,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         const defaultProfile = {
           name: gallery.eventName,
           bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-          countdownDate: gallery.eventDate,
+          countdownDate: null, // Disabled by default
           countdownEndMessage: 'Der große Tag ist da! 🎉',
           countdownMessageDismissed: false,
           createdAt: new Date().toISOString(),
@@ -1090,6 +1096,8 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           isDarkMode={isDarkMode}
           galleryEnabled={siteStatus?.galleryEnabled ?? true}
           musicWishlistEnabled={siteStatus?.musicWishlistEnabled ?? true}
+          themeTexts={themeTexts}
+          themeIcon={themeConfig.icon}
         />
 
         {/* Tab Content */}
@@ -1104,6 +1112,8 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
               progress={uploadProgress}
               isDarkMode={isDarkMode}
               storiesEnabled={gallery.settings.allowStories}
+              themeTexts={themeTexts}
+              themeStyles={themeStyles}
             />
 
             {status && (
@@ -1261,22 +1271,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         </div>
       )}
 
-      {/* Profile Edit Button for Admins */}
-      {isAdmin && (
-        <div className="fixed bottom-4 right-4 z-40">
-          <button
-            onClick={() => setShowProfileEditModal(true)}
-            className={`w-12 h-12 rounded-full transition-all duration-300 backdrop-blur-sm shadow-lg hover:scale-110 ${
-              isDarkMode 
-                ? 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30' 
-                : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 border border-blue-500/30'
-            }`}
-            title="Galerie-Profil bearbeiten"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+
 
       {isAdmin && (
         <ProfileEditModal

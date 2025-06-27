@@ -153,6 +153,18 @@ This is a comprehensive wedding gallery application with the following architect
 - **Icon-Only Tag Buttons**: Updated user tagging and location tagging buttons to clean icon-only design with appropriate colors - purple for user tagging, green for location tagging
 - **Enhanced User Tagging List**: Redesigned visitor tagging interface with profile pictures, improved visual hierarchy, glassmorphism styling, and cleaner card-based layout for better user selection experience
 
+### June 27, 2025 (Theme Selection System & Color Schemes)
+- **4-Theme Gallery Creation**: Implemented comprehensive theme selection system with Hochzeit (💍), Geburtstag (🎂), Urlaub (🏖️), and Eigenes Event (🎊) themes
+- **Theme-Specific Color Schemes**: Each theme has distinct color palettes - Pink/Rose for Hochzeit, Purple/Violet for Geburtstag, Blue/Cyan for Urlaub, Green/Emerald for Eigenes Event
+- **Theme-Specific German Text**: Each theme automatically populates appropriate German descriptions and updates field labels dynamically (e.g., "Hochzeitsdatum" vs "Geburtstagsdatum")
+- **Visual Theme Selection**: Created interactive theme selection cards with icons, colors, descriptions, and visual feedback for gallery creation form
+- **Gallery Interface Theming**: Updated UploadSection and TabNavigation components to use theme-specific texts, icons, and color schemes throughout the gallery interface
+- **Generic Brand Update**: Changed from "WeddingPix" to "EventPix" to reflect support for multiple event types beyond weddings
+- **Theme Configuration System**: Built comprehensive theme configuration system with texts, styles, icons, gradients, and color schemes for consistent theming across all components
+- **Backend Theme Support**: Added theme field to database schema and gallery services to persist theme selection for each gallery
+- **Dynamic UI Updates**: Gallery interfaces now display theme-appropriate upload prompts, tab names, button texts, and color schemes based on selected theme
+- **Countdown Disabled by Default**: New galleries are created with countdown feature disabled by default for cleaner initial experience
+
 ### June 27, 2025 (Migration Complete)
 - **Replit Agent Migration**: Successfully migrated project from Replit Agent to Replit environment with all core functionality preserved
 - **ProfileHeader Integration**: Fixed missing ProfileHeader component in galleries by adding it to GalleryApp.tsx with proper props and data binding
@@ -167,6 +179,8 @@ This is a comprehensive wedding gallery application with the following architect
 - **Bulk Delete Functionality**: Added comprehensive bulk delete system to root admin panel with checkbox selection, parallel processing, error handling, and Firebase integration for efficient gallery management
 - **Visitor Profile Picture Fix**: Resolved Firebase Storage permission error preventing visitors from uploading profile pictures by implementing base64 conversion approach instead of Firebase Storage uploads, ensuring all visitors can set custom profile pictures without requiring special storage permissions
 - **Media Upload Permission Fix**: Fixed Firebase Storage "unauthorized" errors for media uploads by converting all media files to base64 format and storing them directly in Firestore, eliminating the need for Storage permissions while maintaining full upload functionality including photos, videos, tagging, and location features
+- **Story Upload Permission Fix**: Fixed story upload functionality by migrating from Firebase Storage to base64 conversion approach, ensuring stories can be uploaded without storage permission issues
+- **ProfileHeader UI Cleanup**: Removed unnecessary h3 header showing "Kristin & Maurizio 💕" from ProfileHeader component for cleaner interface
 
 ### June 27, 2025 (Admin Controls & Data Isolation Fix)
 - **Admin Panel Feature Toggles**: Implemented comprehensive admin control system with toggle buttons for Gallery, Music Wishlist, and Stories features with real-time siteStatus integration

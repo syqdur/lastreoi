@@ -18,6 +18,7 @@ export interface Gallery {
   id: string;
   eventName: string;
   slug: string;
+  theme: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes';
   password?: string;
   eventDate?: string;
   endDate?: string;
@@ -115,6 +116,7 @@ class GalleryService {
     const galleryData: any = {
       eventName: data.eventName,
       slug: data.slug,
+      theme: data.theme,
       isActive: true,
       isPasswordProtected: !!data.password,
       createdAt: new Date().toISOString(),
@@ -163,6 +165,7 @@ class GalleryService {
           firebaseId: docRef.id,
           slug: data.slug,
           eventName: data.eventName,
+          theme: data.theme,
           ownerName: data.ownerName || null,
           ownerEmail: data.ownerEmail || null,
           password: data.password || null,
