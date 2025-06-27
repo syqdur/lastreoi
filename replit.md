@@ -184,13 +184,16 @@ This is a comprehensive wedding gallery application with the following architect
 - **Enhanced Dynamic Theme Colors**: Improved UploadSection and TabNavigation components to dynamically use theme-specific colors from theme configuration instead of hardcoded pink/purple colors, ensuring proper color theming across all 4 event types (Hochzeit: Pink/Rose, Geburtstag: Purple/Violet, Urlaub: Blue/Cyan, Eigenes Event: Green/Emerald)
 - **Dynamic Background Theming**: Implemented comprehensive background color system that changes based on selected event theme - background gradients, decorative elements, logo colors, and text gradients all dynamically adapt to match the chosen event type, creating a fully immersive themed experience during gallery creation
 
-### June 27, 2025 (Netlify Deployment Setup Complete)
+### June 27, 2025 (Netlify Deployment Fixed and Ready)
 - **Netlify Functions Migration**: Converted Express server routes to serverless Netlify Functions with proper authentication, gallery management, and API endpoints
 - **Spotify Integration Setup**: Configured Spotify credentials (Client ID: 00f80ab84d074aafacc982e93f47942c) with proper redirect URI for telya.netlify.app domain
 - **Environment Variables Configuration**: Created comprehensive environment setup guide with all required variables for Netlify deployment
 - **Build Optimization**: Configured netlify.toml with proper build settings, function bundling, and redirect rules for SPA routing
 - **Security Preservation**: Maintained client/server separation with proper CORS handling and authentication in serverless environment
 - **Deployment Ready**: App fully configured for Netlify with root admin access (admin/Unhack85!$) and all core functionality preserved
+- **API Routing Fixed**: Corrected Netlify Functions routing by removing /api prefix from endpoints to match serverless function structure
+- **Build Dependencies Resolved**: Added explicit @rollup/rollup-linux-x64-gnu installation to fix missing binary errors in Netlify builds
+- **Function Testing Added**: Implemented test endpoint at /.netlify/functions/api/test for deployment verification
 
 ### June 27, 2025 (Final Migration Fixes)
 - **Gallery Creator = Root Admin**: Fixed gallery creation to automatically set the creator as root admin with proper localStorage flags for immediate admin access

@@ -105,8 +105,13 @@ app.use(async (req, res, next) => {
   next();
 });
 
+// Test route
+app.get('/test', (req, res) => {
+  res.json({ message: 'Netlify function is working!', timestamp: new Date().toISOString() });
+});
+
 // Root admin login
-app.post('/api/root-admin/login', async (req, res) => {
+app.post('/root-admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
@@ -123,7 +128,7 @@ app.post('/api/root-admin/login', async (req, res) => {
 });
 
 // Get all galleries for root admin
-app.get('/api/root-admin/galleries', async (req, res) => {
+app.get('/root-admin/galleries', async (req, res) => {
   try {
     const galleries = await storage.getAllGalleries();
     res.json(galleries);
@@ -134,7 +139,7 @@ app.get('/api/root-admin/galleries', async (req, res) => {
 });
 
 // Create gallery
-app.post('/api/galleries', async (req, res) => {
+app.post('/galleries', async (req, res) => {
   try {
     const gallery = await storage.createGallery(req.body);
     res.status(201).json(gallery);
@@ -145,7 +150,7 @@ app.post('/api/galleries', async (req, res) => {
 });
 
 // Update gallery stats
-app.put('/api/galleries/:firebaseId/stats', async (req, res) => {
+app.put('/galleries/:firebaseId/stats', async (req, res) => {
   try {
     const { firebaseId } = req.params;
     const { mediaCount, visitorCount } = req.body;
@@ -159,7 +164,7 @@ app.put('/api/galleries/:firebaseId/stats', async (req, res) => {
 });
 
 // Delete gallery
-app.delete('/api/root-admin/galleries/:id', async (req, res) => {
+app.delete('/root-admin/galleries/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await storage.deleteGallery(id);
