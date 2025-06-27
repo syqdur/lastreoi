@@ -1,60 +1,40 @@
-# Netlify Build Fix
+# Netlify Deployment Fix - Complete Solution
 
-## The Issue
-Your build is failing due to missing Rollup platform-specific binaries. This is a common npm dependency resolution issue.
+## Issue: 404 Error on Netlify Functions
 
-## Quick Fix
+The original issue was that Netlify Functions weren't responding properly due to routing conflicts.
 
-Replace your current `netlify.toml` with this configuration:
+## Solution Implemented
 
-```toml
-[build]
-  publish = "dist/public"
-  command = "npm install --legacy-peer-deps && npm install @rollup/rollup-linux-x64-gnu --save-dev && npx vite build"
-  functions = "netlify/functions"
+1. **Created Dedicated Function**: `netlify/functions/root-admin-login.js`
+   - Simple standalone function for admin authentication
+   - Direct endpoint: `/.netlify/functions/root-admin-login`
+   - Hardcoded admin credentials for reliability
 
-[build.environment]
-  NODE_VERSION = "18"
-  NPM_CONFIG_LEGACY_PEER_DEPS = "true"
+2. **Updated Client Code**: Modified `SimpleRootAdmin.tsx`
+   - Changed from `/api/root-admin/login` to `/.netlify/functions/root-admin-login`
+   - Direct fetch instead of API wrapper for better control
 
-[functions]
-  node_bundler = "esbuild"
+3. **Function Features**:
+   - CORS headers for cross-origin requests
+   - Proper error handling and status codes
+   - Admin credentials: username `admin`, password `Unhack85!$`
 
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
+## Test Your Deployment
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+After pushing to GitHub, test the admin login at:
+```
+https://telya.netlify.app/
 ```
 
-## Environment Variables Required
+1. Click "Root Admin" button
+2. Enter credentials: `admin` / `Unhack85!$`
+3. Should successfully authenticate
 
-In your Netlify dashboard, add these environment variables:
+## Backup Functions
 
-```
-VITE_API_BASE_URL=https://telya.netlify.app/.netlify/functions
-VITE_SPOTIFY_CLIENT_ID=00f80ab84d074aafacc982e93f47942c
-VITE_SPOTIFY_CLIENT_SECRET=e403ceac0ab847b58a1386c4e815a033
-VITE_SPOTIFY_REDIRECT_URI=https://telya.netlify.app/
-```
+If needed, you also have:
+- `netlify/functions/api.js` - Full Express server function
+- `netlify/functions/api.mjs` - ES modules version
 
-Plus your Firebase configuration variables.
-
-## Alternative Solution
-
-If the build still fails, try this simpler approach:
-
-1. Delete `node_modules` and `package-lock.json` from your repository
-2. Commit and push the changes
-3. The fresh build on Netlify should resolve dependencies correctly
-
-## Root Admin Access
-
-After successful deployment:
-- URL: https://telya.netlify.app/
-- Username: admin
-- Password: Unhack85!$
+The dedicated login function should resolve the 404 errors and provide reliable admin access to your wedding gallery app on Netlify.

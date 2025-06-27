@@ -93,8 +93,11 @@ export const SimpleRootAdmin: React.FC<SimpleRootAdminProps> = ({ isDarkMode, on
   const handleLogin = async () => {
     setIsLoggingIn(true);
     try {
-      const response = await apiRequest('/api/root-admin/login', {
+      const response = await fetch('/.netlify/functions/root-admin-login', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(loginData),
       });
 
