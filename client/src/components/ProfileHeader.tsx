@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, UserPlus, Clock, X, Heart, Lock, Unlock } from 'lucide-react';
+import { getThemeConfig } from '../config/themes';
 
 interface ProfileHeaderProps {
   isDarkMode: boolean;
@@ -43,6 +44,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   // Use gallery profile data instead of loading separate profile data
   const profileData = galleryProfileData;
+  
+  // Get theme configuration for event-specific styling
+  const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
+  
+
 
   // Countdown timer effect with memoized calculation
   useEffect(() => {
@@ -127,11 +133,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div className="flex items-center gap-4 sm:gap-6">
             <div
-              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden relative ring-4 transition-all duration-300 animate-pulse ${
-                isDarkMode 
-                  ? 'ring-gradient-to-r from-purple-600 to-pink-600 ring-purple-500/30' 
-                  : 'ring-gradient-to-r from-pink-500 to-purple-500 ring-pink-500/30'
-              }`} style={{
+              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden relative ring-4 transition-all duration-300 animate-pulse shadow-xl ${
+                gallery?.theme === 'hochzeit' ? 'ring-pink-500/40 hover:ring-pink-400/60 shadow-pink-500/25' :
+                gallery?.theme === 'geburtstag' ? 'ring-purple-500/40 hover:ring-purple-400/60 shadow-purple-500/25' :
+                gallery?.theme === 'urlaub' ? 'ring-blue-500/40 hover:ring-blue-400/60 shadow-blue-500/25' :
+                gallery?.theme === 'eigenes' ? 'ring-green-500/40 hover:ring-green-400/60 shadow-green-500/25' :
+                'ring-pink-500/40 hover:ring-pink-400/60 shadow-pink-500/25'
+              }`}
+              style={{
                 animation: 'pulse 2s ease-in-out infinite, ring-glow 3s ease-in-out infinite'
               }}
             >

@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
-import { GALLERY_THEMES } from '../config/themes';
+import { GALLERY_THEMES, getThemeConfig } from '../config/themes';
 
 interface TimelineEvent {
   id: string;
@@ -98,6 +98,64 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
   // Get theme configuration
   const themeConfig = GALLERY_THEMES[galleryTheme];
   const themeTexts = themeConfig?.texts;
+  
+  // Define theme-specific styling and icons
+  const getThemeTimelineConfig = () => {
+    switch (galleryTheme) {
+      case 'hochzeit':
+        return {
+          icon: '💕',
+          gradientFrom: 'from-pink-500',
+          gradientTo: 'to-rose-500',
+          buttonGradient: 'from-pink-400/80 to-purple-500/80',
+          buttonHover: 'hover:from-pink-400 hover:to-purple-500',
+          shadowColor: 'shadow-pink-500/25',
+          ringColor: 'ring-pink-200/30'
+        };
+      case 'geburtstag':
+        return {
+          icon: '🎂',
+          gradientFrom: 'from-purple-500',
+          gradientTo: 'to-violet-500',
+          buttonGradient: 'from-purple-400/80 to-pink-500/80',
+          buttonHover: 'hover:from-purple-400 hover:to-pink-500',
+          shadowColor: 'shadow-purple-500/25',
+          ringColor: 'ring-purple-200/30'
+        };
+      case 'urlaub':
+        return {
+          icon: '🏖️',
+          gradientFrom: 'from-blue-500',
+          gradientTo: 'to-cyan-500',
+          buttonGradient: 'from-blue-400/80 to-cyan-500/80',
+          buttonHover: 'hover:from-blue-400 hover:to-cyan-500',
+          shadowColor: 'shadow-blue-500/25',
+          ringColor: 'ring-blue-200/30'
+        };
+      case 'eigenes':
+        return {
+          icon: '🎊',
+          gradientFrom: 'from-green-500',
+          gradientTo: 'to-emerald-500',
+          buttonGradient: 'from-green-400/80 to-emerald-500/80',
+          buttonHover: 'hover:from-green-400 hover:to-emerald-500',
+          shadowColor: 'shadow-green-500/25',
+          ringColor: 'ring-green-200/30'
+        };
+      default:
+        return {
+          icon: '💕',
+          gradientFrom: 'from-pink-500',
+          gradientTo: 'to-rose-500',
+          buttonGradient: 'from-pink-400/80 to-purple-500/80',
+          buttonHover: 'hover:from-pink-400 hover:to-purple-500',
+          shadowColor: 'shadow-pink-500/25',
+          ringColor: 'ring-pink-200/30'
+        };
+    }
+  };
+  
+  const timelineTheme = getThemeTimelineConfig();
   const themeStyles = themeConfig?.styles;
   const eventTypes = getEventTypesForTheme(galleryTheme);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -620,8 +678,8 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
               onClick={() => setShowAddForm(true)}
               className={`flex items-center justify-center sm:justify-start gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 ${
                 isDarkMode 
-                  ? 'bg-gradient-to-r from-pink-500/80 to-purple-600/80 hover:from-pink-500 hover:to-purple-600 text-white border border-white/20 shadow-lg shadow-pink-500/25' 
-                  : 'bg-gradient-to-r from-pink-400/80 to-purple-500/80 hover:from-pink-400 hover:to-purple-500 text-white border border-white/30 shadow-lg shadow-pink-400/25'
+                  ? `bg-gradient-to-r ${timelineTheme.buttonGradient} ${timelineTheme.buttonHover} text-white border border-white/20 shadow-lg ${timelineTheme.shadowColor}` 
+                  : `bg-gradient-to-r ${timelineTheme.buttonGradient} ${timelineTheme.buttonHover} text-white border border-white/30 shadow-lg ${timelineTheme.shadowColor}`
               }`}
             >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -681,7 +739,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as TimelineEvent['type'] })}
                   disabled={isUploading}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-${timelineTheme.gradientFrom.split('-')[1]}-500/50 focus:border-${timelineTheme.gradientFrom.split('-')[1]}-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
                     isDarkMode 
                       ? 'bg-white/5 border-white/20 text-white' 
                       : 'bg-white/60 border-gray-200/40 text-gray-900'
@@ -714,7 +772,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                     : "z.B. Besonderer Moment, Meilenstein, ..."
                   }
                     disabled={isUploading}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-${timelineTheme.gradientFrom.split('-')[1]}-500/50 focus:border-${timelineTheme.gradientFrom.split('-')[1]}-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
                       isDarkMode 
                         ? 'bg-white/5 border-white/20 text-white placeholder-gray-400' 
                         : 'bg-white/60 border-gray-200/40 text-gray-900 placeholder-gray-500'
@@ -742,7 +800,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                     : "z.B. Besonderer Moment"
                   }
                   disabled={isUploading}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-${timelineTheme.gradientFrom.split('-')[1]}-500/50 focus:border-${timelineTheme.gradientFrom.split('-')[1]}-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
                     isDarkMode 
                       ? 'bg-white/5 border-white/20 text-white placeholder-gray-400' 
                       : 'bg-white/60 border-gray-200/40 text-gray-900 placeholder-gray-500'
@@ -763,7 +821,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   disabled={isUploading}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-${timelineTheme.gradientFrom.split('-')[1]}-500/50 focus:border-${timelineTheme.gradientFrom.split('-')[1]}-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
                     isDarkMode 
                       ? 'bg-white/5 border-white/20 text-white' 
                       : 'bg-white/60 border-gray-200/40 text-gray-900'
@@ -790,7 +848,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                     : "z.B. Veranstaltungsort"
                   }
                   disabled={isUploading}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-${timelineTheme.gradientFrom.split('-')[1]}-500/50 focus:border-${timelineTheme.gradientFrom.split('-')[1]}-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
                     isDarkMode 
                       ? 'bg-white/5 border-white/20 text-white placeholder-gray-400' 
                       : 'bg-white/60 border-gray-200/40 text-gray-900 placeholder-gray-500'
@@ -816,7 +874,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                   }
                   rows={3}
                   disabled={isUploading}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 outline-none resize-none backdrop-blur-sm transition-all duration-300 ${
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-${timelineTheme.gradientFrom.split('-')[1]}-500/50 focus:border-${timelineTheme.gradientFrom.split('-')[1]}-500/50 outline-none resize-none backdrop-blur-sm transition-all duration-300 ${
                     isDarkMode 
                       ? 'bg-white/5 border-white/20 text-white placeholder-gray-400' 
                       : 'bg-white/60 border-gray-200/40 text-gray-900 placeholder-gray-500'
@@ -965,7 +1023,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                   className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl backdrop-blur-sm transition-all duration-300 ${
                     isUploading
                       ? 'cursor-not-allowed opacity-50 bg-gray-400'
-                      : 'bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 shadow-lg shadow-pink-500/25'
+                      : `bg-gradient-to-r ${timelineTheme.buttonGradient} ${timelineTheme.buttonHover} shadow-lg ${timelineTheme.shadowColor}`
                   } text-white border border-white/20`}
                 >
                   {isUploading ? (
@@ -987,12 +1045,10 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
           <div className="text-center py-12">
             <div className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-300 ${
               isDarkMode 
-                ? 'bg-white/5 border-white/20 shadow-xl shadow-purple-500/10' 
-                : 'bg-white/60 border-gray-200/40 shadow-xl shadow-pink-500/10'
+                ? `bg-white/5 border-white/20 shadow-xl shadow-${timelineTheme.shadowColor.split('-')[1]}-500/10` 
+                : `bg-white/60 border-gray-200/40 shadow-xl ${timelineTheme.shadowColor}`
             }`}>
-              <Heart className={`w-8 h-8 transition-colors duration-300 ${
-                isDarkMode ? 'text-pink-400' : 'text-pink-500'
-              }`} />
+              <span className="text-3xl leading-none">{timelineTheme.icon}</span>
             </div>
             <h3 className={`text-2xl font-bold mb-3 transition-colors duration-300 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
@@ -1009,8 +1065,8 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                 onClick={() => setShowAddForm(true)}
                 className={`px-8 py-4 rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 ${
                   isDarkMode 
-                    ? 'bg-gradient-to-r from-pink-500/80 to-purple-600/80 hover:from-pink-500 hover:to-purple-600 text-white border border-white/20 shadow-lg shadow-pink-500/25' 
-                    : 'bg-gradient-to-r from-pink-400/80 to-purple-500/80 hover:from-pink-400 hover:to-purple-500 text-white border border-white/30 shadow-lg shadow-pink-400/25'
+                    ? `bg-gradient-to-r ${timelineTheme.buttonGradient} ${timelineTheme.buttonHover} text-white border border-white/20 shadow-lg ${timelineTheme.shadowColor}` 
+                    : `bg-gradient-to-r ${timelineTheme.buttonGradient} ${timelineTheme.buttonHover} text-white border border-white/30 shadow-lg ${timelineTheme.shadowColor}`
                 }`}
               >
 {themeTexts?.firstEventButton || 'Erstes Event hinzufügen'}
@@ -1022,8 +1078,8 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
             {/* Timeline Line */}
             <div className={`absolute left-6 sm:left-8 lg:left-10 top-0 bottom-0 w-0.5 sm:w-1 transition-all duration-300 ${
               isDarkMode 
-                ? 'bg-gradient-to-b from-pink-500/30 via-purple-500/30 to-pink-500/30' 
-                : 'bg-gradient-to-b from-pink-400/40 via-purple-400/40 to-pink-400/40'
+                ? `bg-gradient-to-b ${timelineTheme.gradientFrom}/30 via-${timelineTheme.gradientTo.split('-')[1]}/30 ${timelineTheme.gradientTo}/30` 
+                : `bg-gradient-to-b ${timelineTheme.gradientFrom}/40 via-${timelineTheme.gradientTo.split('-')[1]}/40 ${timelineTheme.gradientTo}/40`
             }`}></div>
 
             {/* Timeline Events */}

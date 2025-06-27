@@ -249,33 +249,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* Admin Controls - Instagram 2.0 Style */}
       {isAdmin && (
         <div className="fixed bottom-16 left-4 flex flex-col gap-2 sm:gap-4 max-w-xs">
-          {/* POST-WEDDING RECAP BUTTON */}
-          <button
-            onClick={handleOpenPostWeddingRecap}
-            className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
-              isDarkMode
-                ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-purple-500/20'
-                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-purple-500/20'
-            }`}
-            title="Post-Hochzeits-Zusammenfassung"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 opacity-60"></div>
-            <div className="relative flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
-                isDarkMode ? 'bg-gradient-to-br from-purple-600/30 to-pink-600/30' : 'bg-gradient-to-br from-purple-500/20 to-pink-500/20'
-              }`}>
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
-              </div>
-              <div className="flex-1 text-left">
-                <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Wedding Recap
-                </div>
-                <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Zusammenfassung
-                </div>
-              </div>
-            </div>
-          </button>
+
 
           {/* USER MANAGEMENT BUTTON */}
           <button
@@ -333,33 +307,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </button>
 
-          {/* Showcase Button */}
-          <button
-            onClick={() => setShowShowcase(true)}
-            className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
-              isDarkMode
-                ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-yellow-500/20'
-                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-yellow-500/20'
-            }`}
-            title="WeddingPix Showcase"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 opacity-60"></div>
-            <div className="relative flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
-                isDarkMode ? 'bg-gradient-to-br from-yellow-600/30 to-orange-600/30' : 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20'
-              }`}>
-                <Code className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
-              </div>
-              <div className="flex-1 text-left">
-                <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  WeddingPix
-                </div>
-                <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Showcase
-                </div>
-              </div>
-            </div>
-          </button>
+
 
           {/* Gallery Toggle */}
           {siteStatus && (
@@ -490,80 +438,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </button>
           )}
 
-          {/* Site Status Toggle */}
-          {siteStatus && (
-            <button
-              onClick={handleToggleSiteStatus}
-              disabled={isUpdatingSiteStatus}
-              className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
-                isUpdatingSiteStatus
-                  ? isDarkMode
-                    ? 'bg-gray-800/40 border-gray-700/30 cursor-not-allowed opacity-50'
-                    : 'bg-white/40 border-gray-200/30 cursor-not-allowed opacity-50'
-                  : isDarkMode
-                    ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-orange-500/20'
-                    : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-orange-500/20'
-              }`}
-              title={getSiteStatusInfo()}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-r opacity-60 ${
-                siteStatus.isUnderConstruction ? 'from-orange-500/20 to-yellow-500/20' : 'from-red-500/20 to-pink-500/20'
-              }`}></div>
-              <div className="relative flex items-center gap-2 sm:gap-3">
-                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
-                  siteStatus.isUnderConstruction
-                    ? isDarkMode ? 'bg-gradient-to-br from-orange-600/30 to-yellow-600/30' : 'bg-gradient-to-br from-orange-500/20 to-yellow-500/20'
-                    : isDarkMode ? 'bg-gradient-to-br from-red-600/30 to-pink-600/30' : 'bg-gradient-to-br from-red-500/20 to-pink-500/20'
-                }`}>
-                  {isUpdatingSiteStatus ? (
-                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Globe className={`w-4 h-4 sm:w-5 sm:h-5 ${siteStatus.isUnderConstruction ? 'text-orange-400' : 'text-red-400'}`} />
-                  )}
-                </div>
-                <div className="flex-1 text-left">
-                  <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Website Status
-                  </div>
-                  <div className={`text-xs hidden sm:block ${
-                    siteStatus.isUnderConstruction
-                      ? 'text-orange-400'
-                      : 'text-red-400'
-                  }`}>
-                    {siteStatus.isUnderConstruction ? 'Gesperrt' : 'Freigeschaltet'}
-                  </div>
-                </div>
-              </div>
-            </button>
-          )}
 
-          {/* External Services Button */}
-          <button
-            onClick={() => setShowExternalServices(true)}
-            className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
-              isDarkMode
-                ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-purple-500/20'
-                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-purple-500/20'
-            }`}
-            title="Deutsche Fotobuch-Services"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 opacity-60"></div>
-            <div className="relative flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
-                isDarkMode ? 'bg-gradient-to-br from-purple-600/30 to-indigo-600/30' : 'bg-gradient-to-br from-purple-500/20 to-indigo-500/20'
-              }`}>
-                <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
-              </div>
-              <div className="flex-1 text-left">
-                <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Fotobuch Services
-                </div>
-                <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Deutsche Anbieter
-                </div>
-              </div>
-            </div>
-          </button>
+
+
           
           {/* ZIP Download Button */}
           <button

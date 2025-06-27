@@ -977,9 +977,13 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   }
 
   if (showNamePrompt) {
-    return <UserNamePrompt onSubmit={(name: string, profilePicture?: File) => {
-      setUserName(name, profilePicture);
-    }} isDarkMode={isDarkMode} />;
+    return <UserNamePrompt 
+      onSubmit={(name: string, profilePicture?: File) => {
+        setUserName(name, profilePicture);
+      }} 
+      isDarkMode={isDarkMode} 
+      galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
+    />;
   }
 
   return (
@@ -1139,26 +1143,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           onEditGalleryProfile={() => setShowProfileEditModal(true)}
           gallery={gallery}
         />
-        
-        {/* Gallery Description */}
-        {gallery.description && (
-          <div className={`mx-2 sm:mx-4 mb-4 p-4 rounded-2xl ${
-            isDarkMode ? 'bg-gray-800/50' : 'bg-white/50'
-          } backdrop-blur-sm`}>
-            <p className={`text-center ${
-              isDarkMode ? 'text-gray-300' : 'text-gray-700'
-            }`}>
-              {gallery.description}
-            </p>
-            {gallery.eventDate && (
-              <p className={`text-center text-sm mt-2 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>
-                📅 {new Date(gallery.eventDate).toLocaleDateString('de-DE')}
-              </p>
-            )}
-          </div>
-        )}
+
         
         {/* Stories Bar */}
         {siteStatus?.storiesEnabled && (
