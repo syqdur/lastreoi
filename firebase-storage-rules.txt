@@ -1,0 +1,97 @@
+// Firebase Storage Security Rules for Multi-Instance Wedding Gallery Platform
+// Copy these rules to your Firebase Console -> Storage -> Rules
+// Navigate to: Firebase Console -> Project -> Storage -> Rules Tab
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // =================
+    // GALLERY-SPECIFIC STORAGE
+    // =================
+    
+    // Gallery-specific media storage
+    match /galleries/{galleryId}/uploads/{allPaths=**} {
+      allow read: if true; // Anyone with gallery access can view media
+      allow write: if true; // Anyone can upload to gallery
+    }
+    
+    // Gallery-specific stories storage (24h auto-delete)
+    match /galleries/{galleryId}/stories/{allPaths=**} {
+      allow read: if true; // Anyone with gallery access can view stories
+      allow write: if true; // Anyone can upload stories
+    }
+    
+    // Gallery-specific profile pictures
+    match /galleries/{galleryId}/profile-pictures/{allPaths=**} {
+      allow read: if true; // Anyone can view profile pictures
+      allow write: if true; // Anyone can upload profile pictures
+    }
+    
+    // Gallery-specific main profile (couple's profile)
+    match /galleries/{galleryId}/profile/{allPaths=**} {
+      allow read: if true; // Anyone can view gallery profile
+      allow write: if true; // Anyone can upload gallery profile (controlled by app logic)
+    }
+    
+    // Gallery-specific timeline media
+    match /galleries/{galleryId}/timeline/{allPaths=**} {
+      allow read: if true; // Anyone can view timeline media
+      allow write: if true; // Anyone can upload timeline media (controlled by app logic)
+    }
+    
+    // =================
+    // LEGACY STORAGE (Backward Compatibility)
+    // =================
+    
+    // Allow read access to all files for backward compatibility
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+    
+    // Allow write access to uploads folder (original structure)
+    match /uploads/{allPaths=**} {
+      allow write: if true;
+    }
+    
+    // Allow write access to profile folder (main profile data)
+    match /profile/{allPaths=**} {
+      allow write: if true;
+    }
+    
+    // Allow write access to user-profiles folder (individual user profiles)
+    match /user-profiles/{allPaths=**} {
+      allow write: if true;
+    }
+    
+    // Allow write access to stories folder (legacy stories)
+    match /stories/{allPaths=**} {
+      allow write: if true;
+    }
+    
+    // Test storage access
+    match /test/{allPaths=**} {
+      allow read, write: if true;
+    }
+    
+    // =================
+    // SECURITY NOTES
+    // =================
+    
+    // Current implementation uses app-level logic for access control
+    // rather than Firebase Auth due to the anonymous nature of wedding galleries.
+    // 
+    // Future enhancements could include:
+    // - Gallery-specific access tokens
+    // - Password-based gallery access validation
+    // - Owner authentication for admin actions
+    // - Rate limiting for uploads
+    // - File size and type validation
+    //
+    // For now, all security is handled at the application level with:
+    // - Gallery slug/password validation
+    // - Device ID tracking for user identification
+    // - Admin status stored in localStorage
+    // - UI-level permission checks
+  }
+}

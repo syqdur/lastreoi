@@ -1,0 +1,10 @@
+// Simplified Firebase Storage Rules for Testing
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow all reads and writes for testing
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}
