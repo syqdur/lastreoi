@@ -55,9 +55,12 @@ export const SpotifyCallback: React.FC<SpotifyCallbackProps> = ({ isDarkMode }) 
           action: spotifyError.action
         });
         
-        // Auto-redirect after OAuth errors
+        // Auto-redirect after OAuth errors back to original gallery
+        const returnPath = localStorage.getItem('spotify_return_path') || '/';
+        localStorage.removeItem('spotify_return_path');
+        
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = returnPath;
         }, 5000);
         return;
       }
@@ -78,8 +81,11 @@ export const SpotifyCallback: React.FC<SpotifyCallbackProps> = ({ isDarkMode }) 
           hasState: !!state
         });
         
+        const returnPath = localStorage.getItem('spotify_return_path') || '/';
+        localStorage.removeItem('spotify_return_path');
+        
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = returnPath;
         }, 5000);
         return;
       }
@@ -92,9 +98,12 @@ export const SpotifyCallback: React.FC<SpotifyCallbackProps> = ({ isDarkMode }) 
       setStatus('success');
       setMessage('Spotify connected successfully! Redirecting...');
       
-      // Redirect after success
+      // Redirect back to original gallery or home
+      const returnPath = localStorage.getItem('spotify_return_path') || '/';
+      localStorage.removeItem('spotify_return_path');
+      
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = returnPath;
       }, 2000);
       
     } catch (error: any) {
@@ -128,9 +137,12 @@ export const SpotifyCallback: React.FC<SpotifyCallbackProps> = ({ isDarkMode }) 
         });
       }
       
-      // Auto-redirect after error
+      // Auto-redirect after error back to original gallery
+      const returnPath = localStorage.getItem('spotify_return_path') || '/';
+      localStorage.removeItem('spotify_return_path');
+      
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = returnPath;
       }, 8000);
     }
   };
@@ -141,7 +153,9 @@ export const SpotifyCallback: React.FC<SpotifyCallbackProps> = ({ isDarkMode }) 
   };
 
   const handleManualRedirect = () => {
-    window.location.href = '/';
+    const returnPath = localStorage.getItem('spotify_return_path') || '/';
+    localStorage.removeItem('spotify_return_path');
+    window.location.href = returnPath;
   };
 
   return (

@@ -194,6 +194,7 @@ This is a comprehensive wedding gallery application with the following architect
 - **API Routing Fixed**: Corrected Netlify Functions routing by removing /api prefix from endpoints to match serverless function structure
 - **Build Dependencies Resolved**: Added explicit @rollup/rollup-linux-x64-gnu installation to fix missing binary errors in Netlify builds
 - **Function Testing Added**: Implemented test endpoint at /.netlify/functions/api/test for deployment verification
+- **Spotify Redirect Fix**: Fixed Spotify authentication redirect to properly return users to their specific gallery instead of root URL after OAuth callback
 
 ### June 27, 2025 (Final Migration Fixes)
 - **Gallery Creator = Root Admin**: Fixed gallery creation to automatically set the creator as root admin with proper localStorage flags for immediate admin access

@@ -355,12 +355,14 @@ export const getAuthorizationUrl = async (): Promise<string> => {
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = await generateCodeChallenge(codeVerifier);
   
-  // Generate random state
+  // Generate random state and store current path for redirect
   const state = Math.random().toString(36).substring(2, 15);
+  const currentPath = window.location.pathname;
   
-  // Store code verifier and state in localStorage
+  // Store code verifier, state, and return path in localStorage
   localStorage.setItem(PKCE_CODE_VERIFIER_KEY, codeVerifier);
   localStorage.setItem(PKCE_STATE_KEY, state);
+  localStorage.setItem('spotify_return_path', currentPath);
   
   // Define scopes
   const scopes = [
