@@ -1,6 +1,5 @@
 # Force HTTPS for telya.netlify.app
 http://telya.netlify.app/* https://telya.netlify.app/:splat 301!
-# Gallery routes - dynamic gallery access by slug
 /gallery/:slug /client/index.html 200
 /gallery/:slug/* /client/index.html 200
 # Admin and management routes
