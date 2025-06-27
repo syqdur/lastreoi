@@ -1,5 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, Trash2, Users, Camera, Globe, ArrowLeft, LogOut, Shield, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface RootAdminDashboardProps {
   isDarkMode: boolean;
@@ -44,6 +50,7 @@ export const RootAdminDashboard: React.FC<RootAdminDashboardProps> = ({ isDarkMo
 
   const [galleries, setGalleries] = useState<GalleryData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeletingGallery, setIsDeletingGallery] = useState<number | null>(null);
 
   const fetchGalleries = async () => {
     if (!isLoggedIn) return;
@@ -62,6 +69,13 @@ export const RootAdminDashboard: React.FC<RootAdminDashboardProps> = ({ isDarkMo
     }
     setIsLoading(false);
   };
+
+  // Fetch galleries when logged in
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchGalleries();
+    }
+  }, [isLoggedIn]);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
@@ -99,9 +113,37 @@ export const RootAdminDashboard: React.FC<RootAdminDashboardProps> = ({ isDarkMo
     setIsLoggingIn(false);
   };
 
-  const handleDeleteGallery = (gallery: GalleryData) => {
+  const handleDeleteGallery = async (gallery: GalleryData) => {
     if (confirm(`Are you sure you want to delete "${gallery.eventName}"? This action cannot be undone.`)) {
-      deleteGalleryMutation.mutate(gallery.id);
+      setIsDeletingGallery(gallery.id);
+      try {
+        const response = await fetch(`/api/root-admin/galleries/${gallery.id}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          // Remove gallery from local state
+          setGalleries(prev => prev.filter(g => g.id !== gallery.id));
+          toast({
+            title: "Success",
+            description: `Gallery "${gallery.eventName}" deleted successfully`,
+          });
+        } else {
+          const result = await response.json();
+          toast({
+            title: "Error",
+            description: result.error || "Failed to delete gallery",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete gallery",
+          variant: "destructive",
+        });
+      }
+      setIsDeletingGallery(null);
     }
   };
 
@@ -353,9 +395,9 @@ export const RootAdminDashboard: React.FC<RootAdminDashboardProps> = ({ isDarkMo
                               size="sm"
                               variant="destructive"
                               onClick={() => handleDeleteGallery(gallery)}
-                              disabled={deleteGalleryMutation.isPending}
+                              disabled={isDeletingGallery === gallery.id}
                             >
-                              {deleteGalleryMutation.isPending ? (
+                              {isDeletingGallery === gallery.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
                                 <Trash2 className="h-4 w-4" />

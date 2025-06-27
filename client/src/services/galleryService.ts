@@ -382,6 +382,15 @@ class GalleryService {
       updatedAt: new Date().toISOString()
     });
   }
+
+  // Get all galleries (for root admin)
+  async getAllGalleries(): Promise<Gallery[]> {
+    const galleriesSnapshot = await getDocs(collection(db, 'galleries'));
+    return galleriesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Gallery[];
+  }
 }
 
 export const galleryService = GalleryService.getInstance();

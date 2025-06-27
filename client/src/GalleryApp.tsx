@@ -30,6 +30,7 @@ import { Gallery, galleryService } from './services/galleryService';
 import { storage, db } from './config/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
+import { onSnapshot } from 'firebase/firestore';
 import {
   uploadFiles,
   uploadVideoBlob,
@@ -612,27 +613,43 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     }
   };
 
-  // Real-time profile synchronization
+  // Real-time profile synchronization using Firebase listener
   useEffect(() => {
     if (!userName || !deviceId) return;
     
-    const checkProfileUpdates = async () => {
-      try {
-        const latestProfile = await getGalleryUserProfile(userName, deviceId, gallery.id);
-        if (latestProfile && JSON.stringify(latestProfile) !== JSON.stringify(currentUserProfile)) {
+    console.log('🔄 Setting up real-time profile listener for:', userName);
+    
+    const userProfileRef = doc(db, 'galleries', gallery.id, 'userProfiles', `${userName}_${deviceId}`);
+    
+    const unsubscribe = onSnapshot(userProfileRef, (doc) => {
+      if (doc.exists()) {
+        const profileData = doc.data();
+        const latestProfile = {
+          id: doc.id,
+          ...profileData
+        } as UserProfile;
+        
+        // Only update if data actually changed
+        if (JSON.stringify(latestProfile) !== JSON.stringify(currentUserProfile)) {
+          console.log('✅ Profile updated via listener:', latestProfile);
           setCurrentUserProfile(latestProfile);
         }
-      } catch (error) {
-        console.error('Error checking profile updates:', error);
+      } else {
+        // Profile doesn't exist, set to null
+        if (currentUserProfile !== null) {
+          console.log('📝 Profile not found, setting to null');
+          setCurrentUserProfile(null);
+        }
       }
-    };
-    
-    const interval = setInterval(checkProfileUpdates, 3000);
+    }, (error) => {
+      console.error('Error in profile listener:', error);
+    });
     
     return () => {
-      clearInterval(interval);
+      console.log('🔌 Cleaning up profile listener');
+      unsubscribe();
     };
-  }, [userName, deviceId, currentUserProfile, gallery.id]);
+  }, [userName, deviceId, gallery.id]); // Removed currentUserProfile from dependencies to prevent loops
 
   // Load current user profile
   useEffect(() => {

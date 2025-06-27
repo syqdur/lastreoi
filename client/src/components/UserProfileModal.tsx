@@ -3,8 +3,7 @@ import { X, Camera, User, Save, Upload } from 'lucide-react';
 import { UserProfile } from '../services/firebaseService';
 import { 
   getGalleryUserProfile, 
-  createOrUpdateGalleryUserProfile, 
-  uploadGalleryUserProfilePicture
+  createOrUpdateGalleryUserProfile
 } from '../services/galleryFirebaseService';
 
 interface UserProfileModalProps {
@@ -89,11 +88,20 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
     setIsUploading(true);
     try {
-      const downloadURL = await uploadGalleryUserProfilePicture(file, userName, deviceId, galleryId);
-      setProfilePicture(downloadURL);
+      // Convert image to base64 instead of uploading to Firebase Storage
+      console.log('📸 Converting visitor profile picture to base64...');
+      const reader = new FileReader();
+      const base64Image = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      
+      console.log('✅ Profile picture converted to base64 successfully');
+      setProfilePicture(base64Image);
     } catch (error) {
-      console.error('Error uploading profile picture:', error);
-      alert('Fehler beim Hochladen des Profilbildes. Bitte versuchen Sie es erneut.');
+      console.error('Error converting profile picture:', error);
+      alert('Fehler beim Verarbeiten des Profilbildes. Bitte versuchen Sie es erneut.');
     } finally {
       setIsUploading(false);
     }

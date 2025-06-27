@@ -1,10 +1,5 @@
-import { 
-  ref, 
-  uploadBytes, 
-  listAll, 
-  getDownloadURL, 
-  deleteObject 
-} from 'firebase/storage';
+// Storage imports removed - now using base64 conversion
+import { db } from '../config/firebase';
 import { 
   collection, 
   addDoc, 
@@ -17,7 +12,6 @@ import {
   getDocs,
   updateDoc
 } from 'firebase/firestore';
-import { storage, db } from '../config/firebase';
 import { MediaItem, Comment, Like, ProfileData, MediaTag, LocationTag } from '../types';
 import { UserProfile } from './firebaseService';
 
@@ -51,11 +45,11 @@ export const loadGalleryMedia = (
       let url = '';
       
       if (data.type !== 'note') {
-        try {
-          const storageRef = ref(storage, `galleries/${galleryId}/uploads/${data.name}`);
-          url = await getDownloadURL(storageRef);
-        } catch (error) {
-          console.warn(`Could not load media: ${data.name}`, error);
+        // Use base64 data directly instead of storage URLs
+        if (data.base64Data) {
+          url = data.base64Data;
+        } else {
+          console.warn(`⚠️ No base64 data found for ${data.name}`);
           url = '';
         }
       }
@@ -91,20 +85,30 @@ export const uploadGalleryFiles = async (
   let uploaded = 0;
   
   for (const file of Array.from(files)) {
-    const fileName = `${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, `galleries/${galleryId}/uploads/${fileName}`);
+    console.log(`📸 Converting media file to base64: ${file.name}`);
     
-    await uploadBytes(storageRef, file);
+    // Convert file to base64 instead of uploading to Firebase Storage
+    const reader = new FileReader();
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
     
-    // Add metadata to gallery-specific collection
+    console.log(`✅ Media file converted to base64 successfully`);
+    
+    // Add metadata to gallery-specific collection with base64 data
     const isVideo = file.type.startsWith('video/');
     const mediaCollection = `galleries/${galleryId}/media`;
     await addDoc(collection(db, mediaCollection), {
-      name: fileName,
+      name: `${Date.now()}-${file.name}`,
       uploadedBy: userName,
       deviceId: deviceId,
       uploadedAt: new Date().toISOString(),
-      type: isVideo ? 'video' : 'image'
+      type: isVideo ? 'video' : 'image',
+      base64Data: base64Data, // Store base64 data directly
+      mimeType: file.type,
+      size: file.size
     });
     
     uploaded++;
