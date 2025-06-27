@@ -1,4 +1,14 @@
-/* /index.html 200
-/admin/post-wedding-recap /index.html 200
-/recap /index.html 200
-/recap/* /index.html 200
+# Force HTTPS for telya.netlify.app
+http://telya.netlify.app/* https://telya.netlify.app/:splat 301!
+/gallery/:slug /client/index.html 200
+/gallery/:slug/* /client/index.html 200
+# Admin and management routes
+/admin /client/index.html 200
+/admin/* /client/index.html 200
+/root-admin /client/index.html 200
+/root-admin/* /client/index.html 200
+# Legacy routes
+/recap /client/index.html 200
+/recap/* /client/index.html 200
+# Handle all other SPA routes
+/* /client/index.html 200

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Heart, Camera, Music, Users, Star, ArrowRight, Sparkles, Globe, Shield, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, Camera, Music, Users, Star, ArrowRight, Sparkles, Globe, Shield, Clock, Code, Terminal, Zap } from 'lucide-react';
+import { TelyaLogo } from './TelyaLogo';
 
 interface LandingPageProps {
   isDarkMode: boolean;
@@ -19,60 +20,62 @@ export interface GalleryCreationData {
   ownerEmail?: string;
 }
 
-// Theme definitions with German text and styling
 const THEMES = {
   hochzeit: {
-    id: 'hochzeit',
-    name: 'Hochzeit',
-    icon: '💍',
-    color: 'pink',
+    name: 'Hochzeit 💍',
+    description: 'Romantische Momente für euren besonderen Tag',
     primaryColor: 'pink-500',
-    description: 'Für euren schönsten Tag - Teilt eure Lieblingsmomente der Hochzeit',
-    defaultTexts: {
-      description: 'Wir sagen JA! ✨ Teilt eure schönsten Momente unserer Hochzeit mit uns!',
-      welcome: 'Herzlich willkommen zu unserer Hochzeit! 💕'
-    }
+    secondaryColor: 'rose-500',
+    gradient: 'from-pink-500 via-rose-500 to-pink-600',
+    bgGradient: 'from-pink-50 via-rose-50 to-purple-50',
+    darkBgGradient: 'from-pink-900/20 via-rose-900/20 to-purple-900/20',
+    dateLabel: 'Hochzeitsdatum',
+    endDateLabel: 'Ende der Feier',
+    icon: '💍',
+    momentsText: 'Hochzeitsmomente'
   },
   geburtstag: {
-    id: 'geburtstag',
-    name: 'Geburtstag',
-    icon: '🎂',
-    color: 'purple',
+    name: 'Geburtstag 🎂',
+    description: 'Feiert gemeinsam euren besonderen Tag',
     primaryColor: 'purple-500',
-    description: 'Feiert mit uns - Sammelt alle Erinnerungen der Geburtstagsparty',
-    defaultTexts: {
-      description: 'Let\'s Party! 🎉 Sammelt hier alle tollen Momente meiner Geburtstagsfeier!',
-      welcome: 'Willkommen zu meiner Geburtstagsparty! 🎂'
-    }
+    secondaryColor: 'violet-500',
+    gradient: 'from-purple-500 via-violet-500 to-purple-600',
+    bgGradient: 'from-purple-50 via-violet-50 to-indigo-50',
+    darkBgGradient: 'from-purple-900/20 via-violet-900/20 to-indigo-900/20',
+    dateLabel: 'Geburtstagsdatum',
+    endDateLabel: 'Ende der Party',
+    icon: '🎂',
+    momentsText: 'Party-Momente'
   },
   urlaub: {
-    id: 'urlaub',
-    name: 'Urlaub',
-    icon: '🏖️',
-    color: 'blue',
+    name: 'Urlaub 🏖️',
+    description: 'Sammelt eure schönsten Reiseerinnerungen',
     primaryColor: 'blue-500',
-    description: 'Urlaubserinnerungen sammeln - Die schönsten Momente eurer Reise',
-    defaultTexts: {
-      description: 'Unser Traumurlaub! 🌴 Hier sammeln wir alle Highlights unserer Reise!',
-      welcome: 'Willkommen zu unseren Urlaubserinnerungen! ✈️'
-    }
+    secondaryColor: 'cyan-500',
+    gradient: 'from-blue-500 via-cyan-500 to-blue-600',
+    bgGradient: 'from-blue-50 via-cyan-50 to-teal-50',
+    darkBgGradient: 'from-blue-900/20 via-cyan-900/20 to-teal-900/20',
+    dateLabel: 'Reisebeginn',
+    endDateLabel: 'Rückkehr',
+    icon: '🏖️',
+    momentsText: 'Reise-Momente'
   },
   eigenes: {
-    id: 'eigenes',
-    name: 'Eigenes Event',
-    icon: '🎊',
-    color: 'green',
+    name: 'Eigenes Event 🎊',
+    description: 'Für alle anderen besonderen Anlässe',
     primaryColor: 'green-500',
-    description: 'Für jeden Anlass - Gestaltet eure ganz persönliche Galerie',
-    defaultTexts: {
-      description: 'Unser besonderes Event! ✨ Teilt hier eure schönsten Momente mit uns!',
-      welcome: 'Herzlich willkommen! 🎊'
-    }
+    secondaryColor: 'emerald-500',
+    gradient: 'from-green-500 via-emerald-500 to-green-600',
+    bgGradient: 'from-green-50 via-emerald-50 to-teal-50',
+    darkBgGradient: 'from-green-900/20 via-emerald-900/20 to-teal-900/20',
+    dateLabel: 'Event-Datum',
+    endDateLabel: 'Event-Ende',
+    icon: '🎊',
+    momentsText: 'Event-Momente'
   }
-} as const;
+};
 
 export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGallery, onRootAdminLogin }) => {
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState<GalleryCreationData>({
     eventName: '',
     slug: '',
@@ -80,48 +83,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
     password: '',
     eventDate: '',
     endDate: '',
-    description: THEMES.hochzeit.defaultTexts.description,
+    description: '',
     ownerName: '',
     ownerEmail: ''
   });
+
+  const [showForm, setShowForm] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [slugError, setSlugError] = useState('');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showImprint, setShowImprint] = useState(false);
+  const [floatingElements, setFloatingElements] = useState<Array<{id: number, x: number, y: number, delay: number}>>([]);
 
-  // Get background colors based on current theme
-  const getThemeBackgroundColors = () => {
-    const theme = THEMES[formData.theme];
-    switch (theme.color) {
-      case 'pink':
-        return {
-          light: 'bg-gradient-to-br from-pink-50 via-white to-rose-50',
-          decorations: ['bg-pink-300', 'bg-rose-300', 'bg-pink-200']
-        };
-      case 'purple':
-        return {
-          light: 'bg-gradient-to-br from-purple-50 via-white to-violet-50',
-          decorations: ['bg-purple-300', 'bg-violet-300', 'bg-purple-200']
-        };
-      case 'blue':
-        return {
-          light: 'bg-gradient-to-br from-blue-50 via-white to-cyan-50',
-          decorations: ['bg-blue-300', 'bg-cyan-300', 'bg-blue-200']
-        };
-      case 'green':
-        return {
-          light: 'bg-gradient-to-br from-green-50 via-white to-emerald-50',
-          decorations: ['bg-green-300', 'bg-emerald-300', 'bg-green-200']
-        };
-      default:
-        return {
-          light: 'bg-gradient-to-br from-pink-50 via-white to-rose-50',
-          decorations: ['bg-pink-300', 'bg-rose-300', 'bg-pink-200']
-        };
-    }
-  };
+  useEffect(() => {
+    // Create floating animation elements
+    const elements = Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      delay: Math.random() * 5
+    }));
+    setFloatingElements(elements);
+
+    // Trigger entrance animation
+    setIsAnimating(true);
+  }, []);
 
   const generateSlug = (eventName: string) => {
     return eventName
       .toLowerCase()
+      .replace(/[äöüß]/g, (match) => ({ 'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss' }[match] || match))
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
@@ -133,16 +124,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
       ...prev,
       eventName: value,
       slug: generateSlug(value)
-    }));
-    setSlugError('');
-  };
-
-  const handleThemeChange = (themeId: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes') => {
-    const theme = THEMES[themeId];
-    setFormData(prev => ({
-      ...prev,
-      theme: themeId,
-      description: theme.defaultTexts.description
     }));
   };
 
@@ -159,220 +140,153 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
       setSlugError('URL darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten');
       return false;
     }
+    setSlugError('');
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🚀 Form submitted!', formData);
-    console.log('🔍 Event name:', formData.eventName);
-    console.log('🔍 Slug:', formData.slug);
     
     if (!validateSlug(formData.slug)) {
-      console.log('❌ Slug validation failed');
-      alert('URL-Validierung fehlgeschlagen');
       return;
     }
 
     if (!formData.eventName.trim()) {
-      console.log('❌ Event name validation failed');
-      alert('Bitte geben Sie einen Event-Namen ein');
       return;
     }
 
-    console.log('✅ Validation passed, creating gallery...');
     setIsCreating(true);
     try {
-      console.log('📞 Calling onCreateGallery with:', formData);
       await onCreateGallery(formData);
-      console.log('✅ Gallery creation successful');
     } catch (error) {
-      console.error('❌ Error creating gallery:', error);
-      alert(`Fehler beim Erstellen der Galerie: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
+      console.error('Error creating gallery:', error);
     } finally {
       setIsCreating(false);
-      console.log('🏁 Gallery creation process finished');
     }
   };
 
   const features = [
     {
       icon: <Camera className="w-6 h-6" />,
-      title: 'Instagram-Style Feed',
-      description: 'Fotos, Videos und Nachrichten in Echtzeit teilen'
-    },
-    {
-      icon: <Sparkles className="w-6 h-6" />,
-      title: '24h Stories',
-      description: 'Spontane Momente, die nach einem Tag verschwinden'
-    },
-    {
-      icon: <Music className="w-6 h-6" />,
-      title: 'Spotify Integration',
-      description: 'Musikwünsche sammeln und direkt zur Playlist hinzufügen'
+      title: "Instagram-Style Feed",
+      description: "Teilt Fotos & Videos in Echtzeit"
     },
     {
       icon: <Users className="w-6 h-6" />,
-      title: 'Live Tracking',
-      description: 'Sehen Sie, wer gerade online ist und aktiv teilnimmt'
+      title: "Live Presence",
+      description: "Seht wer gerade online ist"
+    },
+    {
+      icon: <Music className="w-6 h-6" />,
+      title: "Spotify Integration",
+      description: "Gemeinsame Musikwünsche"
     },
     {
       icon: <Heart className="w-6 h-6" />,
-      title: 'Timeline',
-      description: 'Interaktive Liebesgeschichte mit Meilensteinen'
-    },
-    {
-      icon: <Shield className="w-6 h-6" />,
-      title: 'Privat & Sicher',
-      description: 'Jede Galerie ist standardmäßig privat und geschützt'
+      title: "Stories & Timeline",
+      description: "24h Stories & Meilensteine"
     }
   ];
 
-  const themeColors = getThemeBackgroundColors();
-
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode ? 'bg-gray-900' : themeColors.light
+    <div className={`min-h-screen relative overflow-hidden ${
+      isDarkMode 
+        ? 'bg-black' 
+        : 'bg-white'
     }`}>
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        {/* Background decorations */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className={`absolute top-20 left-10 w-32 h-32 rounded-full blur-3xl opacity-20 ${
-            isDarkMode ? `bg-${THEMES[formData.theme].primaryColor}` : themeColors.decorations[0]
-          }`}></div>
-          <div className={`absolute top-40 right-20 w-24 h-24 rounded-full blur-2xl opacity-30 ${
-            isDarkMode ? `bg-${THEMES[formData.theme].primaryColor}` : themeColors.decorations[1]
-          }`}></div>
-          <div className={`absolute bottom-20 left-1/4 w-40 h-40 rounded-full blur-3xl opacity-15 ${
-            isDarkMode ? `bg-${THEMES[formData.theme].primaryColor}` : themeColors.decorations[2]
-          }`}></div>
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 py-20">
-          <div className="text-center">
-            {/* Logo/Brand */}
-            <div className="flex items-center justify-center gap-3 mb-8">
-              <div className={`p-4 rounded-2xl ${
-                isDarkMode ? `bg-${THEMES[formData.theme].primaryColor}` : `bg-${THEMES[formData.theme].primaryColor}`
-              } text-white shadow-lg`}>
-                <Camera className="w-8 h-8" />
-              </div>
-              <h1 className={`text-4xl font-bold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                EventPix
-              </h1>
-            </div>
-
-            {/* Hero Title */}
-            <h2 className={`text-5xl md:text-6xl font-bold mb-6 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Eure Momente,
-              <br />
-              <span className={`bg-gradient-to-r ${
-                formData.theme === 'hochzeit' ? 'from-pink-500 via-rose-500 to-pink-600' :
-                formData.theme === 'geburtstag' ? 'from-purple-500 via-violet-500 to-purple-600' :
-                formData.theme === 'urlaub' ? 'from-blue-500 via-cyan-500 to-blue-600' :
-                'from-green-500 via-emerald-500 to-green-600'
-              } bg-clip-text text-transparent`}>
-                unvergesslich geteilt
-              </span>
-            </h2>
-
-            <p className={`text-xl md:text-2xl mb-12 max-w-3xl mx-auto ${
-              isDarkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-              Erstellt eure eigene private Galerie in Sekunden. 
-              Gäste teilen Momente in Echtzeit – ohne Registrierung, ohne Kompliziertes.
-            </p>
-
-            {/* CTA Button */}
-            <button
-              onClick={() => {
-                console.log('Button clicked!');
-                setShowCreateForm(true);
-              }}
-              className={`group inline-flex items-center gap-3 px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 ${
-                formData.theme === 'hochzeit' 
-                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-xl'
-                  : formData.theme === 'geburtstag'
-                  ? 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white shadow-xl'
-                  : formData.theme === 'urlaub'
-                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-xl'
-                  : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-xl'
-              }`}
-            >
-              <Sparkles className="w-6 h-6" />
-              Galerie jetzt erstellen
-              <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-            </button>
-
-            <p className={`text-sm mt-4 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              ✨ Kostenlos • Keine Registrierung erforderlich • In 2 Minuten einsatzbereit
-            </p>
-            
-            {/* Subtle admin button */}
-            {onRootAdminLogin && (
-              <button
-                onClick={onRootAdminLogin}
-                className={`text-xs mt-2 px-2 py-1 rounded transition-colors ${
-                  isDarkMode 
-                    ? 'text-gray-500 hover:text-gray-400' 
-                    : 'text-gray-400 hover:text-gray-600'
-                }`}
-              >
-                Admin
-              </button>
-            )}
-          </div>
-        </div>
+      {/* Apple-style flowing gradient background */}
+      <div className="absolute inset-0 opacity-80">
+        <div className={`absolute inset-0 ${
+          isDarkMode 
+            ? 'opacity-30' 
+            : 'opacity-100'
+        }`} style={{
+          background: `
+            radial-gradient(ellipse 80% 50% at 20% 40%, #ff6b6b 0%, transparent 50%),
+            radial-gradient(ellipse 60% 50% at 80% 50%, #4ecdc4 0%, transparent 50%),
+            radial-gradient(ellipse 70% 50% at 40% 80%, #45b7d1 0%, transparent 50%),
+            radial-gradient(ellipse 100% 70% at 80% 20%, #96ceb4 0%, transparent 50%),
+            radial-gradient(ellipse 60% 40% at 10% 90%, #ffeaa7 0%, transparent 50%),
+            linear-gradient(135deg, #667eea 0%, #764ba2 100%)
+          `
+        }} />
+        
+        {/* Apple-style flowing shapes overlay */}
+        <div className={`absolute inset-0 ${
+          isDarkMode 
+            ? 'opacity-20' 
+            : 'opacity-60'
+        }`} style={{
+          background: `
+            radial-gradient(ellipse 120% 80% at 30% 60%, rgba(255, 107, 107, 0.3) 0%, transparent 60%),
+            radial-gradient(ellipse 100% 60% at 70% 30%, rgba(78, 205, 196, 0.3) 0%, transparent 60%),
+            radial-gradient(ellipse 80% 100% at 60% 70%, rgba(69, 183, 209, 0.3) 0%, transparent 60%)
+          `
+        }} />
       </div>
 
-      {/* Features Section */}
-      <div className={`py-20 ${
-        isDarkMode ? 'bg-gray-800/50' : 'bg-white/50'
-      } backdrop-blur-sm`}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h3 className={`text-3xl md:text-4xl font-bold mb-6 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Alles was ihr braucht
-            </h3>
-            <p className={`text-lg ${
-              isDarkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-              Professionelle Funktionen für unvergessliche Hochzeitsmomente
-            </p>
+      <div className="relative max-w-6xl mx-auto px-6 py-20 z-10">
+        {/* Apple-style Hero Section */}
+        <div className="text-center">
+          {/* Apple-style Logo */}
+          <div className="mb-12">
+            <TelyaLogo size="lg" className="mx-auto opacity-90 drop-shadow-lg" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Apple-style Headline */}
+          <h1 className={`text-5xl md:text-7xl lg:text-8xl font-light tracking-tight mb-8 drop-shadow-sm ${
+            isDarkMode ? 'text-white' : 'text-white'
+          }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
+            Telya
+          </h1>
+
+          {/* Apple-style Subheadline */}
+          <h2 className={`text-2xl md:text-3xl lg:text-4xl font-light mb-8 max-w-4xl mx-auto leading-relaxed drop-shadow-sm ${
+            isDarkMode ? 'text-gray-200' : 'text-white'
+          }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
+            Eure Momente, für die Ewigkeit
+          </h2>
+
+          {/* Apple-style Description */}
+          <p className={`text-xl md:text-2xl font-light mb-12 max-w-3xl mx-auto leading-relaxed drop-shadow-sm ${
+            isDarkMode ? 'text-gray-300' : 'text-white/90'
+          }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
+            Die moderne Event-Galerie für eure besonderen Momente. Instagram-Style, Echtzeit, Privat.
+          </p>
+
+          {/* Apple-style CTA Button */}
+          <button
+            onClick={() => setShowForm(true)}
+            className={`px-8 py-4 text-lg font-medium rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg ${
+              isDarkMode 
+                ? 'bg-white/90 text-black hover:bg-white' 
+                : 'bg-white/90 text-black hover:bg-white'
+            }`}
+            style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
+          >
+            Galerie erstellen
+          </button>
+        </div>
+
+        {/* Apple-style Features Grid */}
+        <div className="mt-32">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`p-8 rounded-2xl transition-all duration-300 hover:scale-105 ${
-                  isDarkMode 
-                    ? 'bg-gray-700/50 border border-gray-600/30 hover:bg-gray-700/70' 
-                    : 'bg-white/70 border border-gray-200/50 hover:bg-white/90 shadow-lg hover:shadow-xl'
-                } backdrop-blur-sm`}
+                className="text-center group backdrop-blur-sm bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300"
               >
-                <div className={`inline-flex p-3 rounded-xl mb-4 ${
-                  isDarkMode ? 'bg-pink-600/20 text-pink-400' : 'bg-pink-100 text-pink-600'
-                }`}>
+                <div className={`mb-6 ${isDarkMode ? 'text-white/80' : 'text-white/80'} group-hover:scale-105 transition-transform duration-300`}>
                   {feature.icon}
                 </div>
-                <h4 className={`text-xl font-semibold mb-3 ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
+                <h3 className={`text-xl font-light mb-3 drop-shadow-sm ${
+                  isDarkMode ? 'text-white' : 'text-white'
+                }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
                   {feature.title}
-                </h4>
-                <p className={`${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                }`}>
+                </h3>
+                <p className={`text-base font-light leading-relaxed drop-shadow-sm ${
+                  isDarkMode ? 'text-white/80' : 'text-white/80'
+                }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                   {feature.description}
                 </p>
               </div>
@@ -381,304 +295,251 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
         </div>
       </div>
 
-      {/* How it works */}
-      <div className="py-20 max-w-7xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <h3 className={`text-3xl md:text-4xl font-bold mb-6 ${
-            isDarkMode ? 'text-white' : 'text-gray-900'
-          }`}>
-            So einfach geht's
-          </h3>
-        </div>
+      {/* Apple-style Gallery Creation Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-6 z-50">
+          <div className={`w-full max-w-xl rounded-2xl max-h-[90vh] overflow-y-auto ${
+            isDarkMode ? 'bg-neutral-900/95' : 'bg-white/95'
+          } backdrop-blur-xl shadow-2xl`}>
+            <div className="p-8">
+              <h3 className={`text-2xl font-light mb-8 text-center ${
+                isDarkMode ? 'text-white' : 'text-black'
+              }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
+                Eure Event-Galerie erstellen
+              </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-          {[
-            {
-              step: '1',
-              title: 'Galerie erstellen',
-              description: 'Event-Name eingeben, optionales Passwort setzen – fertig!',
-              icon: <Globe className="w-8 h-8" />
-            },
-            {
-              step: '2', 
-              title: 'Link teilen',
-              description: 'QR-Code oder URL an Gäste senden. Keine App-Installation nötig.',
-              icon: <Users className="w-8 h-8" />
-            },
-            {
-              step: '3',
-              title: 'Momente sammeln',
-              description: 'Gäste teilen Fotos, Videos und Nachrichten in Echtzeit.',
-              icon: <Heart className="w-8 h-8" />
-            }
-          ].map((step, index) => (
-            <div key={index} className="text-center">
-              <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-6 ${
-                isDarkMode ? 'bg-pink-600 text-white' : 'bg-pink-500 text-white'
-              }`}>
-                {step.icon}
-              </div>
-              <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold mb-4 ${
-                isDarkMode ? 'bg-gray-700 text-pink-400' : 'bg-pink-100 text-pink-600'
-              }`}>
-                {step.step}
-              </div>
-              <h4 className={`text-xl font-semibold mb-3 ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                {step.title}
-              </h4>
-              <p className={`${
-                isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}>
-                {step.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Gallery Creation Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className={`max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl p-8 ${
-            isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white shadow-2xl'
-          }`}>
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h3 className={`text-2xl font-bold ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
-                  Eure Galerie erstellen
-                </h3>
-                <p className={`mt-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                }`}>
-                  In 2 Minuten einsatzbereit
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateForm(false)}
-                className={`p-2 rounded-full transition-colors ${
-                  isDarkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
-                }`}
-              >
-                <ArrowRight className="w-6 h-6 rotate-45" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Event Name */}
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Event Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.eventName}
-                  onChange={(e) => handleEventNameChange(e.target.value)}
-                  placeholder="z.B. Julia & Tim"
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                    isDarkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-pink-500' 
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-pink-500'
-                  } focus:outline-none focus:ring-2 focus:ring-pink-500/20`}
-                  required
-                />
-              </div>
-
-              {/* Theme Selection */}
-              <div>
-                <label className={`block text-sm font-medium mb-3 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Anlass auswählen *
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.values(THEMES).map((theme) => (
-                    <button
-                      key={theme.id}
-                      type="button"
-                      onClick={() => handleThemeChange(theme.id as any)}
-                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left ${
-                        formData.theme === theme.id
-                          ? isDarkMode
-                            ? `border-${theme.primaryColor} bg-${theme.primaryColor}/10 ring-2 ring-${theme.primaryColor}/20`
-                            : `border-${theme.primaryColor} bg-${theme.color}-50 ring-2 ring-${theme.primaryColor}/20`
-                          : isDarkMode
-                            ? 'border-gray-600 bg-gray-700/50 hover:border-gray-500'
-                            : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl">{theme.icon}</span>
-                        <h4 className={`font-semibold ${
-                          isDarkMode ? 'text-white' : 'text-gray-900'
-                        }`}>
-                          {theme.name}
-                        </h4>
-                      </div>
-                      <p className={`text-sm ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                      }`}>
-                        {theme.description}
-                      </p>
-                      {formData.theme === theme.id && (
-                        <div className="absolute top-2 right-2">
-                          <div className={`w-5 h-5 bg-${theme.primaryColor} rounded-full flex items-center justify-center`}>
-                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* URL Slug */}
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Galerie URL
-                </label>
-                <div className={`flex items-center rounded-xl border ${
-                  isDarkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'
-                }`}>
-                  <span className={`px-4 py-3 ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
-                    weddingpix.app/
-                  </span>
-                  <input
-                    type="text"
-                    value={formData.slug}
-                    onChange={(e) => {
-                      const slug = generateSlug(e.target.value);
-                      setFormData(prev => ({ ...prev, slug }));
-                      setSlugError('');
-                    }}
-                    placeholder="julia-und-tim"
-                    className={`flex-1 px-2 py-3 rounded-r-xl border-0 ${
-                      isDarkMode 
-                        ? 'bg-gray-700 text-white placeholder-gray-400' 
-                        : 'bg-gray-50 text-gray-900 placeholder-gray-500'
-                    } focus:outline-none`}
-                  />
-                </div>
-                {slugError && (
-                  <p className="text-red-500 text-sm mt-1">{slugError}</p>
-                )}
-              </div>
-
-              {/* Optional Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Apple-style Theme Selection */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${
+                  <label className={`block text-base font-light mb-4 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    {formData.theme === 'hochzeit' ? 'Hochzeitsdatum' : 
-                     formData.theme === 'geburtstag' ? 'Geburtstagsdatum' : 
-                     formData.theme === 'urlaub' ? 'Reisedatum' : 'Eventdatum'} (optional)
+                  }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
+                    Event-Typ wählen
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    {Object.entries(THEMES).map(([key, theme]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, theme: key as any }))}
+                        className={`p-6 rounded-xl border transition-all duration-200 text-left ${
+                          formData.theme === key
+                            ? isDarkMode
+                              ? 'bg-white/10 border-white/20 text-white'
+                              : 'bg-black/5 border-black/20 text-black'
+                            : isDarkMode
+                              ? 'bg-neutral-800/50 border-neutral-700/50 text-gray-300 hover:bg-neutral-800'
+                              : 'bg-gray-50/50 border-gray-200/50 text-gray-700 hover:bg-gray-100/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-xl">{theme.icon}</span>
+                          <span className="font-light" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
+                            {theme.name}
+                          </span>
+                        </div>
+                        <p className={`text-sm font-light ${
+                          formData.theme === key 
+                            ? isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                            : isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                        }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
+                          {theme.description}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Apple-style Event Name */}
+                <div>
+                  <label className={`block text-base font-light mb-3 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
+                    Event-Name
                   </label>
                   <input
-                    type="date"
-                    value={formData.eventDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, eventDate: e.target.value }))}
-                    className={`w-full px-4 py-3 rounded-xl border transition-colors ${
+                    type="text"
+                    value={formData.eventName}
+                    onChange={(e) => handleEventNameChange(e.target.value)}
+                    className={`w-full px-4 py-4 text-lg rounded-xl border-0 transition-all duration-200 focus:outline-none focus:ring-1 ${
                       isDarkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-pink-500' 
-                        : 'bg-white border-gray-300 text-gray-900 focus:border-pink-500'
-                    } focus:outline-none focus:ring-2 focus:ring-pink-500/20`}
+                        ? 'bg-neutral-800/70 text-white placeholder-gray-500 focus:ring-white/30' 
+                        : 'bg-gray-50/70 text-black placeholder-gray-400 focus:ring-black/30'
+                    }`}
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
+                    placeholder="z.B. Julia & Tim, 30. Geburtstag, Rom Urlaub..."
+                    required
                   />
                 </div>
 
+                {/* URL Slug */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Galerie-URL
+                  </label>
+                  <div className={`flex items-center px-4 py-3 rounded-xl border ${
+                    slugError 
+                      ? 'border-red-500' 
+                      : isDarkMode 
+                        ? 'border-neutral-600 bg-neutral-700' 
+                        : 'border-gray-300 bg-white'
                   }`}>
+                    <span className={`mr-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      telya.app/
+                    </span>
+                    <input
+                      type="text"
+                      value={formData.slug}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, slug: e.target.value }));
+                        validateSlug(e.target.value);
+                      }}
+                      className={`flex-1 bg-transparent outline-none ${
+                        isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'
+                      }`}
+                      placeholder="julia-und-tim"
+                      required
+                    />
+                  </div>
+                  {slugError && <p className="text-red-500 text-sm mt-1">{slugError}</p>}
+                </div>
+
+                {/* Optional Password */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Passwort (optional)
                   </label>
                   <input
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    placeholder="Für privaten Zugang"
-                    className={`w-full px-4 py-3 rounded-xl border transition-colors ${
+                    className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:ring-2 focus:ring-${THEMES[formData.theme].primaryColor} focus:border-transparent ${
                       isDarkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-pink-500' 
-                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-pink-500'
-                    } focus:outline-none focus:ring-2 focus:ring-pink-500/20`}
+                        ? 'bg-neutral-700 border-neutral-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                    placeholder="Für private Galerien"
                   />
                 </div>
-              </div>
 
-              {/* Description */}
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Beschreibung (optional)
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Erzählt euren Gästen mehr über euren besonderen Tag..."
-                  rows={3}
-                  className={`w-full px-4 py-3 rounded-xl border resize-none transition-colors ${
-                    isDarkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-pink-500' 
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-pink-500'
-                  } focus:outline-none focus:ring-2 focus:ring-pink-500/20`}
-                />
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex gap-4 pt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateForm(false)}
-                  className={`flex-1 px-6 py-3 rounded-xl border transition-colors ${
-                    isDarkMode 
-                      ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  Abbrechen
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating}
-                  className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
-                    isCreating
-                      ? 'bg-gray-400 cursor-not-allowed text-white'
-                      : formData.theme === 'hochzeit'
-                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white'
-                      : formData.theme === 'geburtstag'
-                      ? 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white'
-                      : formData.theme === 'urlaub'
-                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white'
-                      : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'
-                  }`}
-                >
-                  {isCreating ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <Clock className="w-4 h-4 animate-spin" />
-                      Erstelle Galerie...
-                    </div>
-                  ) : (
-                    'Galerie erstellen'
-                  )}
-                </button>
-              </div>
-            </form>
+                {/* Apple-style Form Buttons */}
+                <div className="flex gap-4 pt-8">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className={`flex-1 py-4 px-6 font-light text-lg rounded-xl transition-all duration-200 ${
+                      isDarkMode 
+                        ? 'bg-neutral-800/70 text-gray-300 hover:bg-neutral-700/70' 
+                        : 'bg-gray-100/70 text-gray-700 hover:bg-gray-200/70'
+                    }`}
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreating}
+                    className={`flex-1 py-4 px-6 font-light text-lg rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                      isDarkMode 
+                        ? 'bg-white text-black hover:bg-gray-100' 
+                        : 'bg-black text-white hover:bg-gray-800'
+                    }`}
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
+                  >
+                    {isCreating ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                        Wird erstellt...
+                      </>
+                    ) : (
+                      'Galerie erstellen'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Imprint Modal */}
+      {showImprint && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className={`w-full max-w-lg rounded-3xl shadow-2xl ${
+            isDarkMode ? 'bg-neutral-800 border border-neutral-700' : 'bg-white/95 backdrop-blur-sm'
+          } animate-slideInUp`}>
+            <div className="p-8 text-center">
+              <div className="mb-6">
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <div className="p-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-xl">
+                    <Code className="w-6 h-6 text-white" />
+                  </div>
+                  <Terminal className="w-8 h-8 text-green-500 animate-pulse" />
+                </div>
+                <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  &lt;/&gt; Coded by Mauro
+                </h3>
+                <div className={`font-mono text-sm ${isDarkMode ? 'text-green-400' : 'text-green-600'} mb-4`}>
+                  <div className="animate-typewriter">
+                    <span className="opacity-60">$</span> git commit -m "Built with ❤️"
+                  </div>
+                  <div className="animate-typewriter" style={{ animationDelay: '1s' }}>
+                    <span className="opacity-60">$</span> npm run deploy --production
+                  </div>
+                  <div className="animate-typewriter" style={{ animationDelay: '2s' }}>
+                    <span className="opacity-60">$</span> echo "Made in Germany 🇩🇪"
+                  </div>
+                </div>
+              </div>
+              
+              <div className={`p-4 rounded-xl mb-6 ${
+                isDarkMode ? 'bg-neutral-700/50' : 'bg-gray-50'
+              }`}>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Zap className="w-4 h-4 text-yellow-500 animate-bounce" />
+                  <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Full-Stack Developer
+                  </span>
+                </div>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  React • TypeScript • Node.js • Firebase
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowImprint(false)}
+                className="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white font-medium rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                Schließen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Imprint Button */}
+      <button
+        onClick={() => setShowImprint(true)}
+        className={`fixed bottom-4 right-4 p-3 rounded-full shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 ${
+          isDarkMode 
+            ? 'bg-neutral-800/80 text-white border border-neutral-700' 
+            : 'bg-white/80 text-gray-900 border border-gray-200'
+        }`}
+      >
+        <Code className="w-5 h-5" />
+      </button>
+
+      {/* Root Admin Access (hidden) */}
+      {onRootAdminLogin && (
+        <button
+          onClick={onRootAdminLogin}
+          className="fixed bottom-4 left-4 p-2 rounded-full opacity-10 hover:opacity-50 transition-opacity"
+        >
+          <Shield className="w-4 h-4" />
+        </button>
+      )}
+
+
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, Trash2, Users, Camera, Globe, ArrowLeft, LogOut, Shield, Loader2 } from 'lucide-react';
 import { galleryService, Gallery } from '../services/galleryService';
 import { getAllGalleryUserProfiles } from '../services/galleryFirebaseService';
+import { apiRequest } from '../config/api';
 
 interface SimpleRootAdminProps {
   isDarkMode: boolean;
@@ -92,11 +93,8 @@ export const SimpleRootAdmin: React.FC<SimpleRootAdminProps> = ({ isDarkMode, on
   const handleLogin = async () => {
     setIsLoggingIn(true);
     try {
-      const response = await fetch('/api/root-admin/login', {
+      const response = await apiRequest('/api/root-admin/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(loginData),
       });
 
@@ -244,71 +242,130 @@ export const SimpleRootAdmin: React.FC<SimpleRootAdminProps> = ({ isDarkMode, on
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Login form
+  // Login form with Instagram 2.0 styling
   if (!isLoggedIn) {
     return (
-      <div className={`min-h-screen flex items-center justify-center p-4 ${
-        isDarkMode ? 'bg-neutral-900' : 'bg-gradient-to-br from-pink-50 to-purple-50'
+      <div className={`min-h-screen relative overflow-hidden flex items-center justify-center p-4 ${
+        isDarkMode ? 'bg-neutral-900' : 'bg-white'
       }`}>
-        <div className={`w-full max-w-md p-6 rounded-lg shadow-lg ${
-          isDarkMode ? 'bg-neutral-800 border border-neutral-700' : 'bg-white/80 backdrop-blur-sm'
+        {/* Modern Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className={`absolute inset-0 opacity-20 ${
+            isDarkMode ? 'opacity-10' : 'opacity-20'
+          }`} style={{
+            background: `
+              radial-gradient(circle at 20% 80%, #ec4899 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, #8b5cf6 0%, transparent 50%),
+              radial-gradient(circle at 40% 40%, #06b6d4 0%, transparent 50%)
+            `
+          }} />
+          
+          {/* Floating shapes */}
+          <div className="absolute top-20 left-20 w-32 h-32 rounded-3xl bg-gradient-to-br from-pink-500/10 to-purple-500/10 animate-float" />
+          <div className="absolute bottom-32 right-32 w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/10 to-cyan-500/10 animate-float-delay-1" />
+        </div>
+
+        <div className={`w-full max-w-md rounded-3xl shadow-2xl backdrop-blur-xl border relative z-10 ${
+          isDarkMode 
+            ? 'bg-neutral-800/80 border-neutral-700/50' 
+            : 'bg-white/90 border-white/20'
         }`}>
-          <div className="text-center mb-6">
-            <h2 className="flex items-center justify-center gap-2 text-2xl font-bold">
-              <Shield className="h-6 w-6 text-purple-600" />
-              Root Admin Access
-            </h2>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium mb-1">Username</label>
-              <input
-                id="username"
-                type="text"
-                value={loginData.username}
-                onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  isDarkMode 
-                    ? 'bg-neutral-700 border-neutral-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              />
+          <div className="p-8">
+            {/* Header with enhanced styling */}
+            <div className="text-center mb-8">
+              <div className="relative mb-4">
+                <div className="p-4 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl w-fit mx-auto shadow-lg">
+                  <Shield className="h-8 w-8 text-white" />
+                </div>
+                <div className="absolute -inset-2 bg-gradient-to-r from-pink-500/20 to-purple-600/20 rounded-2xl blur-xl" />
+              </div>
+              <h2 className={`text-3xl font-bold mb-2 ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                Root Admin Access
+              </h2>
+              <p className={`text-sm ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Secure access to Telya administration
+              </p>
             </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
-              <input
-                id="password"
-                type="password"
-                value={loginData.password}
-                onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
-                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  isDarkMode 
-                    ? 'bg-neutral-700 border-neutral-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={onBack}
-                className={`flex-1 px-4 py-2 border rounded-md flex items-center justify-center gap-2 ${
-                  isDarkMode
-                    ? 'border-neutral-600 hover:bg-neutral-700'
-                    : 'border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </button>
-              <button
-                onClick={handleLogin}
-                disabled={isLoggingIn || !loginData.username || !loginData.password}
-                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isLoggingIn && <Loader2 className="h-4 w-4 animate-spin" />}
-                Login
-              </button>
+
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="username" className={`block text-sm font-medium mb-2 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Username
+                </label>
+                <input
+                  id="username"
+                  type="text"
+                  value={loginData.username}
+                  onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
+                  className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                    isDarkMode 
+                      ? 'bg-neutral-700/50 border-neutral-600/50 text-white placeholder-gray-400 backdrop-blur-sm' 
+                      : 'bg-white/70 border-gray-200/50 text-gray-900 placeholder-gray-500 backdrop-blur-sm'
+                  }`}
+                  placeholder="Enter admin username"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="password" className={`block text-sm font-medium mb-2 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
+                  onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                  className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                    isDarkMode 
+                      ? 'bg-neutral-700/50 border-neutral-600/50 text-white placeholder-gray-400 backdrop-blur-sm' 
+                      : 'bg-white/70 border-gray-200/50 text-gray-900 placeholder-gray-500 backdrop-blur-sm'
+                  }`}
+                  placeholder="Enter admin password"
+                />
+              </div>
+
+              <div className="space-y-3 pt-4">
+                <button
+                  onClick={handleLogin}
+                  disabled={isLoggingIn}
+                  className={`w-full py-4 px-6 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 ${
+                    isLoggingIn ? 'animate-pulse' : ''
+                  }`}
+                >
+                  {isLoggingIn ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Authenticating...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-5 h-5" />
+                      Access Admin Panel
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={onBack}
+                  className={`w-full py-3 px-6 rounded-xl font-medium transition-all duration-200 border ${
+                    isDarkMode
+                      ? 'bg-neutral-700/50 hover:bg-neutral-600/50 text-white border-neutral-600/50 backdrop-blur-sm'
+                      : 'bg-white/50 hover:bg-gray-50/50 text-gray-900 border-gray-200/50 backdrop-blur-sm'
+                  }`}
+                >
+                  <ArrowLeft className="w-4 h-4 inline mr-2" />
+                  Back to Gallery
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -316,12 +373,30 @@ export const SimpleRootAdmin: React.FC<SimpleRootAdminProps> = ({ isDarkMode, on
     );
   }
 
-  // Dashboard
+  // Dashboard with Instagram 2.0 styling
   return (
-    <div className={`min-h-screen p-4 ${
-      isDarkMode ? 'bg-neutral-900' : 'bg-gradient-to-br from-pink-50 to-purple-50'
+    <div className={`min-h-screen relative overflow-hidden ${
+      isDarkMode ? 'bg-neutral-900' : 'bg-white'
     }`}>
-      <div className="max-w-7xl mx-auto">
+      {/* Modern Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className={`absolute inset-0 opacity-15 ${
+          isDarkMode ? 'opacity-10' : 'opacity-15'
+        }`} style={{
+          background: `
+            radial-gradient(circle at 20% 80%, #ec4899 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, #8b5cf6 0%, transparent 50%),
+            radial-gradient(circle at 40% 40%, #06b6d4 0%, transparent 50%)
+          `
+        }} />
+        
+        {/* Floating shapes */}
+        <div className="absolute top-10 left-10 w-24 h-24 rounded-2xl bg-gradient-to-br from-pink-500/5 to-purple-500/5 animate-float" />
+        <div className="absolute bottom-20 right-20 w-32 h-32 rounded-full bg-gradient-to-br from-blue-500/5 to-cyan-500/5 animate-float-delay-1" />
+      </div>
+
+      <div className="relative z-10 p-6">
+        <div className="max-w-7xl mx-auto">
         {/* Toast notification */}
         {showToast && (
           <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
@@ -591,6 +666,7 @@ export const SimpleRootAdmin: React.FC<SimpleRootAdminProps> = ({ isDarkMode, on
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
