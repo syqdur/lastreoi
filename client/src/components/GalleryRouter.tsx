@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { LandingPage, GalleryCreationData } from './LandingPage';
 import { GalleryPasswordPrompt } from './GalleryPasswordPrompt';
+import { SimpleRootAdmin } from './SimpleRootAdmin';
 import { galleryService, Gallery } from '../services/galleryService';
 import { getUserName, getDeviceId } from '../utils/deviceId';
 
@@ -22,14 +23,20 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
   const [error, setError] = useState<string | null>(null);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showRootAdmin, setShowRootAdmin] = useState(false);
 
   // Check if we're on the landing page
   const isLandingPage = location === '/' || location === '';
+  const isRootAdminPage = location === '/root-admin';
 
   // Load gallery when slug changes
   useEffect(() => {
     if (match && params?.slug) {
-      loadGallery(params.slug);
+      if (params.slug === 'root-admin') {
+        setShowRootAdmin(true);
+      } else {
+        loadGallery(params.slug);
+      }
     } else if (!isLandingPage) {
       // Invalid route, redirect to landing
       setLocation('/');
@@ -231,12 +238,29 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
     );
   }
 
+  // Render root admin dashboard
+  if (showRootAdmin) {
+    return (
+      <SimpleRootAdmin
+        isDarkMode={isDarkMode}
+        onBack={() => {
+          setShowRootAdmin(false);
+          setLocation('/');
+        }}
+      />
+    );
+  }
+
   // Render landing page
   if (isLandingPage) {
     return (
       <LandingPage
         isDarkMode={isDarkMode}
         onCreateGallery={handleCreateGallery}
+        onRootAdminLogin={() => {
+          setShowRootAdmin(true);
+          setLocation('/root-admin');
+        }}
       />
     );
   }

@@ -175,7 +175,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         siteStatus.galleryEnabled,
         siteStatus.musicWishlistEnabled,
         !siteStatus.storiesEnabled,
-        'Admin'
+        'Admin',
+        gallery.id
       );
     } catch (error) {
       alert('Fehler beim Aktualisieren der Stories-Einstellung');

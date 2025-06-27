@@ -153,6 +153,31 @@ class GalleryService {
     const docRef = await addDoc(collection(db, 'galleries'), cleanData);
     
     console.log('✅ Gallery document created successfully:', docRef.id);
+
+    // Also save to PostgreSQL for root admin
+    try {
+      await fetch('/api/galleries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firebaseId: docRef.id,
+          slug: data.slug,
+          eventName: data.eventName,
+          ownerName: data.ownerName || null,
+          ownerEmail: data.ownerEmail || null,
+          password: data.password || null,
+          description: data.description || null,
+          eventDate: data.eventDate || null,
+          endDate: data.endDate || null,
+          mediaCount: 0,
+          visitorCount: 0,
+        }),
+      });
+      console.log('✅ Gallery saved to PostgreSQL for root admin tracking');
+    } catch (dbError) {
+      console.warn('⚠️ Failed to save gallery to PostgreSQL (root admin won\'t see it):', dbError);
+      // Don't fail the gallery creation if database save fails
+    }
     
     return {
       id: docRef.id,

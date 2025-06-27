@@ -18,9 +18,11 @@ export interface SiteStatus {
 const SITE_STATUS_DOC = 'site_status';
 
 // Get current site status
-export const getSiteStatus = async (): Promise<SiteStatus> => {
+export const getSiteStatus = async (galleryId?: string): Promise<SiteStatus> => {
   try {
-    const docRef = doc(db, 'settings', SITE_STATUS_DOC);
+    const docRef = galleryId 
+      ? doc(db, 'galleries', galleryId, 'settings', SITE_STATUS_DOC)
+      : doc(db, 'settings', SITE_STATUS_DOC);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
@@ -40,6 +42,7 @@ export const getSiteStatus = async (): Promise<SiteStatus> => {
         isUnderConstruction: true,
         galleryEnabled: true,
         musicWishlistEnabled: true,
+        storiesEnabled: true,
         lastUpdated: new Date().toISOString(),
         updatedBy: 'system'
       };
@@ -65,10 +68,13 @@ export const getSiteStatus = async (): Promise<SiteStatus> => {
 // Update site status (admin only)
 export const updateSiteStatus = async (
   isUnderConstruction: boolean, 
-  adminName: string
+  adminName: string,
+  galleryId?: string
 ): Promise<void> => {
   try {
-    const docRef = doc(db, 'settings', SITE_STATUS_DOC);
+    const docRef = galleryId 
+      ? doc(db, 'galleries', galleryId, 'settings', SITE_STATUS_DOC)
+      : doc(db, 'settings', SITE_STATUS_DOC);
     const docSnap = await getDoc(docRef);
     
     let currentStatus: SiteStatus;
@@ -111,7 +117,8 @@ export const updateFeatureToggles = async (
   galleryEnabled: boolean,
   musicWishlistEnabled: boolean,
   storiesEnabled: boolean,
-  adminName: string
+  adminName: string,
+  galleryId?: string
 ): Promise<void> => {
   try {
     const docRef = doc(db, 'settings', SITE_STATUS_DOC);

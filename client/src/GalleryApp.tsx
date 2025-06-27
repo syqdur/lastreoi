@@ -1055,14 +1055,14 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         )}
         
         {/* Stories Bar */}
-        {gallery.settings.allowStories && (
+        {siteStatus?.storiesEnabled && (
           <StoriesBar
             stories={stories}
             currentUser={userName || ''}
             onAddStory={() => setShowStoryUpload(true)}
             onViewStory={handleViewStory}
             isDarkMode={isDarkMode}
-            storiesEnabled={gallery.settings.allowStories}
+            storiesEnabled={siteStatus.storiesEnabled}
           />
         )}
         

@@ -4,6 +4,7 @@ import { Heart, Camera, Music, Users, Star, ArrowRight, Sparkles, Globe, Shield,
 interface LandingPageProps {
   isDarkMode: boolean;
   onCreateGallery: (galleryData: GalleryCreationData) => void;
+  onRootAdminLogin?: () => void;
 }
 
 export interface GalleryCreationData {
@@ -17,7 +18,7 @@ export interface GalleryCreationData {
   ownerEmail?: string;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGallery }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGallery, onRootAdminLogin }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState<GalleryCreationData>({
     eventName: '',
@@ -207,6 +208,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
             }`}>
               ✨ Kostenlos • Keine Registrierung erforderlich • In 2 Minuten einsatzbereit
             </p>
+            
+            {/* Subtle admin button */}
+            {onRootAdminLogin && (
+              <button
+                onClick={onRootAdminLogin}
+                className={`text-xs mt-2 px-2 py-1 rounded transition-colors ${
+                  isDarkMode 
+                    ? 'text-gray-500 hover:text-gray-400' 
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                Admin
+              </button>
+            )}
           </div>
         </div>
       </div>
