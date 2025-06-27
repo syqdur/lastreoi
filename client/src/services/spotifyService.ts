@@ -14,9 +14,19 @@ const getRedirectUri = (): string => {
     return import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
   }
   
-  // For development, use current origin
-  if (import.meta.env.DEV && typeof window !== 'undefined') {
-    return window.location.origin + '/';
+  // For Netlify deployment
+  if (typeof window !== 'undefined') {
+    const currentOrigin = window.location.origin;
+    if (currentOrigin.includes('netlify.app') || currentOrigin.includes('telya.netlify.app')) {
+      console.log('🎵 Using Netlify Spotify redirect URI:', currentOrigin + '/');
+      return currentOrigin + '/';
+    }
+    
+    // For development, use current origin
+    if (import.meta.env.DEV) {
+      console.log('🎵 Using development Spotify redirect URI:', currentOrigin + '/');
+      return currentOrigin + '/';
+    }
   }
   
   // Production fallback

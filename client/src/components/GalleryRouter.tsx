@@ -3,6 +3,7 @@ import { useRoute, useLocation } from 'wouter';
 import { LandingPage, GalleryCreationData } from './LandingPage';
 import { GalleryPasswordPrompt } from './GalleryPasswordPrompt';
 import { SimpleRootAdmin } from './SimpleRootAdmin';
+import { SpotifyCallback } from './SpotifyCallback';
 import { galleryService, Gallery } from '../services/galleryService';
 import { getUserName, getDeviceId } from '../utils/deviceId';
 
@@ -28,6 +29,9 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
   // Check if we're on the landing page
   const isLandingPage = location === '/' || location === '';
   const isRootAdminPage = location === '/root-admin';
+  
+  // Check if we're handling a Spotify callback
+  const isSpotifyCallback = location.includes('?code=') && location.includes('&state=');
 
   // Load gallery when slug changes
   useEffect(() => {
@@ -240,6 +244,11 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
         onCancel={handlePasswordCancel}
       />
     );
+  }
+
+  // Handle Spotify OAuth callback
+  if (isSpotifyCallback) {
+    return <SpotifyCallback isDarkMode={isDarkMode} />;
   }
 
   // Render root admin dashboard
