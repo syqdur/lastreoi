@@ -1,0 +1,29 @@
+{
+  "name": "rest-express",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build:frontend": "vite build"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "wouter": "^3.3.5",
+    "lucide-react": "^0.453.0",
+    "firebase": "^11.9.1",
+    "framer-motion": "^11.13.1",
+    "tailwind-merge": "^2.6.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.2",
+    "vite": "^5.4.14",
+    "typescript": "5.6.3",
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.4.47",
+    "autoprefixer": "^10.4.20",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1"
+  }
+}

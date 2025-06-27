@@ -1,11 +1,11 @@
 [build]
   publish = "dist/public"
-  command = "npm install --legacy-peer-deps && npm install @rollup/rollup-linux-x64-gnu --save-dev && npx vite build"
+  command = "npm install --force && npm run build:simple"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
-  NPM_CONFIG_LEGACY_PEER_DEPS = "true"
+  NPM_FLAGS = "--force"
 
 [functions]
   node_bundler = "esbuild"

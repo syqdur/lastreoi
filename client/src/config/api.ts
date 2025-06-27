@@ -1,13 +1,14 @@
 // API configuration
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (
-  // Detect if we're on Netlify
-  typeof window !== 'undefined' && window.location.hostname.includes('netlify.app') 
-    ? '/.netlify/functions' 
-    : ''
-);
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 export const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // Auto-detect Netlify environment for API base URL
+  let baseUrl = API_BASE_URL;
+  if (!baseUrl && typeof window !== 'undefined' && window.location.hostname.includes('netlify.app')) {
+    baseUrl = '/.netlify/functions';
+  }
+  
+  const url = `${baseUrl}${endpoint}`;
   
   const defaultOptions: RequestInit = {
     headers: {
