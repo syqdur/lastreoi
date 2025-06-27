@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
+import { GALLERY_THEMES } from '../config/themes';
 
 interface TimelineEvent {
   id: string;
@@ -33,21 +34,72 @@ interface TimelineProps {
   userName: string;
   isAdmin: boolean;
   galleryId: string;
+  galleryTheme: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes';
 }
 
-const eventTypes = [
-  { value: 'first_date', label: '💕 Erstes Date', icon: '💕', color: 'pink' },
-  { value: 'first_kiss', label: '💋 Erster Kuss', icon: '💋', color: 'red' },
-  { value: 'first_vacation', label: '✈️ Erster Urlaub', icon: '✈️', color: 'blue' },
-  { value: 'moving_together', label: '🏠 Zusammengezogen', icon: '🏠', color: 'green' },
-  { value: 'engagement', label: '💍 Verlobung', icon: '💍', color: 'yellow' },
-  { value: 'anniversary', label: '🎉 Jahrestag', icon: '🎉', color: 'purple' },
-  { value: 'custom', label: '✨ Eigenes Event', icon: '✨', color: 'indigo' },
-  { value: 'other', label: '❤️ Sonstiges', icon: '❤️', color: 'gray' }
-];
+// Get event types based on gallery theme
+const getEventTypesForTheme = (theme: string) => {
+  switch (theme) {
+    case 'hochzeit':
+      return [
+        { value: 'first_date', label: '💕 Erstes Date', icon: '💕', color: 'pink' },
+        { value: 'first_kiss', label: '💋 Erster Kuss', icon: '💋', color: 'red' },
+        { value: 'first_vacation', label: '✈️ Erster Urlaub', icon: '✈️', color: 'blue' },
+        { value: 'moving_together', label: '🏠 Zusammengezogen', icon: '🏠', color: 'green' },
+        { value: 'engagement', label: '💍 Verlobung', icon: '💍', color: 'yellow' },
+        { value: 'anniversary', label: '🎉 Jahrestag', icon: '🎉', color: 'purple' },
+        { value: 'custom', label: '✨ Eigenes Event', icon: '✨', color: 'indigo' },
+        { value: 'other', label: '❤️ Sonstiges', icon: '❤️', color: 'gray' }
+      ];
+    case 'geburtstag':
+      return [
+        { value: 'birthday_milestone', label: '🎂 Geburtstags-Meilenstein', icon: '🎂', color: 'purple' },
+        { value: 'school_graduation', label: '🎓 Schulabschluss', icon: '🎓', color: 'blue' },
+        { value: 'first_job', label: '💼 Erster Job', icon: '💼', color: 'green' },
+        { value: 'moving_out', label: '🏠 Erste eigene Wohnung', icon: '🏠', color: 'orange' },
+        { value: 'achievement', label: '🏆 Besondere Leistung', icon: '🏆', color: 'yellow' },
+        { value: 'friendship', label: '👫 Freundschafts-Moment', icon: '👫', color: 'pink' },
+        { value: 'custom', label: '✨ Eigenes Event', icon: '✨', color: 'indigo' },
+        { value: 'other', label: '🎉 Sonstiges', icon: '🎉', color: 'gray' }
+      ];
+    case 'urlaub':
+      return [
+        { value: 'arrival', label: '✈️ Ankunft', icon: '✈️', color: 'blue' },
+        { value: 'sightseeing', label: '🏛️ Sehenswürdigkeiten', icon: '🏛️', color: 'orange' },
+        { value: 'beach_day', label: '🏖️ Strandtag', icon: '🏖️', color: 'cyan' },
+        { value: 'mountain_hike', label: '⛰️ Bergwanderung', icon: '⛰️', color: 'green' },
+        { value: 'local_food', label: '🍽️ Lokale Küche', icon: '🍽️', color: 'red' },
+        { value: 'adventure', label: '🎢 Abenteuer', icon: '🎢', color: 'purple' },
+        { value: 'custom', label: '✨ Eigenes Event', icon: '✨', color: 'indigo' },
+        { value: 'other', label: '🌟 Sonstiges', icon: '🌟', color: 'gray' }
+      ];
+    case 'eigenes':
+      return [
+        { value: 'milestone', label: '🎯 Meilenstein', icon: '🎯', color: 'green' },
+        { value: 'celebration', label: '🎊 Feier', icon: '🎊', color: 'purple' },
+        { value: 'achievement', label: '🏆 Erfolg', icon: '🏆', color: 'yellow' },
+        { value: 'special_moment', label: '✨ Besonderer Moment', icon: '✨', color: 'pink' },
+        { value: 'gathering', label: '👥 Zusammenkunft', icon: '👥', color: 'blue' },
+        { value: 'surprise', label: '🎁 Überraschung', icon: '🎁', color: 'red' },
+        { value: 'custom', label: '🌟 Eigenes Event', icon: '🌟', color: 'indigo' },
+        { value: 'other', label: '💫 Sonstiges', icon: '💫', color: 'gray' }
+      ];
+    default:
+      return [
+        { value: 'custom', label: '✨ Eigenes Event', icon: '✨', color: 'indigo' },
+        { value: 'other', label: '❤️ Sonstiges', icon: '❤️', color: 'gray' }
+      ];
+  }
+};
 
-export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmin, galleryId }) => {
+export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmin, galleryId, galleryTheme }) => {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
+  
+  // Get theme configuration
+  const themeConfig = GALLERY_THEMES[galleryTheme];
+  const themeTexts = themeConfig?.texts;
+  const themeStyles = themeConfig?.styles;
+  const eventTypes = getEventTypesForTheme(galleryTheme);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -349,7 +401,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
         color: 'indigo'
       };
     }
-    return eventTypes.find(t => t.value === type) || eventTypes[eventTypes.length - 1];
+    return eventTypes.find((t: any) => t.value === type) || eventTypes[eventTypes.length - 1];
   };
 
   const formatDate = (dateString: string) => {
@@ -539,24 +591,26 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
           <div className="flex items-center gap-3 sm:gap-4">
             <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all duration-300 ${
               isDarkMode 
-                ? 'bg-gradient-to-br from-pink-500 to-purple-600 shadow-lg shadow-pink-500/25' 
-                : 'bg-gradient-to-br from-pink-400 to-purple-500 shadow-lg shadow-pink-400/25'
+                ? `bg-gradient-to-br from-${themeStyles?.primaryColor || 'pink-500'} to-${themeStyles?.accentColor || 'purple-600'} shadow-lg shadow-${themeStyles?.primaryColor || 'pink-500'}/25` 
+                : `bg-gradient-to-br from-${themeStyles?.primaryColor || 'pink-400'} to-${themeStyles?.accentColor || 'purple-500'} shadow-lg shadow-${themeStyles?.primaryColor || 'pink-400'}/25`
             }`}>
-              <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-pulse" style={{
+              <span className="text-xl sm:text-2xl animate-pulse" style={{
                 animation: 'heartbeat 3s ease-in-out infinite'
-              }} />
+              }}>
+                {themeConfig?.icon || '💕'}
+              </span>
             </div>
             <div>
               <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold mb-1 transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                💕 Unsere Geschichte
+                {themeTexts?.timelineTitle || '💕 Unsere Geschichte'}
               </h2>
               <p className={`text-sm sm:text-base transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
-                <span className="hidden sm:inline">Die wichtigsten Momente unserer Beziehung</span>
-                <span className="sm:hidden">Die wichtigsten Momente</span>
+                <span className="hidden sm:inline">{themeTexts?.timelineSubtitle || 'Die wichtigsten Momente unserer Beziehung'}</span>
+                <span className="sm:hidden">{themeTexts?.timelineSubtitle?.split(' ').slice(0, 3).join(' ') || 'Die wichtigsten Momente'}</span>
               </p>
             </div>
           </div>
@@ -571,7 +625,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
               }`}
             >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="font-medium text-sm sm:text-base">Event hinzufügen</span>
+              <span className="font-medium text-sm sm:text-base">{themeTexts?.addEventButton || 'Event hinzufügen'}</span>
             </button>
           )}
         </div>
@@ -589,7 +643,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
               <h3 className={`text-lg font-semibold transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                {editingEvent ? 'Event bearbeiten' : 'Neues Event hinzufügen'}
+{editingEvent ? 'Event bearbeiten' : (themeTexts?.addEventButton || 'Neues Event hinzufügen')}
               </h3>
               <button
                 onClick={resetForm}
@@ -633,7 +687,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                       : 'bg-white/60 border-gray-200/40 text-gray-900'
                   }`}
                 >
-                  {eventTypes.map(type => (
+                  {eventTypes.map((type: any) => (
                     <option key={type.value} value={type.value}>
                       {type.label}
                     </option>
@@ -653,7 +707,12 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                     type="text"
                     value={formData.customEventName}
                     onChange={(e) => setFormData({ ...formData, customEventName: e.target.value })}
-                    placeholder="z.B. Unser erster Hund, Hauseinweihung, ..."
+                    placeholder={
+                    galleryTheme === 'hochzeit' ? "z.B. Unser erster Hund, Hauseinweihung, ..."
+                    : galleryTheme === 'geburtstag' ? "z.B. Erste Wohnung, Abschluss, Traumjob, ..."
+                    : galleryTheme === 'urlaub' ? "z.B. Ankunft am Hotel, Gipfel erreicht, ..."
+                    : "z.B. Besonderer Moment, Meilenstein, ..."
+                  }
                     disabled={isUploading}
                     className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
                       isDarkMode 
@@ -676,7 +735,12 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="z.B. Unser erstes Date"
+                  placeholder={
+                    galleryTheme === 'hochzeit' ? "z.B. Unser erstes Date"
+                    : galleryTheme === 'geburtstag' ? "z.B. Mein 18. Geburtstag"
+                    : galleryTheme === 'urlaub' ? "z.B. Erster Tag in Rom"
+                    : "z.B. Besonderer Moment"
+                  }
                   disabled={isUploading}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
                     isDarkMode 
@@ -719,7 +783,12 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="z.B. Restaurant Zur Sonne"
+                  placeholder={
+                    galleryTheme === 'hochzeit' ? "z.B. Restaurant Zur Sonne"
+                    : galleryTheme === 'geburtstag' ? "z.B. Zuhause, Park, Restaurant"
+                    : galleryTheme === 'urlaub' ? "z.B. Kolosseum, Strand, Hotel"
+                    : "z.B. Veranstaltungsort"
+                  }
                   disabled={isUploading}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 outline-none backdrop-blur-sm transition-all duration-300 ${
                     isDarkMode 
@@ -739,7 +808,12 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Erzähle von diesem besonderen Moment..."
+                  placeholder={
+                    galleryTheme === 'hochzeit' ? "Erzähle von diesem besonderen Moment eurer Liebesgeschichte..."
+                    : galleryTheme === 'geburtstag' ? "Erzähle von diesem besonderen Moment deines Lebens..."
+                    : galleryTheme === 'urlaub' ? "Erzähle von diesem besonderen Reisemoment..."
+                    : "Erzähle von diesem besonderen Moment..."
+                  }
                   rows={3}
                   disabled={isUploading}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 outline-none resize-none backdrop-blur-sm transition-all duration-300 ${
@@ -923,12 +997,12 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
             <h3 className={`text-2xl font-bold mb-3 transition-colors duration-300 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              Noch keine Events
+              {themeTexts?.noEventsTitle || 'Noch keine Events'}
             </h3>
             <p className={`text-base mb-6 transition-colors duration-300 ${
               isDarkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              {isAdmin ? 'Füge das erste Event eurer Liebesgeschichte hinzu!' : 'Die Timeline wird bald mit besonderen Momenten gefüllt.'}
+              {isAdmin ? (themeTexts?.noEventsMessage || 'Füge das erste Event hinzu!') : 'Die Timeline wird bald mit besonderen Momenten gefüllt.'}
             </p>
             {isAdmin && (
               <button
@@ -939,7 +1013,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
                     : 'bg-gradient-to-r from-pink-400/80 to-purple-500/80 hover:from-pink-400 hover:to-purple-500 text-white border border-white/30 shadow-lg shadow-pink-400/25'
                 }`}
               >
-                Erstes Event hinzufügen
+{themeTexts?.firstEventButton || 'Erstes Event hinzufügen'}
               </button>
             )}
           </div>

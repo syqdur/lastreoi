@@ -48,8 +48,8 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
   const noteItems = items.filter(item => item.type === 'note');
   const mediaItems = items.filter(item => item.type !== 'note');
   
-  // Get theme configuration
-  const themeConfig = GALLERY_THEMES[galleryTheme];
+  // Get theme configuration with fallback
+  const themeConfig = GALLERY_THEMES[galleryTheme] || GALLERY_THEMES.hochzeit;
   const themeStyles = themeConfig.styles;
 
   const getAvatarUrl = (name: string) => {

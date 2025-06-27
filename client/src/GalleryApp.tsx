@@ -560,6 +560,28 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
       setIsAdmin(true);
       setShowAdminCredentialsSetup(false);
       console.log('🔐 Admin credentials set up successfully');
+      
+      // Create default gallery profile with owner name when admin credentials are set up
+      if (!galleryProfileData || !galleryProfileData.profilePicture) {
+        const ownerProfile = {
+          name: credentials.username,
+          bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+          countdownDate: null, // Disabled by default
+          countdownEndMessage: 'Der große Tag ist da! 🎉',
+          countdownMessageDismissed: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        try {
+          const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
+          await setDoc(profileDocRef, ownerProfile);
+          setGalleryProfileData(ownerProfile);
+          console.log('✅ Default owner profile created');
+        } catch (error) {
+          console.error('Error creating owner profile:', error);
+        }
+      }
     } catch (error: any) {
       console.error('❌ Error setting up admin credentials:', error);
       console.error('❌ Error details:', {
@@ -589,6 +611,30 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         setIsAdmin(true);
         setShowAdminCredentialsSetup(false);
         console.log('✅ Admin credentials saved to localStorage as fallback');
+        
+        // Create default gallery profile with owner name when admin credentials are set up
+        if (!galleryProfileData || !galleryProfileData.profilePicture) {
+          const ownerProfile = {
+            name: credentials.username,
+            bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+            countdownDate: null, // Disabled by default
+            countdownEndMessage: 'Der große Tag ist da! 🎉',
+            countdownMessageDismissed: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          try {
+            const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
+            await setDoc(profileDocRef, ownerProfile);
+            setGalleryProfileData(ownerProfile);
+            console.log('✅ Default owner profile created via localStorage fallback');
+          } catch (error) {
+            console.error('Error creating owner profile via localStorage fallback:', error);
+            // Set local state even if Firebase fails
+            setGalleryProfileData(ownerProfile);
+          }
+        }
       } catch (localError: any) {
         console.error('❌ Even localStorage fallback failed:', localError);
         throw new Error(`Fehler beim Einrichten der Admin-Zugangsdaten: ${error?.message || 'Unbekannter Fehler'}`);
@@ -996,24 +1042,17 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center relative bg-transparent">
-                {/* Animated Wedding Rings */}
+                {/* Theme-specific Icon */}
                 <div className="relative w-full h-full flex items-center justify-center">
-                  <div className={`absolute w-4 h-4 rounded-full border-2 transition-all duration-1000 ${
-                    isDarkMode ? 'border-yellow-300' : 'border-yellow-400'
-                  }`} style={{
-                    animation: 'ring-float-1 4s ease-in-out infinite',
-                    transform: 'translateX(-2px)'
-                  }}></div>
+                  <span className="text-xl sm:text-2xl animate-pulse" style={{
+                    animation: 'bounce 2s ease-in-out infinite'
+                  }}>
+                    {themeConfig.icon}
+                  </span>
                   
-                  <div className={`absolute w-4 h-4 rounded-full border-2 transition-all duration-1000 ${
-                    isDarkMode ? 'border-yellow-300' : 'border-yellow-400'
-                  }`} style={{
-                    animation: 'ring-float-2 4s ease-in-out infinite',
-                    transform: 'translateX(2px)'
-                  }}></div>
-                  
+                  {/* Sparkle effect for all themes */}
                   <div className={`absolute w-1 h-1 rounded-full transition-all duration-500 ${
-                    isDarkMode ? 'bg-yellow-200' : 'bg-yellow-300'
+                    isDarkMode ? `bg-${themeStyles.secondaryColor || 'pink-200'}` : `bg-${themeStyles.accentColor || 'pink-300'}`
                   }`} style={{
                     animation: 'sparkle 2s ease-in-out infinite',
                     top: '20%',
@@ -1143,6 +1182,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           themeTexts={themeTexts}
           themeIcon={themeConfig.icon}
           themeStyles={themeStyles}
+          galleryEventName={gallery.eventName}
         />
 
         {/* Tab Content */}
@@ -1194,6 +1234,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
             userName={userName || ''}
             isAdmin={isAdmin}
             galleryId={gallery.id}
+            galleryTheme={gallery.theme}
           />
         ) : activeTab === 'music' && gallery.settings.spotifyIntegration ? (
           <MusicWishlist 

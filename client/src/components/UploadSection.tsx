@@ -91,7 +91,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
             <p className={`text-sm transition-colors duration-300 ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Teile deine schönsten Momente von der Hochzeit
+              {themeTexts?.shareInvitation || 'Teile deine schönsten Momente'}
             </p>
             {progress > 0 && (
               <div className={`w-full h-2 rounded-full mt-3 overflow-hidden transition-colors duration-300 ${
@@ -151,7 +151,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
               <h3 className={`text-xl font-bold mb-2 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                Neuer Beitrag
+                {themeTexts?.momentsText || 'Neuer Beitrag'}
               </h3>
               <p className={`text-sm ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -352,12 +352,12 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
               <h3 className={`text-xl font-bold mb-2 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                Notiz hinterlassen
+                {themeTexts?.addNote || 'Notiz hinterlassen'}
               </h3>
               <p className={`text-sm ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
-                Teile deine Gedanken und Wünsche mit dem Brautpaar
+                {themeTexts?.shareInvitation || 'Teile deine Gedanken und Wünsche'}
               </p>
             </div>
             
@@ -366,7 +366,15 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                 <textarea
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
-                  placeholder="Hinterlasse eine schöne Nachricht für das Brautpaar..."
+                  placeholder={
+                    themeTexts?.addNote === 'Geburtstagswunsch schreiben' 
+                      ? "Hinterlasse einen schönen Geburtstagswunsch..."
+                      : themeTexts?.addNote === 'Reise-Notiz schreiben'
+                      ? "Teile deine Reise-Eindrücke und Erlebnisse..."
+                      : themeTexts?.addNote === 'Nachricht schreiben'
+                      ? "Hinterlasse eine schöne Nachricht..."
+                      : "Hinterlasse eine schöne Nachricht für das Brautpaar..."
+                  }
                   rows={5}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-500/30 focus:border-pink-500 outline-none resize-none transition-all duration-300 ${
                     isDarkMode 

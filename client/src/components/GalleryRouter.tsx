@@ -130,6 +130,10 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
       localStorage.setItem(`gallery_just_created_${gallery.slug}`, 'true');
       console.log('🆕 Set just created flag for slug:', gallery.slug);
       
+      // Store creator as root admin
+      localStorage.setItem(`root_admin_${gallery.slug}`, 'true');
+      console.log('👑 Set creator as root admin for gallery:', gallery.slug);
+      
       // Navigate to the new gallery
       console.log('🧭 Navigating to:', `/${gallery.slug}`);
       setLocation(`/${gallery.slug}`);

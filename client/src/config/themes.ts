@@ -25,6 +25,14 @@ export interface ThemeConfig {
     galleryTab: string;
     musicTab: string;
     
+    // Timeline texts
+    timelineTitle: string;
+    timelineSubtitle: string;
+    addEventButton: string;
+    firstEventButton: string;
+    noEventsTitle: string;
+    noEventsMessage: string;
+    
     // Admin texts
     adminTitle: string;
     settingsTitle: string;
@@ -66,6 +74,12 @@ export const GALLERY_THEMES: Record<string, ThemeConfig> = {
       timelineTab: 'Unser Tag',
       galleryTab: 'Galerie',
       musicTab: 'Hochzeitsmusik',
+      timelineTitle: '💕 Unsere Liebesgeschichte',
+      timelineSubtitle: 'Die wichtigsten Momente unserer Beziehung',
+      addEventButton: 'Event hinzufügen',
+      firstEventButton: 'Erstes Event hinzufügen',
+      noEventsTitle: 'Noch keine Events',
+      noEventsMessage: 'Füge das erste Event eurer Liebesgeschichte hinzu!',
       adminTitle: 'Hochzeits-Verwaltung',
       settingsTitle: 'Galerie-Einstellungen',
       defaultDescription: 'Wir sagen JA! ✨ Teilt eure schönsten Momente unserer Hochzeit mit uns!',
@@ -102,6 +116,12 @@ export const GALLERY_THEMES: Record<string, ThemeConfig> = {
       timelineTab: 'Mein Tag',
       galleryTab: 'Party-Galerie',
       musicTab: 'Party-Playlist',
+      timelineTitle: '🎂 Meine Lebensgeschichte',
+      timelineSubtitle: 'Die wichtigsten Momente meines Lebens',
+      addEventButton: 'Event hinzufügen',
+      firstEventButton: 'Erstes Event hinzufügen',
+      noEventsTitle: 'Noch keine Events',
+      noEventsMessage: 'Füge das erste Event deiner Lebensgeschichte hinzu!',
       adminTitle: 'Party-Verwaltung',
       settingsTitle: 'Party-Einstellungen',
       defaultDescription: 'Let\'s Party! 🎉 Sammelt hier alle tollen Momente meiner Geburtstagsfeier!',
@@ -138,6 +158,12 @@ export const GALLERY_THEMES: Record<string, ThemeConfig> = {
       timelineTab: 'Unsere Reise',
       galleryTab: 'Reise-Galerie',
       musicTab: 'Reise-Playlist',
+      timelineTitle: '🏖️ Unsere Reisegeschichte',
+      timelineSubtitle: 'Die besten Momente unseres Urlaubs',
+      addEventButton: 'Reise-Event hinzufügen',
+      firstEventButton: 'Erstes Reise-Event hinzufügen',
+      noEventsTitle: 'Noch keine Reise-Events',
+      noEventsMessage: 'Füge das erste Event eurer Reise hinzu!',
       adminTitle: 'Reise-Verwaltung',
       settingsTitle: 'Galerie-Einstellungen',
       defaultDescription: 'Unser Traumurlaub! 🌴 Hier sammeln wir alle Highlights unserer Reise!',
@@ -174,6 +200,12 @@ export const GALLERY_THEMES: Record<string, ThemeConfig> = {
       timelineTab: 'Unser Event',
       galleryTab: 'Galerie',
       musicTab: 'Musik',
+      timelineTitle: '🎊 Unsere Event-Geschichte',
+      timelineSubtitle: 'Die Highlights unseres besonderen Events',
+      addEventButton: 'Event hinzufügen',
+      firstEventButton: 'Erstes Event hinzufügen',
+      noEventsTitle: 'Noch keine Events',
+      noEventsMessage: 'Füge das erste Event hinzu!',
       adminTitle: 'Event-Verwaltung',
       settingsTitle: 'Galerie-Einstellungen',
       defaultDescription: 'Unser besonderes Event! ✨ Teilt hier eure schönsten Momente mit uns!',

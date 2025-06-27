@@ -10,6 +10,7 @@ interface TabNavigationProps {
   themeTexts?: any;
   themeIcon?: string;
   themeStyles?: any;
+  galleryEventName?: string;
 }
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({
@@ -20,7 +21,8 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
   musicWishlistEnabled = true,
   themeTexts,
   themeIcon,
-  themeStyles
+  themeStyles,
+  galleryEventName
 }) => {
   const allTabs = [
     {
@@ -32,7 +34,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
     },
     {
       id: 'timeline' as const,
-      label: themeTexts?.timelineTab || 'Timeline',
+      label: galleryEventName || themeTexts?.timelineTab || 'Timeline',
       icon: <Heart className="w-5 h-5" />,
       emoji: themeIcon || '💕',
       enabled: true // Timeline is always enabled
