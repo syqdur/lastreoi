@@ -4,8 +4,8 @@ import { SpotifyCredentials, SelectedPlaylist, SpotifyTrack } from '../types';
 import { generateCodeVerifier, generateCodeChallenge } from '../utils/pkce';
 
 // Spotify API Configuration
-const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '4dbf85a8ca7c43d3b2ddc540194e9387';
-const SPOTIFY_CLIENT_SECRET = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET || 'acf102b8834d48b497a7e98bf69021f6';
+const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '00f80ab84d074aafacc982e93f47942c';
+const SPOTIFY_CLIENT_SECRET = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET || 'e403ceac0ab847b58a1386c4e815a033';
 
 // 🔧 FIX: Dynamic redirect URI based on environment
 const getRedirectUri = (): string => {
@@ -20,7 +20,7 @@ const getRedirectUri = (): string => {
   }
   
   // Production fallback
-  return 'https://kristinundmauro.de/';
+  return 'https://telya.netlify.app/';
 };
 
 const SPOTIFY_REDIRECT_URI = getRedirectUri();
@@ -358,6 +358,8 @@ export const getAuthorizationUrl = async (): Promise<string> => {
   // Generate random state and store current path for redirect
   const state = Math.random().toString(36).substring(2, 15);
   const currentPath = window.location.pathname;
+  
+  console.log('🎵 Storing return path for Spotify auth:', currentPath);
   
   // Store code verifier, state, and return path in localStorage
   localStorage.setItem(PKCE_CODE_VERIFIER_KEY, codeVerifier);

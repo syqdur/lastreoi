@@ -195,6 +195,8 @@ This is a comprehensive wedding gallery application with the following architect
 - **Build Dependencies Resolved**: Added explicit @rollup/rollup-linux-x64-gnu installation to fix missing binary errors in Netlify builds
 - **Function Testing Added**: Implemented test endpoint at /.netlify/functions/api/test for deployment verification
 - **Spotify Redirect Fix**: Fixed Spotify authentication redirect to properly return users to their specific gallery instead of root URL after OAuth callback
+- **Animated Landing Page**: Enhanced landing page background with floating geometric shapes, sparkling particles, heart animations, gradient shifting, and morphing overlays for engaging visual experience
+- **Spotify URI Fix**: Updated Spotify redirect URI configuration from old "kristinundmauro.de" domain to correct "telya.netlify.app" domain with matching client credentials
 
 ### June 27, 2025 (Final Migration Fixes)
 - **Gallery Creator = Root Admin**: Fixed gallery creation to automatically set the creator as root admin with proper localStorage flags for immediate admin access

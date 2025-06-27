@@ -100,6 +100,7 @@ export const SpotifyCallback: React.FC<SpotifyCallbackProps> = ({ isDarkMode }) 
       
       // Redirect back to original gallery or home
       const returnPath = localStorage.getItem('spotify_return_path') || '/';
+      console.log('🎵 Redirecting back to:', returnPath);
       localStorage.removeItem('spotify_return_path');
       
       setTimeout(() => {

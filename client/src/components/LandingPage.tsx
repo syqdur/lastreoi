@@ -194,35 +194,93 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
         ? 'bg-black' 
         : 'bg-white'
     }`}>
-      {/* Apple-style flowing gradient background */}
-      <div className="absolute inset-0 opacity-80">
-        <div className={`absolute inset-0 ${
-          isDarkMode 
-            ? 'opacity-30' 
-            : 'opacity-100'
-        }`} style={{
-          background: `
-            radial-gradient(ellipse 80% 50% at 20% 40%, #ff6b6b 0%, transparent 50%),
-            radial-gradient(ellipse 60% 50% at 80% 50%, #4ecdc4 0%, transparent 50%),
-            radial-gradient(ellipse 70% 50% at 40% 80%, #45b7d1 0%, transparent 50%),
-            radial-gradient(ellipse 100% 70% at 80% 20%, #96ceb4 0%, transparent 50%),
-            radial-gradient(ellipse 60% 40% at 10% 90%, #ffeaa7 0%, transparent 50%),
-            linear-gradient(135deg, #667eea 0%, #764ba2 100%)
-          `
-        }} />
+      {/* Animated background with floating elements */}
+      <div className="absolute inset-0 opacity-80 overflow-hidden">
+        {/* Animated gradient base */}
+        <div 
+          className={`absolute inset-0 ${isDarkMode ? 'opacity-30' : 'opacity-100'}`} 
+          style={{
+            background: `
+              radial-gradient(ellipse 80% 50% at 20% 40%, #ff6b6b 0%, transparent 50%),
+              radial-gradient(ellipse 60% 50% at 80% 50%, #4ecdc4 0%, transparent 50%),
+              radial-gradient(ellipse 70% 50% at 40% 80%, #45b7d1 0%, transparent 50%),
+              radial-gradient(ellipse 100% 70% at 80% 20%, #96ceb4 0%, transparent 50%),
+              radial-gradient(ellipse 60% 40% at 10% 90%, #ffeaa7 0%, transparent 50%),
+              linear-gradient(135deg, #667eea 0%, #764ba2 100%)
+            `,
+            animation: 'gradientShift 12s ease-in-out infinite alternate'
+          }}
+        />
         
-        {/* Apple-style flowing shapes overlay */}
-        <div className={`absolute inset-0 ${
-          isDarkMode 
-            ? 'opacity-20' 
-            : 'opacity-60'
-        }`} style={{
-          background: `
-            radial-gradient(ellipse 120% 80% at 30% 60%, rgba(255, 107, 107, 0.3) 0%, transparent 60%),
-            radial-gradient(ellipse 100% 60% at 70% 30%, rgba(78, 205, 196, 0.3) 0%, transparent 60%),
-            radial-gradient(ellipse 80% 100% at 60% 70%, rgba(69, 183, 209, 0.3) 0%, transparent 60%)
-          `
-        }} />
+        {/* Floating geometric shapes */}
+        <div className="absolute inset-0">
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className={`absolute rounded-full blur-sm ${
+                isDarkMode ? 'bg-white/5' : 'bg-white/15'
+              }`}
+              style={{
+                width: `${15 + i * 8}px`,
+                height: `${15 + i * 8}px`,
+                left: `${5 + i * 12}%`,
+                top: `${15 + i * 8}%`,
+                animation: `floatUpDown ${3 + i * 0.8}s ease-in-out infinite alternate, 
+                           floatLeftRight ${5 + i * 0.6}s ease-in-out infinite alternate-reverse`,
+                animationDelay: `${i * 0.4}s`
+              }}
+            />
+          ))}
+        </div>
+        
+        {/* Sparkle particles */}
+        <div className="absolute inset-0">
+          {[...Array(15)].map((_, i) => (
+            <div
+              key={`sparkle-${i}`}
+              className={`absolute ${isDarkMode ? 'text-white/20' : 'text-white/40'}`}
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animation: `sparkle ${1.5 + Math.random() * 2}s ease-in-out infinite`,
+                animationDelay: `${Math.random() * 3}s`
+              }}
+            >
+              <Sparkles size={4 + Math.random() * 6} />
+            </div>
+          ))}
+        </div>
+        
+        {/* Heart particles for romantic touch */}
+        <div className="absolute inset-0">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={`heart-${i}`}
+              className={`absolute ${isDarkMode ? 'text-pink-300/20' : 'text-pink-200/40'}`}
+              style={{
+                left: `${20 + Math.random() * 60}%`,
+                top: `${30 + Math.random() * 40}%`,
+                animation: `heartFloat ${4 + Math.random() * 3}s ease-in-out infinite`,
+                animationDelay: `${Math.random() * 2}s`
+              }}
+            >
+              <Heart size={8 + Math.random() * 8} />
+            </div>
+          ))}
+        </div>
+        
+        {/* Flowing shapes overlay with morphing animation */}
+        <div 
+          className={`absolute inset-0 ${isDarkMode ? 'opacity-20' : 'opacity-60'}`} 
+          style={{
+            background: `
+              radial-gradient(ellipse 120% 80% at 30% 60%, rgba(255, 107, 107, 0.3) 0%, transparent 60%),
+              radial-gradient(ellipse 100% 60% at 70% 30%, rgba(78, 205, 196, 0.3) 0%, transparent 60%),
+              radial-gradient(ellipse 80% 100% at 60% 70%, rgba(69, 183, 209, 0.3) 0%, transparent 60%)
+            `,
+            animation: 'morphShapes 15s ease-in-out infinite alternate'
+          }}
+        />
       </div>
 
       <div className="relative max-w-6xl mx-auto px-6 py-20 z-10">
