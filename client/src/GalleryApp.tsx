@@ -937,16 +937,60 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   }
 
   return (
-    <div className={`min-h-screen transition-all duration-500 ${
+    <div className={`min-h-screen relative transition-all duration-500 ${
       isDarkMode 
         ? 'bg-gray-900' 
-        : 'bg-gradient-to-br from-gray-50 via-pink-50/30 to-purple-50/20'
+        : gallery.theme === 'hochzeit'
+        ? 'bg-gradient-to-br from-gray-50 via-pink-50/30 to-rose-50/20'
+        : gallery.theme === 'geburtstag'
+        ? 'bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50/20'
+        : gallery.theme === 'urlaub'
+        ? 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/20'
+        : 'bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20'
     }`}>
+      {/* Decorative Background Elements */}
+      {!isDarkMode && (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className={`absolute top-20 left-10 w-32 h-32 rounded-full opacity-10 ${
+            gallery.theme === 'hochzeit'
+            ? 'bg-gradient-to-br from-pink-400 to-rose-500'
+            : gallery.theme === 'geburtstag'
+            ? 'bg-gradient-to-br from-purple-400 to-violet-500'
+            : gallery.theme === 'urlaub'
+            ? 'bg-gradient-to-br from-blue-400 to-cyan-500'
+            : 'bg-gradient-to-br from-green-400 to-emerald-500'
+          }`} style={{ animation: 'float 6s ease-in-out infinite' }}></div>
+          <div className={`absolute top-60 right-5 w-24 h-24 rounded-full opacity-8 ${
+            gallery.theme === 'hochzeit'
+            ? 'bg-gradient-to-br from-rose-300 to-pink-400'
+            : gallery.theme === 'geburtstag'
+            ? 'bg-gradient-to-br from-violet-300 to-purple-400'
+            : gallery.theme === 'urlaub'
+            ? 'bg-gradient-to-br from-cyan-300 to-blue-400'
+            : 'bg-gradient-to-br from-emerald-300 to-green-400'
+          }`} style={{ animation: 'float 8s ease-in-out infinite 2s' }}></div>
+          <div className={`absolute bottom-40 left-5 w-20 h-20 rounded-full opacity-6 ${
+            gallery.theme === 'hochzeit'
+            ? 'bg-gradient-to-br from-pink-200 to-rose-300'
+            : gallery.theme === 'geburtstag'
+            ? 'bg-gradient-to-br from-purple-200 to-violet-300'
+            : gallery.theme === 'urlaub'
+            ? 'bg-gradient-to-br from-blue-200 to-cyan-300'
+            : 'bg-gradient-to-br from-green-200 to-emerald-300'
+          }`} style={{ animation: 'float 7s ease-in-out infinite 1s' }}></div>
+        </div>
+      )}
       {/* Gallery Header */}
       <div className={`sticky top-0 z-50 transition-all duration-300 ${
         isDarkMode 
           ? 'bg-gray-900/70 border-gray-700/30 backdrop-blur-xl shadow-xl shadow-purple-500/5' 
-          : 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-pink-500/5'
+          : gallery.theme === 'hochzeit'
+          ? 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-pink-500/5'
+          : gallery.theme === 'geburtstag'
+          ? 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-purple-500/5'
+          : gallery.theme === 'urlaub'
+          ? 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-blue-500/5'
+          : 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-green-500/5'
       } border-b`}>
         <div className="max-w-md mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
@@ -1098,6 +1142,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           musicWishlistEnabled={siteStatus?.musicWishlistEnabled ?? true}
           themeTexts={themeTexts}
           themeIcon={themeConfig.icon}
+          themeStyles={themeStyles}
         />
 
         {/* Tab Content */}
@@ -1140,6 +1185,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
               getUserAvatar={getUserAvatar}
               getUserDisplayName={getUserDisplayName}
               deviceId={deviceId || ''}
+              galleryTheme={gallery.theme}
             />
           </>
         ) : activeTab === 'timeline' ? (

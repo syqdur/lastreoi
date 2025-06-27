@@ -26,6 +26,7 @@ const THEMES = {
     name: 'Hochzeit',
     icon: '💍',
     color: 'pink',
+    primaryColor: 'pink-500',
     description: 'Für euren schönsten Tag - Teilt eure Lieblingsmomente der Hochzeit',
     defaultTexts: {
       description: 'Wir sagen JA! ✨ Teilt eure schönsten Momente unserer Hochzeit mit uns!',
@@ -37,6 +38,7 @@ const THEMES = {
     name: 'Geburtstag',
     icon: '🎂',
     color: 'purple',
+    primaryColor: 'purple-500',
     description: 'Feiert mit uns - Sammelt alle Erinnerungen der Geburtstagsparty',
     defaultTexts: {
       description: 'Let\'s Party! 🎉 Sammelt hier alle tollen Momente meiner Geburtstagsfeier!',
@@ -48,6 +50,7 @@ const THEMES = {
     name: 'Urlaub',
     icon: '🏖️',
     color: 'blue',
+    primaryColor: 'blue-500',
     description: 'Urlaubserinnerungen sammeln - Die schönsten Momente eurer Reise',
     defaultTexts: {
       description: 'Unser Traumurlaub! 🌴 Hier sammeln wir alle Highlights unserer Reise!',
@@ -59,6 +62,7 @@ const THEMES = {
     name: 'Eigenes Event',
     icon: '🎊',
     color: 'green',
+    primaryColor: 'green-500',
     description: 'Für jeden Anlass - Gestaltet eure ganz persönliche Galerie',
     defaultTexts: {
       description: 'Unser besonderes Event! ✨ Teilt hier eure schönsten Momente mit uns!',
@@ -82,6 +86,38 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
   });
   const [isCreating, setIsCreating] = useState(false);
   const [slugError, setSlugError] = useState('');
+
+  // Get background colors based on current theme
+  const getThemeBackgroundColors = () => {
+    const theme = THEMES[formData.theme];
+    switch (theme.color) {
+      case 'pink':
+        return {
+          light: 'bg-gradient-to-br from-pink-50 via-white to-rose-50',
+          decorations: ['bg-pink-300', 'bg-rose-300', 'bg-pink-200']
+        };
+      case 'purple':
+        return {
+          light: 'bg-gradient-to-br from-purple-50 via-white to-violet-50',
+          decorations: ['bg-purple-300', 'bg-violet-300', 'bg-purple-200']
+        };
+      case 'blue':
+        return {
+          light: 'bg-gradient-to-br from-blue-50 via-white to-cyan-50',
+          decorations: ['bg-blue-300', 'bg-cyan-300', 'bg-blue-200']
+        };
+      case 'green':
+        return {
+          light: 'bg-gradient-to-br from-green-50 via-white to-emerald-50',
+          decorations: ['bg-green-300', 'bg-emerald-300', 'bg-green-200']
+        };
+      default:
+        return {
+          light: 'bg-gradient-to-br from-pink-50 via-white to-rose-50',
+          decorations: ['bg-pink-300', 'bg-rose-300', 'bg-pink-200']
+        };
+    }
+  };
 
   const generateSlug = (eventName: string) => {
     return eventName
@@ -192,22 +228,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
     }
   ];
 
+  const themeColors = getThemeBackgroundColors();
+
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-pink-50 via-white to-purple-50'
+      isDarkMode ? 'bg-gray-900' : themeColors.light
     }`}>
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Background decorations */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className={`absolute top-20 left-10 w-32 h-32 rounded-full blur-3xl opacity-20 ${
-            isDarkMode ? 'bg-pink-500' : 'bg-pink-300'
+            isDarkMode ? `bg-${THEMES[formData.theme].primaryColor}` : themeColors.decorations[0]
           }`}></div>
           <div className={`absolute top-40 right-20 w-24 h-24 rounded-full blur-2xl opacity-30 ${
-            isDarkMode ? 'bg-purple-500' : 'bg-purple-300'
+            isDarkMode ? `bg-${THEMES[formData.theme].primaryColor}` : themeColors.decorations[1]
           }`}></div>
           <div className={`absolute bottom-20 left-1/4 w-40 h-40 rounded-full blur-3xl opacity-15 ${
-            isDarkMode ? 'bg-blue-500' : 'bg-blue-300'
+            isDarkMode ? `bg-${THEMES[formData.theme].primaryColor}` : themeColors.decorations[2]
           }`}></div>
         </div>
 
@@ -216,7 +254,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
             {/* Logo/Brand */}
             <div className="flex items-center justify-center gap-3 mb-8">
               <div className={`p-4 rounded-2xl ${
-                isDarkMode ? 'bg-pink-600' : 'bg-pink-500'
+                isDarkMode ? `bg-${THEMES[formData.theme].primaryColor}` : `bg-${THEMES[formData.theme].primaryColor}`
               } text-white shadow-lg`}>
                 <Camera className="w-8 h-8" />
               </div>
@@ -233,7 +271,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
             }`}>
               Eure Momente,
               <br />
-              <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
+              <span className={`bg-gradient-to-r ${
+                formData.theme === 'hochzeit' ? 'from-pink-500 via-rose-500 to-pink-600' :
+                formData.theme === 'geburtstag' ? 'from-purple-500 via-violet-500 to-purple-600' :
+                formData.theme === 'urlaub' ? 'from-blue-500 via-cyan-500 to-blue-600' :
+                'from-green-500 via-emerald-500 to-green-600'
+              } bg-clip-text text-transparent`}>
                 unvergesslich geteilt
               </span>
             </h2>
@@ -252,9 +295,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                 setShowCreateForm(true);
               }}
               className={`group inline-flex items-center gap-3 px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 ${
-                isDarkMode 
-                  ? 'bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white shadow-xl' 
-                  : 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-xl'
+                formData.theme === 'hochzeit' 
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-xl'
+                  : formData.theme === 'geburtstag'
+                  ? 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white shadow-xl'
+                  : formData.theme === 'urlaub'
+                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-xl'
+                  : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-xl'
               }`}
             >
               <Sparkles className="w-6 h-6" />
@@ -458,8 +505,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                       className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left ${
                         formData.theme === theme.id
                           ? isDarkMode
-                            ? 'border-pink-500 bg-pink-500/10 ring-2 ring-pink-500/20'
-                            : 'border-pink-500 bg-pink-50 ring-2 ring-pink-500/20'
+                            ? `border-${theme.primaryColor} bg-${theme.primaryColor}/10 ring-2 ring-${theme.primaryColor}/20`
+                            : `border-${theme.primaryColor} bg-${theme.color}-50 ring-2 ring-${theme.primaryColor}/20`
                           : isDarkMode
                             ? 'border-gray-600 bg-gray-700/50 hover:border-gray-500'
                             : 'border-gray-200 bg-gray-50 hover:border-gray-300'
@@ -480,7 +527,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                       </p>
                       {formData.theme === theme.id && (
                         <div className="absolute top-2 right-2">
-                          <div className="w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                          <div className={`w-5 h-5 bg-${theme.primaryColor} rounded-full flex items-center justify-center`}>
                             <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
@@ -609,9 +656,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                   className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
                     isCreating
                       ? 'bg-gray-400 cursor-not-allowed text-white'
-                      : isDarkMode
-                        ? 'bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white'
-                        : 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white'
+                      : formData.theme === 'hochzeit'
+                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white'
+                      : formData.theme === 'geburtstag'
+                      ? 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white'
+                      : formData.theme === 'urlaub'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white'
+                      : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'
                   }`}
                 >
                   {isCreating ? (

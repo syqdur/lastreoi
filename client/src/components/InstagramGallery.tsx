@@ -3,6 +3,7 @@ import { Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MediaItem, Comment, Like } from '../types';
 import { InstagramPost } from './InstagramPost';
 import { NotePost } from './NotePost';
+import { GALLERY_THEMES } from '../config/themes';
 
 interface InstagramGalleryProps {
   items: MediaItem[];
@@ -20,6 +21,7 @@ interface InstagramGalleryProps {
   getUserAvatar?: (userName: string, deviceId?: string) => string | null;
   getUserDisplayName?: (userName: string, deviceId?: string) => string;
   deviceId: string;
+  galleryTheme: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes';
 }
 
 export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
@@ -37,13 +39,18 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
   isDarkMode,
   getUserAvatar,
   getUserDisplayName,
-  deviceId
+  deviceId,
+  galleryTheme
 }) => {
   const [viewMode, setViewMode] = useState<'feed' | 'grid'>('feed');
   const [notesSliderIndex, setNotesSliderIndex] = useState(0);
 
   const noteItems = items.filter(item => item.type === 'note');
   const mediaItems = items.filter(item => item.type !== 'note');
+  
+  // Get theme configuration
+  const themeConfig = GALLERY_THEMES[galleryTheme];
+  const themeStyles = themeConfig.styles;
 
   const getAvatarUrl = (name: string) => {
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}&backgroundColor=transparent`;
@@ -87,8 +94,20 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
               className={`flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl transition-all duration-300 transform hover:scale-105 touch-manipulation ${
                 viewMode === 'feed'
                   ? isDarkMode
-                    ? 'bg-pink-600 text-white shadow-lg'
-                    : 'bg-pink-500 text-white shadow-lg'
+                    ? galleryTheme === 'hochzeit'
+                      ? 'bg-pink-600 text-white shadow-lg'
+                      : galleryTheme === 'geburtstag'
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : galleryTheme === 'urlaub'
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'bg-green-600 text-white shadow-lg'
+                    : galleryTheme === 'hochzeit'
+                      ? 'bg-pink-500 text-white shadow-lg'
+                      : galleryTheme === 'geburtstag'
+                      ? 'bg-purple-500 text-white shadow-lg'
+                      : galleryTheme === 'urlaub'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'bg-green-500 text-white shadow-lg'
                 : isDarkMode
                   ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/30'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
@@ -102,8 +121,20 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
               className={`flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl transition-all duration-300 transform hover:scale-105 touch-manipulation ${
                 viewMode === 'grid'
                   ? isDarkMode
-                    ? 'bg-pink-600 text-white shadow-lg'
-                    : 'bg-pink-500 text-white shadow-lg'
+                    ? galleryTheme === 'hochzeit'
+                      ? 'bg-pink-600 text-white shadow-lg'
+                      : galleryTheme === 'geburtstag'
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : galleryTheme === 'urlaub'
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'bg-green-600 text-white shadow-lg'
+                    : galleryTheme === 'hochzeit'
+                      ? 'bg-pink-500 text-white shadow-lg'
+                      : galleryTheme === 'geburtstag'
+                      ? 'bg-purple-500 text-white shadow-lg'
+                      : galleryTheme === 'urlaub'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'bg-green-500 text-white shadow-lg'
                   : isDarkMode
                     ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/30'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
@@ -196,7 +227,13 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
                           onClick={() => goToNote(index)}
                           className={`w-3 h-3 sm:w-2 sm:h-2 rounded-full transition-all duration-300 touch-manipulation ${
                             index === notesSliderIndex
-                              ? 'bg-pink-500 w-6 sm:w-4'
+                              ? galleryTheme === 'hochzeit'
+                                ? 'bg-pink-500 w-6 sm:w-4'
+                                : galleryTheme === 'geburtstag'
+                                ? 'bg-purple-500 w-6 sm:w-4'
+                                : galleryTheme === 'urlaub'
+                                ? 'bg-blue-500 w-6 sm:w-4'
+                                : 'bg-green-500 w-6 sm:w-4'
                               : isDarkMode ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-300 hover:bg-gray-400'
                           }`}
                           style={{ minWidth: '24px', minHeight: '24px' }}

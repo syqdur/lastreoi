@@ -9,6 +9,7 @@ interface TabNavigationProps {
   musicWishlistEnabled?: boolean;
   themeTexts?: any;
   themeIcon?: string;
+  themeStyles?: any;
 }
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({
@@ -18,7 +19,8 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
   galleryEnabled = true,
   musicWishlistEnabled = true,
   themeTexts,
-  themeIcon
+  themeIcon,
+  themeStyles
 }) => {
   const allTabs = [
     {
@@ -75,8 +77,8 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
             {activeTab === tab.id && (
               <div className={`absolute inset-0 rounded-xl ring-2 transition-all duration-300 ${
                 isDarkMode 
-                  ? 'ring-purple-500/30 bg-gradient-to-r from-purple-600/10 to-pink-600/10' 
-                  : 'ring-pink-500/30 bg-gradient-to-r from-pink-500/10 to-purple-500/10'
+                  ? `ring-${themeStyles?.primaryColor || 'pink-500'}/30 bg-gradient-to-r from-${themeStyles?.primaryColor || 'pink-500'}/10 to-${themeStyles?.secondaryColor || 'rose-400'}/10` 
+                  : `ring-${themeStyles?.primaryColor || 'pink-500'}/30 bg-gradient-to-r from-${themeStyles?.primaryColor || 'pink-500'}/10 to-${themeStyles?.gradientTo || 'rose-500'}/10`
               }`} />
             )}
           </button>

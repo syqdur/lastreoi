@@ -59,15 +59,15 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
     <>
       <div className={`mx-4 mb-4 p-6 rounded-3xl transition-all duration-500 ${
         isDarkMode 
-          ? 'bg-gray-800/40 border border-gray-700/30 backdrop-blur-xl shadow-2xl shadow-purple-500/10' 
-          : 'bg-white/60 border border-gray-200/40 backdrop-blur-xl shadow-2xl shadow-pink-500/10'
+          ? `bg-gray-800/40 border border-gray-700/30 backdrop-blur-xl shadow-2xl shadow-${themeStyles?.primaryColor || 'pink-500'}/10` 
+          : `bg-white/60 border border-gray-200/40 backdrop-blur-xl shadow-2xl shadow-${themeStyles?.primaryColor || 'pink-500'}/10`
       }`}>
         <div className="flex items-center gap-6">
           {/* Modern Upload Button */}
           <div className={`w-16 h-16 border-2 border-dashed rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-300 group hover:scale-105 ${
             isDarkMode 
-              ? 'border-purple-500/50 bg-gray-700/30 hover:bg-purple-600/20 hover:border-purple-400' 
-              : 'border-pink-400/50 bg-pink-50/30 hover:bg-pink-100/50 hover:border-pink-500'
+              ? `border-${themeStyles?.primaryColor || 'pink-500'}/50 bg-gray-700/30 hover:bg-${themeStyles?.primaryColor || 'pink-500'}/20 hover:border-${themeStyles?.secondaryColor || 'pink-400'}` 
+              : `border-${themeStyles?.secondaryColor || 'pink-400'}/50 bg-${themeStyles?.primaryColor || 'pink-500'}/10 hover:bg-${themeStyles?.primaryColor || 'pink-500'}/20 hover:border-${themeStyles?.primaryColor || 'pink-500'}`
           }`}>
             <button
               onClick={() => setShowUploadOptions(true)}
@@ -75,8 +75,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
             >
               <Plus className={`w-6 h-6 transition-all duration-300 ${
                 isDarkMode 
-                  ? 'text-purple-400 group-hover:text-purple-300' 
-                  : 'text-pink-500 group-hover:text-pink-600'
+                  ? `text-${themeStyles?.secondaryColor || 'pink-400'} group-hover:text-${themeStyles?.primaryColor || 'pink-300'}` 
+                  : `text-${themeStyles?.primaryColor || 'pink-500'} group-hover:text-${themeStyles?.accentColor || 'pink-600'}`
               }`} />
             </button>
           </div>
