@@ -31,10 +31,17 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
   const isRootAdminPage = location === '/root-admin';
   
   // Check if we're handling a Spotify callback
-  const isSpotifyCallback = location.includes('?code=') && location.includes('&state=');
+  const urlParams = new URLSearchParams(window.location.search);
+  const isSpotifyCallback = urlParams.has('code') && urlParams.has('state');
 
-  // Load gallery when slug changes
+  // Load gallery when slug changes (but not for Spotify callbacks)
   useEffect(() => {
+    // Skip normal routing if this is a Spotify callback
+    if (isSpotifyCallback) {
+      console.log('🎵 Spotify callback detected, skipping normal routing');
+      return;
+    }
+    
     if (match && params?.slug) {
       if (params.slug === 'root-admin') {
         setShowRootAdmin(true);
@@ -45,7 +52,7 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
       // Invalid route, redirect to landing
       setLocation('/');
     }
-  }, [match, params?.slug, isLandingPage, setLocation]);
+  }, [match, params?.slug, isLandingPage, isSpotifyCallback, setLocation]);
 
   const loadGallery = async (slug: string) => {
     setIsLoading(true);
