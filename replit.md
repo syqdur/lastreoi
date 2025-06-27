@@ -160,6 +160,9 @@ This is a comprehensive wedding gallery application with the following architect
 - **Firebase Data Validation**: Fixed undefined field value errors in Firebase by conditionally including countdownDate and profilePicture fields
 - **Floating Admin Controls**: Added proper floating admin controls (lock/unlock and settings) positioned in bottom-left corner for gallery owners
 - **Migration Verification**: Confirmed all features working including gallery creation, profile management, admin controls, real-time users, and Firebase integration
+- **Profile Header Loading Fix**: Fixed profile header data flashing issue where old gallery data (K&M) would show before current gallery data loaded by setting default profile data immediately on gallery change and disabling automatic Firebase profile loading to prevent data conflicts
+- **Countdown Toggle Persistence Fix**: Fixed countdown deactivation in gallery settings not persisting after reload by explicitly handling empty countdown values and setting them to null in Firebase instead of conditionally excluding them from updates
+- **Admin Panel Toggle Buttons Fix**: Fixed missing Gallery, Music Wishlist, and Stories toggle buttons in admin panel by adding siteStatus subscription to properly load feature toggle states from Firebase
 
 ### June 27, 2025 (Admin Controls & Data Isolation Fix)
 - **Admin Panel Feature Toggles**: Implemented comprehensive admin control system with toggle buttons for Gallery, Music Wishlist, and Stories features with real-time siteStatus integration

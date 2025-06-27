@@ -278,11 +278,29 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
         {/* Countdown Date Section */}
         <div className="mb-6">
-          <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
-            isDarkMode ? 'text-white' : 'text-gray-900'
-          }`}>
-            Countdown Datum (optional)
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className={`text-sm font-medium transition-colors duration-300 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              Countdown Datum (optional)
+            </label>
+            {countdownDate && (
+              <button
+                type="button"
+                onClick={() => setCountdownDate('')}
+                disabled={isSaving}
+                className={`px-3 py-1 text-xs rounded-lg transition-colors duration-300 ${
+                  isSaving
+                    ? 'cursor-not-allowed opacity-50'
+                    : isDarkMode
+                      ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30'
+                      : 'bg-red-50 hover:bg-red-100 text-red-600 border border-red-200'
+                }`}
+              >
+                Countdown deaktivieren
+              </button>
+            )}
+          </div>
           <input
             type="datetime-local"
             value={countdownDate}
@@ -299,7 +317,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
           <p className={`text-xs mt-1 transition-colors duration-300 ${
             isDarkMode ? 'text-gray-400' : 'text-gray-500'
           }`}>
-            Setzt ein Datum für den Countdown im Profil
+            {countdownDate ? 'Countdown ist aktiviert' : 'Setzt ein Datum für den Countdown im Profil'}
           </p>
         </div>
 

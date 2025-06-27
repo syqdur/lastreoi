@@ -121,6 +121,9 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   
   // Reset state when gallery changes to fix data isolation
   useEffect(() => {
+    console.log('🔄 Gallery changed - resetting all state for:', gallery.id, gallery.eventName);
+    
+    // Clear old data immediately
     setGalleryProfileData(null);
     setMediaItems([]);
     setComments([]);
@@ -678,20 +681,24 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     loadCurrentUserProfile();
   }, [userName, deviceId, gallery.id]);
 
-  // Load gallery profile data
+  // Load gallery profile data from Firebase for current gallery
   useEffect(() => {
     const loadGalleryProfile = async () => {
       try {
         console.log('🔄 Loading gallery profile for:', gallery.id);
+        console.log('🎯 Current gallery name:', gallery.eventName);
+        
         const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
         const profileDoc = await getDoc(profileDocRef);
         
         if (profileDoc.exists()) {
-          console.log('✅ Gallery profile loaded:', profileDoc.data());
-          setGalleryProfileData(profileDoc.data());
+          const firebaseData = profileDoc.data();
+          console.log('✅ Gallery profile loaded from Firebase:', firebaseData);
+          console.log('🔄 Applying Firebase profile data immediately');
+          setGalleryProfileData(firebaseData);
         } else {
-          console.log('📝 Creating default gallery profile...');
-          // Create default gallery profile
+          console.log('📝 No Firebase profile found, creating default gallery profile');
+          // Create default profile only if no Firebase data exists
           const defaultProfile = {
             name: gallery.eventName,
             bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
@@ -702,15 +709,41 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
             updatedAt: new Date().toISOString()
           };
           setGalleryProfileData(defaultProfile);
-          console.log('✅ Default profile created');
         }
       } catch (error) {
         console.error('❌ Error loading gallery profile:', error);
+        // On error, set default profile
+        const defaultProfile = {
+          name: gallery.eventName,
+          bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+          countdownDate: gallery.eventDate,
+          countdownEndMessage: 'Der große Tag ist da! 🎉',
+          countdownMessageDismissed: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setGalleryProfileData(defaultProfile);
       }
     };
 
+    // Load Firebase profile immediately without delay
     loadGalleryProfile();
   }, [gallery.id, gallery.eventName, gallery.eventDate]);
+
+  // Subscribe to site status changes
+  useEffect(() => {
+    console.log('🔄 Setting up site status subscription for gallery:', gallery.id);
+    
+    const unsubscribe = subscribeSiteStatus((status) => {
+      console.log('📊 Site status updated:', status);
+      setSiteStatus(status);
+    });
+
+    return () => {
+      console.log('🧹 Cleaning up site status subscription');
+      unsubscribe();
+    };
+  }, [gallery.id]);
 
   // Check for admin credentials setup on gallery load
   useEffect(() => {
@@ -1260,15 +1293,21 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
                 profilePictureUrl = profileData.profilePicture;
               }
 
-              const updatedGalleryProfile = {
+              const updatedGalleryProfile: any = {
                 name: profileData.name,
                 bio: profileData.bio,
                 profilePicture: profilePictureUrl,
-                ...(profileData.countdownDate && { countdownDate: profileData.countdownDate }),
                 countdownEndMessage: profileData.countdownEndMessage,
                 countdownMessageDismissed: profileData.countdownMessageDismissed,
                 updatedAt: new Date().toISOString()
               };
+
+              // Handle countdownDate explicitly - include it if it has a value, otherwise explicitly set to null to remove it
+              if (profileData.countdownDate && profileData.countdownDate.trim() !== '') {
+                updatedGalleryProfile.countdownDate = profileData.countdownDate;
+              } else {
+                updatedGalleryProfile.countdownDate = null; // Explicitly remove countdown
+              }
 
               console.log('📝 Profile data to save:', updatedGalleryProfile);
               console.log('🎯 Gallery ID:', gallery.id);

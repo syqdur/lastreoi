@@ -89,21 +89,35 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return () => clearInterval(interval);
   }, [profileData?.countdownDate]);
 
+  // Show loading state if no profile data exists yet
+  if (!profileData) {
+    return (
+      <div className={`mx-2 sm:mx-4 my-4 sm:my-6 p-4 sm:p-6 rounded-3xl transition-all duration-500 ${
+        isDarkMode 
+          ? 'bg-gray-800/40 border border-gray-700/30 backdrop-blur-xl shadow-2xl shadow-purple-500/10' 
+          : 'bg-white/60 border border-gray-200/40 backdrop-blur-xl shadow-2xl shadow-pink-500/10'
+      }`}>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full animate-pulse ${
+              isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+            }`} />
+            <div className="flex-1">
+              <div className={`h-6 w-32 rounded animate-pulse mb-2 ${
+                isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+              }`} />
+              <div className={`h-4 w-48 rounded animate-pulse ${
+                isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+              }`} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* Debug info */}
-      <div style={{ 
-        position: 'fixed', 
-        top: '10px', 
-        right: '10px', 
-        background: 'red', 
-        color: 'white', 
-        padding: '10px', 
-        zIndex: 9999,
-        fontSize: '12px'
-      }}>
-        ProfileHeader: {profileData ? 'HAS DATA' : 'NO DATA'}
-      </div>
       
       <div className={`mx-2 sm:mx-4 my-4 sm:my-6 p-4 sm:p-6 rounded-3xl transition-all duration-500 ${
         isDarkMode 
