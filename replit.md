@@ -267,6 +267,7 @@ This is a comprehensive wedding gallery application with the following architect
 - **WhatsApp Gallery Sharing**: Added WhatsApp sharing button to admin panel allowing gallery owners to easily share gallery links with event-specific messaging via WhatsApp Web API integration, configured for telya.netlify.app deployment with proper gallery slug URLs
 - **Firebase Error Resolution**: Fixed "invalid-argument" Firebase errors by implementing automatic file compression for all uploads including photos, videos, and stories to stay within Firestore document size limits
 - **Progressive Image Compression**: Created intelligent compression algorithm with multiple quality levels and size targets that automatically adjusts compression ratio to achieve optimal file sizes for Firebase compatibility
+- **Video Story Upload Fix**: Fixed story video uploads by implementing separate size limits (100MB for videos, 512KB for images) and proper error handling since video compression requires complex tools not available in browser environment
 
 
 

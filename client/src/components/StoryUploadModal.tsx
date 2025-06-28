@@ -54,12 +54,20 @@ export const StoryUploadModal: React.FC<StoryUploadModalProps> = ({
       return;
     }
 
-    // Validate file size with detailed feedback
-    const maxSize = 50 * 1024 * 1024; // 50MB - reduced for better performance with base64
+    // Different size limits for different media types
+    const isVideo = file.type.startsWith('video/');
+    const maxSize = isVideo ? 100 * 1024 * 1024 : 50 * 1024 * 1024; // 100MB for videos, 50MB for images
+    
     if (file.size > maxSize) {
-      const errorMsg = `Datei zu groß: ${fileSizeMB}MB (max. 50MB)`;
+      const maxSizeMB = isVideo ? '100MB' : '50MB';
+      const errorMsg = `${isVideo ? 'Video' : 'Datei'} zu groß: ${fileSizeMB}MB (max. ${maxSizeMB})`;
       console.error(`❌ ${errorMsg}`);
-      setUploadError(`${errorMsg}\n\n💡 Tipps zur Verkleinerung:\n• Komprimiere das Bild/Video\n• Wähle eine niedrigere Auflösung\n• Verwende ein anderes Format`);
+      
+      if (isVideo) {
+        setUploadError(`${errorMsg}\n\n💡 Tipps für Videos:\n• Verwende eine kürzere Aufnahme\n• Reduziere die Videoqualität in den Kamera-Einstellungen\n• Schneide das Video auf die wichtigsten Momente zu`);
+      } else {
+        setUploadError(`${errorMsg}\n\n💡 Tipps zur Verkleinerung:\n• Komprimiere das Bild\n• Wähle eine niedrigere Auflösung\n• Verwende ein anderes Format`);
+      }
       return;
     }
 

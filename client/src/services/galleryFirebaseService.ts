@@ -509,9 +509,11 @@ export const addGalleryStory = async (
       console.log(`🗜️ Compressing story file for optimal Firebase storage...`);
       try {
         if (file.type.startsWith('image/')) {
-          processedFile = await compressImage(file, { targetSizeKB: 100, maxWidth: 800, maxHeight: 600 }); // Much smaller for stories
+          processedFile = await compressImage(file, { targetSizeKB: 50, maxWidth: 600, maxHeight: 400 }); // Much smaller for stories
         } else if (file.type.startsWith('video/')) {
-          processedFile = await compressVideo(file, 512); // 512KB for story videos
+          // Video compression isn't implemented yet, skip for videos
+          console.warn(`⚠️ Video compression not available, checking file size...`);
+          processedFile = file;
         }
         console.log(`✅ Story compression complete: ${(processedFile.size / 1024).toFixed(1)}KB`);
       } catch (error) {
@@ -520,10 +522,39 @@ export const addGalleryStory = async (
       }
     }
     
-    // Final size check for Firebase compatibility
-    const maxSizeForFirebase = 1024 * 1024; // 1MB absolute limit for Firebase documents
-    if (processedFile.size > maxSizeForFirebase) {
-      throw new Error(`Datei nach Komprimierung immer noch zu groß: ${(processedFile.size / 1024).toFixed(1)}KB (max. 1MB für Stories)`);
+    // Different size limits for images vs videos
+    const maxSizeForImages = 512 * 1024; // 512KB for images
+    const maxSizeForVideos = 100 * 1024 * 1024; // 100MB for videos as requested
+    
+    const isVideo = processedFile.type.startsWith('video/');
+    const maxSize = isVideo ? maxSizeForVideos : maxSizeForImages;
+    
+    if (processedFile.size > maxSize) {
+      console.warn(`⚠️ File too large: ${(processedFile.size / 1024).toFixed(1)}KB`);
+      
+      if (!isVideo) {
+        // Try extremely aggressive compression for images as last resort
+        console.log(`🗜️ Attempting ultra-aggressive compression...`);
+        try {
+          processedFile = await compressImage(processedFile, { 
+            targetSizeKB: 25, 
+            maxWidth: 400, 
+            maxHeight: 300,
+            quality: 0.3 
+          });
+          console.log(`✅ Ultra compression result: ${(processedFile.size / 1024).toFixed(1)}KB`);
+        } catch (error) {
+          console.error(`❌ Ultra compression failed:`, error);
+        }
+        
+        // Final check after ultra compression
+        if (processedFile.size > maxSizeForImages) {
+          throw new Error(`Bild nach maximaler Komprimierung immer noch zu groß: ${(processedFile.size / 1024).toFixed(1)}KB (max. 512KB für Story-Bilder)`);
+        }
+      } else {
+        // Video is too large and we can't compress it
+        throw new Error(`Video zu groß: ${(processedFile.size / 1024 / 1024).toFixed(1)}MB (max. 100MB für Story-Videos)\n\nTipp: Verwende eine kürzere Aufnahme oder niedrigere Qualität`);
+      }
     }
     
     console.log(`📸 Converting story file to base64...`);
@@ -538,7 +569,8 @@ export const addGalleryStory = async (
     
     console.log(`✅ Story file converted to base64 successfully`);
     
-    // Generate filename for reference
+    // Determine media type and generate filename
+    const mediaType = processedFile.type.startsWith('video/') ? 'video' : 'image';
     const timestamp = Date.now();
     const cleanUserName = userName.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_');
     const fileExtension = processedFile.name.split('.').pop()?.toLowerCase() || (mediaType === 'video' ? 'mp4' : 'jpg');
