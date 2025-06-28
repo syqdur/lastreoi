@@ -24,6 +24,8 @@ import { ProfileEditModal } from './components/ProfileEditModal';
 import { ProfileEditTest } from './components/ProfileEditTest';
 import { BackToTopButton } from './components/BackToTopButton';
 import { NotificationCenter } from './components/NotificationCenter';
+import { GalleryTutorial } from './components/GalleryTutorial';
+import { AdminTutorial } from './components/AdminTutorial';
 import { useUser } from './hooks/useUser';
 import { MediaItem, Comment, Like } from './types';
 import { Gallery, galleryService } from './services/galleryService';
@@ -125,6 +127,8 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [showStoryUpload, setShowStoryUpload] = useState(false);
   const [activeTab, setActiveTab] = useState<'gallery' | 'music' | 'timeline'>('gallery');
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [showAdminTutorial, setShowAdminTutorial] = useState(false);
   
   // Reset state when gallery changes to fix data isolation
   useEffect(() => {
@@ -142,7 +146,14 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     setIsAdmin(false);
     setModalOpen(false);
     setActiveTab('gallery');
-  }, [gallery.id]);
+    
+    // Check if tutorial should be shown for this gallery
+    const tutorialKey = `tutorial_shown_${gallery.id}`;
+    const tutorialShown = localStorage.getItem(tutorialKey);
+    if (!tutorialShown && userName) {
+      setShowTutorial(true);
+    }
+  }, [gallery.id, userName]);
   
   // Handle tab switching when features are disabled
   const handleTabChange = (tab: 'gallery' | 'music' | 'timeline') => {
@@ -508,6 +519,13 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     
     setShowAdminLogin(false);
     console.log('🔐 Admin logged in successfully');
+    
+    // Check if admin tutorial should be shown (first time admin access)
+    const adminTutorialKey = `admin_tutorial_shown_${gallery.id}`;
+    const adminTutorialShown = localStorage.getItem(adminTutorialKey);
+    if (!adminTutorialShown) {
+      setShowAdminTutorial(true);
+    }
   };
 
   const handleAdminLogout = () => {
@@ -515,6 +533,20 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     localStorage.removeItem(`admin_status_${gallery.slug}`);
     localStorage.removeItem(`admin_auth_${gallery.id}`);
     console.log('🚪 Admin logged out');
+  };
+
+  const handleCloseTutorial = () => {
+    setShowTutorial(false);
+    // Mark tutorial as shown for this gallery
+    const tutorialKey = `tutorial_shown_${gallery.id}`;
+    localStorage.setItem(tutorialKey, 'true');
+  };
+
+  const handleCloseAdminTutorial = () => {
+    setShowAdminTutorial(false);
+    // Mark admin tutorial as shown for this gallery
+    const adminTutorialKey = `admin_tutorial_shown_${gallery.id}`;
+    localStorage.setItem(adminTutorialKey, 'true');
   };
 
   const handleAdminCredentialsSetup = async (credentials: { username: string; password: string }) => {
@@ -857,6 +889,13 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
               if (Date.now() - authData.timestamp < 24 * 60 * 60 * 1000) {
                 setIsAdmin(true);
                 console.log('🔐 Admin auto-login successful');
+                
+                // Check if admin tutorial should be shown (first time admin access)
+                const adminTutorialKey = `admin_tutorial_shown_${gallery.id}`;
+                const adminTutorialShown = localStorage.getItem(adminTutorialKey);
+                if (!adminTutorialShown) {
+                  setShowAdminTutorial(true);
+                }
               } else {
                 // Auth expired, remove it
                 localStorage.removeItem(`admin_auth_${gallery.id}`);
@@ -1437,6 +1476,22 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           )}
         </div>
       )}
+
+      {/* Gallery Tutorial */}
+      <GalleryTutorial
+        isOpen={showTutorial}
+        onClose={handleCloseTutorial}
+        isDarkMode={isDarkMode}
+        galleryTheme={gallery.theme || 'hochzeit'}
+      />
+
+      {/* Admin Tutorial */}
+      <AdminTutorial
+        isOpen={showAdminTutorial}
+        onClose={handleCloseAdminTutorial}
+        isDarkMode={isDarkMode}
+        galleryTheme={gallery.theme || 'hochzeit'}
+      />
     </div>
   );
 };

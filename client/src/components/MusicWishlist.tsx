@@ -298,11 +298,35 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode, isAdmi
             Spotify nicht verbunden
           </h3>
           
-          <p className={`text-sm max-w-md mx-auto leading-relaxed transition-colors duration-300 ${
+          <p className={`text-sm max-w-md mx-auto leading-relaxed mb-4 transition-colors duration-300 ${
             isDarkMode ? 'text-white/70' : 'text-gray-600'
           }`}>
             Ein Administrator muss zuerst ein Spotify-Konto verbinden und eine Playlist auswählen, bevor Musikwünsche möglich sind.
           </p>
+          
+          <div className={`max-w-md mx-auto p-4 rounded-xl border-2 border-dashed transition-colors duration-300 ${
+            isDarkMode ? 'border-green-400/30 bg-green-500/10' : 'border-green-500/40 bg-green-50/50'
+          }`}>
+            <p className={`text-sm font-medium mb-2 ${
+              isDarkMode ? 'text-green-300' : 'text-green-700'
+            }`}>
+              📧 Spotify-Zugang beantragen
+            </p>
+            <p className={`text-xs leading-relaxed transition-colors duration-300 ${
+              isDarkMode ? 'text-white/60' : 'text-gray-600'
+            }`}>
+              Sende deine Spotify E-Mail-Adresse an{' '}
+              <a 
+                href="mailto:info@telya.app" 
+                className={`font-semibold underline transition-colors duration-300 ${
+                  isDarkMode ? 'text-green-300 hover:text-green-200' : 'text-green-600 hover:text-green-700'
+                }`}
+              >
+                info@telya.app
+              </a>
+              {' '}um zur Spotify-Allowlist hinzugefügt zu werden.
+            </p>
+          </div>
         </div>
       </div>
     );

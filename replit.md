@@ -233,6 +233,15 @@ This is a comprehensive wedding gallery application with the following architect
 - **Complete Button Theming**: Updated both "Add Event" buttons and form submission button to use dynamic theme colors instead of hardcoded pink/purple
 - **Comprehensive Color Coordination**: All Timeline UI elements including shadows, borders, gradients, and interactive states now follow the selected gallery theme configuration
 
+### June 28, 2025 (Replit Migration Complete & Profile Picture Improvements)
+- **Profile Picture File Size Increase**: Upgraded visitor profile picture upload limit from 2MB to 4MB for higher quality images
+- **Extended Image Format Support**: Added support for additional image formats including GIF, WebP, BMP, TIFF, and SVG for profile pictures across all components (UserNamePrompt, UserProfileModal, UserManagementModal, ProfileEditModal)
+- **Enhanced File Validation**: Implemented comprehensive file type validation with detailed error messages showing supported formats to users
+- **Consistent Upload Experience**: Standardized 4MB limit and format support across all profile picture upload interfaces for unified user experience
+- **Spotify Access Instructions**: Added email contact information (info@telya.app) in MusicWishlist component for users to request Spotify allowlist access when not connected
+- **Interactive Gallery Tutorial**: Implemented comprehensive 6-step tutorial system that automatically appears when users first open a gallery, featuring theme-based styling, progress tracking, step navigation, and localStorage persistence to prevent repeat displays
+- **Admin Tutorial System**: Created dedicated 6-step admin tutorial specifically for gallery creators that shows admin functions on first admin mode access, including user management, feature toggles, content moderation, Spotify administration, and ZIP download capabilities
+
 ### June 28, 2025 (Replit Migration Complete & German Optimization Features)
 - **Successful Replit Migration**: Completed migration from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
 - **Dark Mode Default**: Changed application to start in dark mode by default for better user experience

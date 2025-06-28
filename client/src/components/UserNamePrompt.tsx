@@ -45,9 +45,24 @@ export const UserNamePrompt: React.FC<UserNamePromptProps> = ({ onSubmit, isDark
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      setProfilePicture(file);
+    if (!file) return;
+
+    // Check file type - support more formats
+    const supportedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/svg+xml'];
+    if (!supportedFormats.includes(file.type.toLowerCase())) {
+      alert(`Nicht unterstütztes Bildformat. Erlaubte Formate: JPG, PNG, GIF, WebP, BMP, TIFF, SVG`);
+      return;
     }
+
+    // Check file size - 4MB limit
+    const maxSize = 4 * 1024 * 1024; // 4MB
+    if (file.size > maxSize) {
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      alert(`Datei zu groß: ${fileSizeMB}MB. Maximale Größe: 4MB`);
+      return;
+    }
+
+    setProfilePicture(file);
   };
 
   const handleCameraCapture = (blob: Blob) => {
@@ -91,7 +106,7 @@ export const UserNamePrompt: React.FC<UserNamePromptProps> = ({ onSubmit, isDark
               }`}>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/tiff,image/svg+xml"
                   onChange={handlePhotoUpload}
                   className="hidden"
                 />

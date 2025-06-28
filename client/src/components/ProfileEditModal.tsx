@@ -176,7 +176,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/tiff,image/svg+xml"
                 onChange={handleProfilePictureChange}
                 className="hidden"
                 disabled={isSaving}

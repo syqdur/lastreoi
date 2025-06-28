@@ -430,15 +430,17 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const handleFileChange = async (userName: string, deviceId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setError('Bitte wählen Sie eine Bilddatei aus');
+      // Check file type - support more formats
+      const supportedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/svg+xml'];
+      if (!supportedFormats.includes(file.type.toLowerCase())) {
+        setError(`Nicht unterstütztes Bildformat. Erlaubte Formate: JPG, PNG, GIF, WebP, BMP, TIFF, SVG`);
         return;
       }
       
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Bilddatei ist zu groß. Maximum 5MB erlaubt.');
+      // Validate file size (max 4MB)
+      if (file.size > 4 * 1024 * 1024) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        setError(`Datei zu groß: ${fileSizeMB}MB. Maximale Größe: 4MB`);
         return;
       }
       
@@ -1042,7 +1044,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           <input
                             ref={(el) => fileInputRefs.current[userKey] = el}
                             type="file"
-                            accept="image/*"
+                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/tiff,image/svg+xml"
                             onChange={(e) => handleFileChange(user.userName, user.deviceId, e)}
                             className="hidden"
                           />

@@ -74,15 +74,17 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Bitte wählen Sie eine Bilddatei aus.');
+    // Check file type - support more formats
+    const supportedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/svg+xml'];
+    if (!supportedFormats.includes(file.type.toLowerCase())) {
+      alert(`Nicht unterstütztes Bildformat. Erlaubte Formate: JPG, PNG, GIF, WebP, BMP, TIFF, SVG`);
       return;
     }
 
-    // Validate file size (max 2MB for base64 conversion)
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Das Bild ist zu groß. Bitte wählen Sie ein Bild unter 2MB für optimale Performance.');
+    // Validate file size (max 4MB)
+    if (file.size > 4 * 1024 * 1024) {
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      alert(`Datei zu groß: ${fileSizeMB}MB. Maximale Größe: 4MB`);
       return;
     }
 
@@ -225,7 +227,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/tiff,image/svg+xml"
               onChange={handleFileSelect}
               className="hidden"
             />
