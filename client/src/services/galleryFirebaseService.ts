@@ -1,4 +1,4 @@
-// Storage imports removed - now using base64 conversion
+// Storage imports removed - now using base64 conversion with compression
 import { db } from '../config/firebase';
 import { 
   collection, 
@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { MediaItem, Comment, Like, ProfileData, MediaTag, LocationTag } from '../types';
 import { UserProfile } from './firebaseService';
+import { compressImage, compressVideo, shouldCompress } from '../utils/imageCompression';
 
 // Gallery Stories Types
 export interface Story {
@@ -85,30 +86,49 @@ export const uploadGalleryFiles = async (
   let uploaded = 0;
   
   for (const file of Array.from(files)) {
-    console.log(`📸 Converting media file to base64: ${file.name}`);
+    console.log(`📸 Processing media file: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
     
-    // Convert file to base64 instead of uploading to Firebase Storage
+    let processedFile = file;
+    
+    // Compress file if needed to prevent Firebase errors
+    if (shouldCompress(file)) {
+      console.log(`🗜️ Compressing large file...`);
+      try {
+        if (file.type.startsWith('image/')) {
+          processedFile = await compressImage(file, { targetSizeKB: 200, maxWidth: 1200, maxHeight: 800 });
+        } else if (file.type.startsWith('video/')) {
+          processedFile = await compressVideo(file, 1024); // 1MB for videos
+        }
+        console.log(`✅ Compression complete: ${(processedFile.size / 1024).toFixed(1)}KB`);
+      } catch (error) {
+        console.warn(`⚠️ Compression failed, using original file:`, error);
+        processedFile = file;
+      }
+    }
+    
+    // Convert file to base64
     const reader = new FileReader();
     const base64Data = await new Promise<string>((resolve, reject) => {
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processedFile);
     });
     
     console.log(`✅ Media file converted to base64 successfully`);
     
     // Add metadata to gallery-specific collection with base64 data
-    const isVideo = file.type.startsWith('video/');
+    const isVideo = processedFile.type.startsWith('video/');
     const mediaCollection = `galleries/${galleryId}/media`;
     await addDoc(collection(db, mediaCollection), {
-      name: `${Date.now()}-${file.name}`,
+      name: `${Date.now()}-${processedFile.name}`,
       uploadedBy: userName,
       deviceId: deviceId,
       uploadedAt: new Date().toISOString(),
       type: isVideo ? 'video' : 'image',
-      base64Data: base64Data, // Store base64 data directly
-      mimeType: file.type,
-      size: file.size
+      base64Data: base64Data, // Store compressed base64 data
+      mimeType: processedFile.type,
+      size: processedFile.size,
+      originalSize: file.size // Keep track of original size
     });
     
     uploaded++;
@@ -124,12 +144,21 @@ export const uploadGalleryVideoBlob = async (
   galleryId: string,
   onProgress: (progress: number) => void
 ): Promise<void> => {
+  console.log(`🎥 Processing video blob (${(videoBlob.size / 1024).toFixed(1)}KB)`);
+  
   const fileName = `${Date.now()}-recorded-video.webm`;
-  const storageRef = ref(storage, `galleries/${galleryId}/uploads/${fileName}`);
   
-  onProgress(50);
+  onProgress(25);
   
-  await uploadBytes(storageRef, videoBlob);
+  // Convert video blob to base64
+  const reader = new FileReader();
+  const base64Data = await new Promise<string>((resolve, reject) => {
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(videoBlob);
+  });
+  
+  onProgress(75);
   
   const mediaCollection = `galleries/${galleryId}/media`;
   await addDoc(collection(db, mediaCollection), {
@@ -137,10 +166,14 @@ export const uploadGalleryVideoBlob = async (
     uploadedBy: userName,
     deviceId: deviceId,
     uploadedAt: new Date().toISOString(),
-    type: 'video'
+    type: 'video',
+    base64Data: base64Data,
+    mimeType: videoBlob.type,
+    size: videoBlob.size
   });
   
   onProgress(100);
+  console.log(`✅ Video blob uploaded successfully`);
 };
 
 // Gallery-specific note addition
@@ -461,28 +494,46 @@ export const addGalleryStory = async (
   console.log(`🚀 === GALLERY STORY UPLOAD START ===`);
   console.log(`👤 User: ${userName} (${deviceId})`);
   console.log(`🎪 Gallery: ${galleryId}`);
-  console.log(`📁 File: ${file.name}`);
+  console.log(`📁 File: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
   
   try {
-    // Validate file size (50MB max for better performance with base64)
-    const maxSize = 50 * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new Error(`Datei zu groß: ${(file.size / 1024 / 1024).toFixed(1)}MB (max. 50MB)`);
-    }
-    
     // Validate file type
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
       throw new Error(`Ungültiger Dateityp: ${file.type}`);
     }
     
+    let processedFile = file;
+    
+    // Compress file to prevent Firebase document size errors
+    if (shouldCompress(file)) {
+      console.log(`🗜️ Compressing story file for optimal Firebase storage...`);
+      try {
+        if (file.type.startsWith('image/')) {
+          processedFile = await compressImage(file, { targetSizeKB: 100, maxWidth: 800, maxHeight: 600 }); // Much smaller for stories
+        } else if (file.type.startsWith('video/')) {
+          processedFile = await compressVideo(file, 512); // 512KB for story videos
+        }
+        console.log(`✅ Story compression complete: ${(processedFile.size / 1024).toFixed(1)}KB`);
+      } catch (error) {
+        console.warn(`⚠️ Story compression failed, using original file:`, error);
+        processedFile = file;
+      }
+    }
+    
+    // Final size check for Firebase compatibility
+    const maxSizeForFirebase = 1024 * 1024; // 1MB absolute limit for Firebase documents
+    if (processedFile.size > maxSizeForFirebase) {
+      throw new Error(`Datei nach Komprimierung immer noch zu groß: ${(processedFile.size / 1024).toFixed(1)}KB (max. 1MB für Stories)`);
+    }
+    
     console.log(`📸 Converting story file to base64...`);
     
-    // Convert file to base64 instead of uploading to Firebase Storage
+    // Convert file to base64
     const reader = new FileReader();
     const base64Data = await new Promise<string>((resolve, reject) => {
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processedFile);
     });
     
     console.log(`✅ Story file converted to base64 successfully`);
@@ -490,17 +541,17 @@ export const addGalleryStory = async (
     // Generate filename for reference
     const timestamp = Date.now();
     const cleanUserName = userName.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_');
-    const fileExtension = file.name.split('.').pop()?.toLowerCase() || (mediaType === 'video' ? 'mp4' : 'jpg');
+    const fileExtension = processedFile.name.split('.').pop()?.toLowerCase() || (mediaType === 'video' ? 'mp4' : 'jpg');
     const fileName = `STORY_${timestamp}_${cleanUserName}.${fileExtension}`;
     
     // Set expiry time (24 hours from now)
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     
-    // Save to gallery-specific stories collection with base64 data
+    // Save to gallery-specific stories collection with compressed base64 data
     const storiesCollection = `galleries/${galleryId}/stories`;
     const storyData = {
-      mediaUrl: base64Data, // Using base64 data directly
+      mediaUrl: base64Data, // Using compressed base64 data
       mediaType,
       userName,
       deviceId,
@@ -509,7 +560,9 @@ export const addGalleryStory = async (
       views: [],
       fileName: fileName,
       isStory: true,
-      base64Data: base64Data // Store base64 for consistency
+      base64Data: base64Data, // Store compressed base64 for consistency
+      originalSize: file.size, // Track original size
+      compressedSize: processedFile.size // Track compressed size
     };
     
     console.log(`💾 Saving to gallery stories collection: ${storiesCollection}`);
@@ -645,16 +698,8 @@ export const deleteGalleryStory = async (
     if (!storyDoc.empty) {
       const storyData = storyDoc.docs[0].data();
       
-      // Delete from storage if fileName exists
-      if (storyData.fileName) {
-        try {
-          const storageRef = ref(storage, `galleries/${galleryId}/stories/${storyData.fileName}`);
-          await deleteObject(storageRef);
-          console.log(`✅ Deleted gallery story from storage: ${storyData.fileName}`);
-        } catch (storageError) {
-          console.warn(`⚠️ Could not delete gallery story from storage: ${storyData.fileName}`, storageError);
-        }
-      }
+      // Note: Stories are stored as base64 in Firestore, no storage cleanup needed
+      console.log(`🗑️ Story data contains base64, no external storage cleanup required`);
     }
     
     // Delete from Firestore

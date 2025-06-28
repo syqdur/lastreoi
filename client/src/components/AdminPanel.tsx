@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Unlock, Settings, Download, Globe, Users, ExternalLink, Image, Video, MessageSquare, Gift, Heart, Star, Eye, Code, Music, Sparkles, Camera } from 'lucide-react';
+import { Lock, Unlock, Settings, Download, Globe, Users, ExternalLink, Image, Video, MessageSquare, Gift, Heart, Star, Eye, Code, Music, Sparkles, Camera, Share2 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { Gallery } from '../services/galleryService';
 import { downloadAllMedia } from '../services/downloadService';
@@ -40,6 +40,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleAdminToggle = () => {
     onToggleAdmin(!isAdmin);
+  };
+
+  const handleWhatsAppShare = () => {
+    const galleryUrl = `https://telya.netlify.app/${gallery.slug}`;
+    const message = `🎉 Schau dir unsere ${gallery.eventName} Galerie an!\n\nHier kannst du alle Fotos und Videos anschauen und deine eigenen Momente teilen: ${galleryUrl}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const handleToggleSiteStatus = async () => {
@@ -307,7 +314,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </button>
 
-
+          {/* WHATSAPP SHARE BUTTON */}
+          <button
+            onClick={handleWhatsAppShare}
+            className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
+              isDarkMode
+                ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-green-500/20'
+                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-green-500/20'
+            }`}
+            title="Galerie über WhatsApp teilen"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-green-600/20 opacity-60"></div>
+            <div className="relative flex items-center gap-2 sm:gap-3">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
+                isDarkMode ? 'bg-gradient-to-br from-green-600/30 to-green-700/30' : 'bg-gradient-to-br from-green-500/20 to-green-600/20'
+              }`}>
+                <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
+              </div>
+              <div className="flex-1 text-left">
+                <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  WhatsApp Teilen
+                </div>
+                <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Galerie Link senden
+                </div>
+              </div>
+            </div>
+          </button>
 
           {/* Gallery Toggle */}
           {siteStatus && (
