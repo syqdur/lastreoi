@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getStorage } from 'firebase/storage';
 import { getFirestore, enableNetwork, disableNetwork } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCqDlIxPDp-QU6mzthkWnmzM6rZ8rnJdiI",
@@ -17,6 +18,7 @@ const app = initializeApp(firebaseConfig);
 export const storage = getStorage(app);
 export const db = getFirestore(app);
 export const analytics = getAnalytics(app);
+export const auth = getAuth(app);
 
 // Add connection state management to prevent internal assertion errors
 let isFirebaseConnected = true;

@@ -192,6 +192,22 @@ class GalleryService {
     }
   }
 
+  // Get galleries by owner email
+  async getGalleriesByOwnerEmail(ownerEmail: string): Promise<Gallery[]> {
+    try {
+      const q = query(collection(db, 'galleries'), where('ownerEmail', '==', ownerEmail));
+      const querySnapshot = await getDocs(q);
+      
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Gallery));
+    } catch (error) {
+      console.error('Error fetching galleries by owner email:', error);
+      return [];
+    }
+  }
+
   // Get gallery by slug
   async getGalleryBySlug(slug: string): Promise<Gallery | null> {
     const q = query(collection(db, 'galleries'), where('slug', '==', slug));

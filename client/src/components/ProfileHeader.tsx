@@ -151,12 +151,31 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className={`w-full h-full bg-gradient-to-br flex items-center justify-center text-3xl sm:text-4xl font-bold ${
-                  isDarkMode 
-                    ? 'from-purple-600 to-pink-600 text-white' 
-                    : 'from-pink-500 to-purple-500 text-white'
+                <div className={`w-full h-full bg-gradient-to-br flex items-center justify-center text-3xl sm:text-4xl ${
+                  gallery?.theme === 'hochzeit' 
+                    ? isDarkMode 
+                      ? 'from-pink-600 to-rose-600 text-white' 
+                      : 'from-pink-500 to-rose-500 text-white'
+                    : gallery?.theme === 'geburtstag'
+                    ? isDarkMode 
+                      ? 'from-purple-600 to-violet-600 text-white' 
+                      : 'from-purple-500 to-violet-500 text-white'
+                    : gallery?.theme === 'urlaub'
+                    ? isDarkMode 
+                      ? 'from-blue-600 to-cyan-600 text-white' 
+                      : 'from-blue-500 to-cyan-500 text-white'
+                    : gallery?.theme === 'eigenes'
+                    ? isDarkMode 
+                      ? 'from-green-600 to-emerald-600 text-white' 
+                      : 'from-green-500 to-emerald-500 text-white'
+                    : isDarkMode 
+                      ? 'from-purple-600 to-pink-600 text-white' 
+                      : 'from-pink-500 to-purple-500 text-white'
                 }`}>
-                  K&M
+                  {gallery?.theme === 'hochzeit' ? '💍' :
+                   gallery?.theme === 'geburtstag' ? '🎂' :
+                   gallery?.theme === 'urlaub' ? '🏖️' :
+                   gallery?.theme === 'eigenes' ? '🎊' : '💍'}
                 </div>
               )}
             </div>

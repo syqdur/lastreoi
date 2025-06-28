@@ -80,20 +80,32 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Die Datei ist zu groß. Bitte wählen Sie ein Bild unter 5MB.');
+    // Validate file size (max 2MB for base64 conversion)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Das Bild ist zu groß. Bitte wählen Sie ein Bild unter 2MB für optimale Performance.');
       return;
     }
 
     setIsUploading(true);
     try {
-      // Convert image to base64 instead of uploading to Firebase Storage
+
+      // Convert image to base64 with better error handling
       console.log('📸 Converting visitor profile picture to base64...');
-      const reader = new FileReader();
       const base64Image = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          const result = reader.result as string;
+          if (result && result.startsWith('data:image/')) {
+            resolve(result);
+          } else {
+            reject(new Error('Invalid image format'));
+          }
+        };
+        
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.onabort = () => reject(new Error('File reading was aborted'));
+        
         reader.readAsDataURL(file);
       });
       
@@ -101,7 +113,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       setProfilePicture(base64Image);
     } catch (error) {
       console.error('Error converting profile picture:', error);
-      alert('Fehler beim Verarbeiten des Profilbildes. Bitte versuchen Sie es erneut.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Fehler beim Verarbeiten des Profilbildes: ${errorMessage}. Bitte versuchen Sie es mit einem anderen Bild.`);
     } finally {
       setIsUploading(false);
     }

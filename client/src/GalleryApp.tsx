@@ -998,38 +998,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         ? 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/20'
         : 'bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20'
     }`}>
-      {/* Decorative Background Elements */}
-      {!isDarkMode && (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className={`absolute top-20 left-10 w-32 h-32 rounded-full opacity-10 ${
-            gallery.theme === 'hochzeit'
-            ? 'bg-gradient-to-br from-pink-400 to-rose-500'
-            : gallery.theme === 'geburtstag'
-            ? 'bg-gradient-to-br from-purple-400 to-violet-500'
-            : gallery.theme === 'urlaub'
-            ? 'bg-gradient-to-br from-blue-400 to-cyan-500'
-            : 'bg-gradient-to-br from-green-400 to-emerald-500'
-          }`} style={{ animation: 'float 6s ease-in-out infinite' }}></div>
-          <div className={`absolute top-60 right-5 w-24 h-24 rounded-full opacity-8 ${
-            gallery.theme === 'hochzeit'
-            ? 'bg-gradient-to-br from-rose-300 to-pink-400'
-            : gallery.theme === 'geburtstag'
-            ? 'bg-gradient-to-br from-violet-300 to-purple-400'
-            : gallery.theme === 'urlaub'
-            ? 'bg-gradient-to-br from-cyan-300 to-blue-400'
-            : 'bg-gradient-to-br from-emerald-300 to-green-400'
-          }`} style={{ animation: 'float 8s ease-in-out infinite 2s' }}></div>
-          <div className={`absolute bottom-40 left-5 w-20 h-20 rounded-full opacity-6 ${
-            gallery.theme === 'hochzeit'
-            ? 'bg-gradient-to-br from-pink-200 to-rose-300'
-            : gallery.theme === 'geburtstag'
-            ? 'bg-gradient-to-br from-purple-200 to-violet-300'
-            : gallery.theme === 'urlaub'
-            ? 'bg-gradient-to-br from-blue-200 to-cyan-300'
-            : 'bg-gradient-to-br from-green-200 to-emerald-300'
-          }`} style={{ animation: 'float 7s ease-in-out infinite 1s' }}></div>
-        </div>
-      )}
+
       {/* Gallery Header */}
       <div className={`sticky top-0 z-50 transition-all duration-300 ${
         isDarkMode 
@@ -1184,6 +1153,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
               storiesEnabled={gallery.settings.allowStories}
               themeTexts={themeTexts}
               themeStyles={themeStyles}
+              galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
             />
 
             {status && (
@@ -1327,22 +1297,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         />
       )}
 
-      {/* Simple Admin Toggle for Gallery Owners */}
-      {isOwner && !isAdmin && (
-        <div className="fixed bottom-4 left-4 z-40">
-          <button
-            onClick={() => setShowAdminLogin(true)}
-            className={`w-12 h-12 rounded-full transition-all duration-300 backdrop-blur-sm shadow-lg hover:scale-110 ${
-              isDarkMode 
-                ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30'
-                : 'bg-green-500/20 hover:bg-green-500/30 text-green-600 border border-green-500/30'
-            }`}
-            title="Admin-Modus aktivieren"
-          >
-            <Lock className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+
 
 
 

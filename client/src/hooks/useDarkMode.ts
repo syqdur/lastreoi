@@ -5,7 +5,7 @@ const DARK_MODE_KEY = 'wedding_dark_mode';
 export const useDarkMode = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const stored = localStorage.getItem(DARK_MODE_KEY);
-    return stored ? JSON.parse(stored) : false;
+    return stored ? JSON.parse(stored) : true; // Default to dark mode
   });
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Camera, MessageSquare, Image, Video, Zap } from 'lucide-react';
 import { VideoRecorder } from './VideoRecorder';
+import { EventLoadingSpinner } from './EventLoadingSpinner';
 
 interface UploadSectionProps {
   onUpload: (files: FileList) => Promise<void>;
@@ -13,6 +14,7 @@ interface UploadSectionProps {
   storiesEnabled?: boolean;
   themeTexts?: any;
   themeStyles?: any;
+  galleryTheme?: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes';
 }
 
 export const UploadSection: React.FC<UploadSectionProps> = ({
@@ -25,7 +27,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
   isDarkMode,
   storiesEnabled = true,
   themeTexts,
-  themeStyles
+  themeStyles,
+  galleryTheme = 'hochzeit'
 }) => {
   const [files, setFiles] = useState<FileList | null>(null);
   const [showUploadOptions, setShowUploadOptions] = useState(false);
@@ -93,18 +96,34 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
             }`}>
               {themeTexts?.shareInvitation || 'Teile deine schönsten Momente'}
             </p>
-            {progress > 0 && (
-              <div className={`w-full h-2 rounded-full mt-3 overflow-hidden transition-colors duration-300 ${
-                isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'
-              }`}>
-                <div 
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    isDarkMode 
-                      ? 'bg-purple-500' 
-                      : 'bg-gradient-to-r from-pink-500 to-purple-500'
-                  }`}
-                  style={{ width: `${progress}%` }}
+            {isUploading && (
+              <div className="mt-3 flex items-center gap-3">
+                <EventLoadingSpinner 
+                  theme={galleryTheme} 
+                  isDarkMode={isDarkMode} 
+                  size="small"
+                  text="Wird hochgeladen..."
                 />
+                {progress > 0 && (
+                  <div className={`flex-1 h-2 rounded-full overflow-hidden transition-colors duration-300 ${
+                    isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'
+                  }`}>
+                    <div 
+                      className={`h-full transition-all duration-500 rounded-full ${
+                        galleryTheme === 'hochzeit' 
+                          ? 'bg-gradient-to-r from-pink-500 to-rose-500'
+                          : galleryTheme === 'geburtstag'
+                          ? 'bg-gradient-to-r from-purple-500 to-violet-500'
+                          : galleryTheme === 'urlaub'
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                          : galleryTheme === 'eigenes'
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                          : 'bg-gradient-to-r from-pink-500 to-purple-500'
+                      }`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
