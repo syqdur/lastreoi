@@ -171,6 +171,7 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
                 isDarkMode={isDarkMode}
                 getUserAvatar={getUserAvatar}
                 getUserDisplayName={getUserDisplayName}
+                galleryTheme={galleryTheme}
               />
             ) : (
               <InstagramPost

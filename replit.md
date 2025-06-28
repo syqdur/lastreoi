@@ -256,7 +256,7 @@ This is a comprehensive wedding gallery application with the following architect
 - **Story Video Upload Fix**: Extended Firebase Storage integration to stories, allowing video stories up to 100MB while maintaining base64 compression for story images
 - **Complete Video Platform**: Both regular media uploads and story uploads now properly support large video files with Firebase Storage backend
 
-### June 28, 2025 (Replit Migration Complete & Media Compression + WhatsApp Sharing)
+### June 28, 2025 (Replit Migration Complete & Profile Picture Synchronization Fix)
 - **Successful Replit Migration**: Completed migration from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
 - **Dark Mode Default**: Changed application to start in dark mode by default for better user experience
 - **Gallery Background Cleanup**: Removed circular decorative background elements from gallery design for cleaner interface
@@ -279,6 +279,10 @@ This is a comprehensive wedding gallery application with the following architect
 - **Firebase Error Resolution**: Fixed "invalid-argument" Firebase errors by implementing automatic file compression for all uploads including photos, videos, and stories to stay within Firestore document size limits
 - **Progressive Image Compression**: Created intelligent compression algorithm with multiple quality levels and size targets that automatically adjusts compression ratio to achieve optimal file sizes for Firebase compatibility
 - **Video Story Upload Fix**: Fixed story video uploads by implementing separate size limits (100MB for videos, 512KB for images) and proper error handling since video compression requires complex tools not available in browser environment
+- **Profile Picture Synchronization Fix**: Resolved issue where new visitors' profile pictures weren't immediately syncing across the gallery by implementing real-time event broadcasting, immediate state updates, and cross-component profile picture update listeners for InstagramPost and NotePost components
+- **Upload Button Text Clarification**: Updated first upload option description from "Aus der Galerie auswählen" to "Fotos & Videos aus der Galerie" to clearly indicate that both photos and videos are supported from device gallery
+- **Event-Specific NotePost Styling**: Implemented complete theme-based styling for NotePost component with event-specific colors, icons, titles, and subtitles - Pink/Rose for weddings (💌 Notiz), Purple/Violet for birthdays (🎂 Geburtstagswunsch), Blue/Cyan for vacations (🏖️ Reise-Notiz), Green/Emerald for custom events (🎊 Event-Notiz)
+- **Event-Specific BackToTopButton**: Enhanced BackToTopButton with theme-based gradients and made it smaller (p-2 instead of p-3, w-4 h-4 icon instead of w-6 h-6) - automatically adapts colors to match gallery theme (Pink/Rose for weddings, Purple/Violet for birthdays, Blue/Cyan for vacations, Green/Emerald for custom events)
 
 
 

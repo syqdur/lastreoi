@@ -784,6 +784,18 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
 
   // Load gallery profile data from Firebase for current gallery
   useEffect(() => {
+    // Set immediate default profile to prevent loading state flash
+    const immediateDefaultProfile = {
+      name: gallery.eventName,
+      bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+      countdownDate: null, // Disabled by default
+      countdownEndMessage: 'Der große Tag ist da! 🎉',
+      countdownMessageDismissed: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    setGalleryProfileData(immediateDefaultProfile);
+
     const loadGalleryProfile = async () => {
       try {
         console.log('🔄 Loading gallery profile for:', gallery.id);
@@ -798,36 +810,16 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           console.log('🔄 Applying Firebase profile data immediately');
           setGalleryProfileData(firebaseData);
         } else {
-          console.log('📝 No Firebase profile found, creating default gallery profile');
-          // Create default profile only if no Firebase data exists
-          const defaultProfile = {
-            name: gallery.eventName,
-            bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-            countdownDate: null, // Disabled by default
-            countdownEndMessage: 'Der große Tag ist da! 🎉',
-            countdownMessageDismissed: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          setGalleryProfileData(defaultProfile);
+          console.log('📝 No Firebase profile found, keeping default gallery profile');
+          // Keep the default profile we already set
         }
       } catch (error) {
         console.error('❌ Error loading gallery profile:', error);
-        // On error, set default profile
-        const defaultProfile = {
-          name: gallery.eventName,
-          bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-          countdownDate: null, // Disabled by default
-          countdownEndMessage: 'Der große Tag ist da! 🎉',
-          countdownMessageDismissed: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        setGalleryProfileData(defaultProfile);
+        // Keep the default profile we already set on error
       }
     };
 
-    // Load Firebase profile immediately without delay
+    // Load Firebase profile after setting default
     loadGalleryProfile();
   }, [gallery.id, gallery.eventName, gallery.eventDate]);
 
@@ -964,27 +956,49 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
       
       if (profilePicture && profilePicture instanceof File) {
         try {
+          console.log('🖼️ Processing profile picture for new user:', userName);
           const profilePictureUrl = await uploadGalleryUserProfilePicture(profilePicture, userName, deviceId, gallery.id);
           
-          await createOrUpdateGalleryUserProfile(userName, deviceId, {
+          const newProfile = await createOrUpdateGalleryUserProfile(userName, deviceId, {
             displayName: userName,
             profilePicture: profilePictureUrl
           }, gallery.id);
           
+          // Immediately update current user profile if this is the current user
           const currentStoredName = getUserName();
           const currentStoredDeviceId = getDeviceId();
           if (userName === currentStoredName && deviceId === currentStoredDeviceId) {
-            const updatedProfile = await getGalleryUserProfile(userName, deviceId, gallery.id);
-            setCurrentUserProfile(updatedProfile);
+            console.log('✅ Updating current user profile immediately');
+            setCurrentUserProfile(newProfile);
           }
+          
+          // Immediately update user profiles list
+          setUserProfiles(prev => {
+            const index = prev.findIndex(p => p.userName === userName && p.deviceId === deviceId);
+            if (index >= 0) {
+              const updated = [...prev];
+              updated[index] = newProfile;
+              return updated;
+            } else {
+              return [...prev, newProfile];
+            }
+          });
+          
+          // Trigger a custom event to notify all components of profile update
+          window.dispatchEvent(new CustomEvent('profilePictureUpdated', { 
+            detail: { userName, deviceId, profile: newProfile } 
+          }));
+          
+          console.log('✅ Profile picture saved and synced immediately');
         } catch (error) {
           console.error('❌ Error saving profile picture:', error);
         }
       }
       
+      // Still sync all profiles after a short delay as backup
       setTimeout(() => {
         syncAllUserProfiles();
-      }, 1000);
+      }, 500);
     };
 
     window.addEventListener('userConnected', handleUserConnected as any);
@@ -1439,7 +1453,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         gallery={gallery}
       />
 
-      <BackToTopButton isDarkMode={isDarkMode} />
+      <BackToTopButton isDarkMode={isDarkMode} galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'} />
 
       {/* Floating Admin Controls */}
       {userName && (

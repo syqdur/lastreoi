@@ -50,11 +50,36 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [editNoteText, setEditNoteText] = useState(item.noteText || '');
   const [tags, setTags] = useState<MediaTag[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   useEffect(() => {
     const unsubscribe = getMediaTags(item.id, setTags);
     return () => unsubscribe();
   }, [item.id]);
+
+  // Listen for profile picture updates
+  useEffect(() => {
+    const handleProfilePictureUpdate = (event: CustomEvent) => {
+      const { userName: updatedUserName, deviceId: updatedDeviceId } = event.detail;
+      
+      // Check if this update affects any users in this post or comments
+      const isPostAuthorUpdated = item.uploadedBy === updatedUserName && item.deviceId === updatedDeviceId;
+      const isCommentAuthorUpdated = comments.some(comment => 
+        comment.userName === updatedUserName && comment.deviceId === updatedDeviceId
+      );
+      
+      if (isPostAuthorUpdated || isCommentAuthorUpdated) {
+        console.log('🔄 Refreshing InstagramPost due to profile picture update for:', updatedUserName);
+        setRefreshKey(prev => prev + 1);
+      }
+    };
+
+    window.addEventListener('profilePictureUpdated', handleProfilePictureUpdate as any);
+    
+    return () => {
+      window.removeEventListener('profilePictureUpdated', handleProfilePictureUpdate as any);
+    };
+  }, [item.uploadedBy, item.deviceId, comments]);
 
   const isLiked = likes.some(like => like.userName === userName);
   const likeCount = likes.length;
@@ -282,7 +307,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                 <div className={`mt-4 px-3 py-1 rounded-full text-xs transition-colors duration-300 ${
                   isDarkMode ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-800'
                 }`}>
-                  {item.type === 'video' ? '🎥 Video' : '📷 Bild'}
+                  {item.type === 'video' ? '🎥 Video' : item.type === 'note' ? '📝 Notiz' : '📷 Bild'}
                 </div>
               </div>
             ) : (
@@ -403,7 +428,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
           {displayComments.map((comment) => {
             const canDeleteThisComment = isAdmin || comment.userName === userName;
             const commentAvatarUrl = getUserAvatar 
-              ? getUserAvatar(comment.userName, comment.deviceId) 
+              ? (getUserAvatar(comment.userName, comment.deviceId) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(comment.userName)}&backgroundColor=transparent`)
               : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(comment.userName)}&backgroundColor=transparent`;
             
             return (

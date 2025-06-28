@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, MoreHorizontal, Trash2, MessageSquare, Edit3 } from 'lucide-react';
 import { MediaItem, Comment, Like } from '../types';
 
@@ -17,6 +17,7 @@ interface NotePostProps {
   isDarkMode: boolean;
   getUserAvatar?: (userName: string, deviceId?: string) => string | null;
   getUserDisplayName?: (userName: string, deviceId?: string) => string;
+  galleryTheme?: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes';
 }
 
 export const NotePost: React.FC<NotePostProps> = ({
@@ -33,12 +34,80 @@ export const NotePost: React.FC<NotePostProps> = ({
   isAdmin,
   isDarkMode,
   getUserAvatar,
-  getUserDisplayName
+  getUserDisplayName,
+  galleryTheme = 'hochzeit'
 }) => {
   const [commentText, setCommentText] = useState('');
   const [showAllComments, setShowAllComments] = useState(false);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [editNoteText, setEditNoteText] = useState(item.noteText || '');
+
+  // Theme-specific configuration
+  const themeConfig = {
+    hochzeit: {
+      gradient: isDarkMode 
+        ? 'bg-gradient-to-br from-pink-900/30 to-rose-900/30 border border-pink-700/30'
+        : 'bg-gradient-to-br from-pink-50/80 to-rose-50/80 border border-pink-200/50',
+      iconBg: isDarkMode ? 'bg-pink-800/50' : 'bg-white/80',
+      iconColor: isDarkMode ? 'text-pink-300' : 'text-pink-600',
+      title: '💌 Notiz',
+      subtitle: 'Eine Nachricht für das Brautpaar'
+    },
+    geburtstag: {
+      gradient: isDarkMode 
+        ? 'bg-gradient-to-br from-purple-900/30 to-violet-900/30 border border-purple-700/30'
+        : 'bg-gradient-to-br from-purple-50/80 to-violet-50/80 border border-purple-200/50',
+      iconBg: isDarkMode ? 'bg-purple-800/50' : 'bg-white/80',
+      iconColor: isDarkMode ? 'text-purple-300' : 'text-purple-600',
+      title: '🎂 Geburtstagswunsch',
+      subtitle: 'Eine Nachricht zum Geburtstag'
+    },
+    urlaub: {
+      gradient: isDarkMode 
+        ? 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border border-blue-700/30'
+        : 'bg-gradient-to-br from-blue-50/80 to-cyan-50/80 border border-blue-200/50',
+      iconBg: isDarkMode ? 'bg-blue-800/50' : 'bg-white/80',
+      iconColor: isDarkMode ? 'text-blue-300' : 'text-blue-600',
+      title: '🏖️ Reise-Notiz',
+      subtitle: 'Teile deine Reise-Erlebnisse'
+    },
+    eigenes: {
+      gradient: isDarkMode 
+        ? 'bg-gradient-to-br from-green-900/30 to-emerald-900/30 border border-green-700/30'
+        : 'bg-gradient-to-br from-green-50/80 to-emerald-50/80 border border-green-200/50',
+      iconBg: isDarkMode ? 'bg-green-800/50' : 'bg-white/80',
+      iconColor: isDarkMode ? 'text-green-300' : 'text-green-600',
+      title: '🎊 Event-Notiz',
+      subtitle: 'Eine Nachricht zum Event'
+    }
+  };
+
+  const currentTheme = themeConfig[galleryTheme];
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Listen for profile picture updates
+  useEffect(() => {
+    const handleProfilePictureUpdate = (event: CustomEvent) => {
+      const { userName: updatedUserName, deviceId: updatedDeviceId } = event.detail;
+      
+      // Check if this update affects any users in this post or comments
+      const isPostAuthorUpdated = item.uploadedBy === updatedUserName && item.deviceId === updatedDeviceId;
+      const isCommentAuthorUpdated = comments.some(comment => 
+        comment.userName === updatedUserName && comment.deviceId === updatedDeviceId
+      );
+      
+      if (isPostAuthorUpdated || isCommentAuthorUpdated) {
+        console.log('🔄 Refreshing NotePost due to profile picture update for:', updatedUserName);
+        setRefreshKey(prev => prev + 1);
+      }
+    };
+
+    window.addEventListener('profilePictureUpdated', handleProfilePictureUpdate as any);
+    
+    return () => {
+      window.removeEventListener('profilePictureUpdated', handleProfilePictureUpdate as any);
+    };
+  }, [item.uploadedBy, item.deviceId, comments]);
 
   const isLiked = likes.some(like => like.userName === userName);
   const likeCount = likes.length;
@@ -255,29 +324,21 @@ export const NotePost: React.FC<NotePostProps> = ({
             </div>
           </div>
         ) : (
-          <div className={`mx-6 mb-4 p-6 rounded-2xl transition-colors duration-300 backdrop-blur-sm ${
-            isDarkMode 
-              ? 'bg-gradient-to-br from-purple-900/30 to-pink-900/30 border border-purple-700/30' 
-              : 'bg-gradient-to-br from-purple-50/80 to-pink-50/80 border border-purple-200/50'
-          }`}>
+          <div className={`mx-6 mb-4 p-6 rounded-2xl transition-colors duration-300 backdrop-blur-sm ${currentTheme.gradient}`}>
             <div className="flex items-center gap-3 mb-4">
-            <div className={`p-3 rounded-full transition-colors duration-300 ${
-              isDarkMode ? 'bg-purple-800/50' : 'bg-white/80'
-            }`}>
-              <MessageSquare className={`w-6 h-6 transition-colors duration-300 ${
-                isDarkMode ? 'text-purple-300' : 'text-purple-600'
-              }`} />
+            <div className={`p-3 rounded-full transition-colors duration-300 ${currentTheme.iconBg}`}>
+              <MessageSquare className={`w-6 h-6 transition-colors duration-300 ${currentTheme.iconColor}`} />
             </div>
             <div>
               <h3 className={`font-semibold text-lg transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                💌 Notiz
+                {currentTheme.title}
               </h3>
               <p className={`text-sm transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
-                Eine Nachricht für das Brautpaar
+                {currentTheme.subtitle}
               </p>
             </div>
           </div>
@@ -326,7 +387,7 @@ export const NotePost: React.FC<NotePostProps> = ({
           {displayComments.map((comment) => {
             const canDeleteThisComment = isAdmin || comment.userName === userName;
             const commentAvatarUrl = getUserAvatar 
-              ? getUserAvatar(comment.userName, comment.deviceId) 
+              ? (getUserAvatar(comment.userName, comment.deviceId) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(comment.userName)}&backgroundColor=transparent`)
               : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(comment.userName)}&backgroundColor=transparent`;
             
             return (

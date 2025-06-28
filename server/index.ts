@@ -6,23 +6,8 @@ const app = express();
 
 // CORS configuration for deployed frontend
 app.use((req, res, next) => {
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:3000', 
-    'https://telya.netlify.app',
-    'https://*.replit.dev',
-    'https://*.replit.co'
-  ];
-  
-  const origin = req.headers.origin;
-  if (allowedOrigins.some(allowed => 
-    allowed.includes('*') ? 
-    new RegExp(allowed.replace('*', '.*')).test(origin || '') : 
-    allowed === origin
-  )) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  
+  // Allow all origins for Replit development
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -37,6 +22,16 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Health check endpoint for webview
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Root endpoint to ensure app is responding
+app.get('/ping', (req, res) => {
+  res.status(200).send('Wedding Gallery App is running!');
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

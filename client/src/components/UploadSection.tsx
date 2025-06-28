@@ -211,7 +211,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                   <p className={`text-sm ${
                     isDarkMode ? 'text-gray-400' : 'text-gray-600'
                   }`}>
-                    Aus der Galerie auswählen
+                    Fotos & Videos aus der Galerie
                   </p>
                 </div>
                 <Camera className={`w-5 h-5 ${
