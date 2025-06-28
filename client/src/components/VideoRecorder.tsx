@@ -38,10 +38,15 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: currentFacingMode,
-          width: { ideal: 1080 },
-          height: { ideal: 1920 }
+          width: { ideal: 640, max: 854 },  // Smaller resolution for Firebase compatibility
+          height: { ideal: 480, max: 640 }, // Much smaller to reduce file size
+          frameRate: { ideal: 15, max: 20 } // Lower frame rate for smaller files
         },
-        audio: true
+        audio: { 
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 16000  // Lower audio quality for smaller files
+        }
       });
       
       streamRef.current = stream;
@@ -60,10 +65,15 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
           const stream = await navigator.mediaDevices.getUserMedia({
             video: { 
               facingMode: 'user',
-              width: { ideal: 1080 },
-              height: { ideal: 1920 }
+              width: { ideal: 640, max: 854 },
+              height: { ideal: 480, max: 640 },
+              frameRate: { ideal: 15, max: 20 }
             },
-            audio: true
+            audio: { 
+              echoCancellation: true,
+              noiseSuppression: true,
+              sampleRate: 16000
+            }
           });
           
           streamRef.current = stream;
@@ -100,9 +110,24 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
     if (!streamRef.current) return;
 
     chunksRef.current = [];
-    const mediaRecorder = new MediaRecorder(streamRef.current, {
-      mimeType: 'video/webm;codecs=vp9'
-    });
+    
+    // Try different codecs/settings for smaller file sizes
+    let options: MediaRecorderOptions;
+    if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+      options = { 
+        mimeType: 'video/webm;codecs=vp8',
+        videoBitsPerSecond: 250000  // 250kbps for small files
+      };
+    } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+      options = { 
+        mimeType: 'video/mp4',
+        videoBitsPerSecond: 250000
+      };
+    } else {
+      options = { videoBitsPerSecond: 250000 };
+    }
+    
+    const mediaRecorder = new MediaRecorder(streamRef.current, options);
     
     mediaRecorderRef.current = mediaRecorder;
 

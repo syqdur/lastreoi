@@ -137,11 +137,20 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       console.log('📏 Compressed size:', Math.round(compressedBase64.length / 1024), 'KB');
       
       // Final check - if still too large, compress more aggressively
-      if (compressedBase64.length > 900000) { // 900KB final check
+      if (compressedBase64.length > 700000) { // 700KB final check (more conservative)
         console.log('🔄 Still too large, compressing more aggressively...');
-        const finalCompressed = await compressImage(file, 300, 0.5);
+        const finalCompressed = await compressImage(file, 200, 0.3); // Even smaller and lower quality
         console.log('📏 Final compressed size:', Math.round(finalCompressed.length / 1024), 'KB');
-        setProfilePicture(finalCompressed);
+        
+        // Ultimate check - if STILL too large, use ultra compression
+        if (finalCompressed.length > 700000) {
+          console.log('🔄 Ultra compression needed...');
+          const ultraCompressed = await compressImage(file, 150, 0.2);
+          console.log('📏 Ultra compressed size:', Math.round(ultraCompressed.length / 1024), 'KB');
+          setProfilePicture(ultraCompressed);
+        } else {
+          setProfilePicture(finalCompressed);
+        }
       } else {
         setProfilePicture(compressedBase64);
       }

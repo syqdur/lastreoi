@@ -1,5 +1,5 @@
-// Storage imports removed - now using base64 conversion with compression
-import { db } from '../config/firebase';
+// Firebase Storage for proper video file uploads
+import { db, storage } from '../config/firebase';
 import { 
   collection, 
   addDoc, 
@@ -12,6 +12,12 @@ import {
   getDocs,
   updateDoc
 } from 'firebase/firestore';
+import { 
+  ref, 
+  uploadBytes, 
+  getDownloadURL, 
+  deleteObject 
+} from 'firebase/storage';
 import { MediaItem, Comment, Like, ProfileData, MediaTag, LocationTag } from '../types';
 import { UserProfile } from './firebaseService';
 import { compressImage, compressVideo, shouldCompress } from '../utils/imageCompression';
@@ -46,11 +52,17 @@ export const loadGalleryMedia = (
       let url = '';
       
       if (data.type !== 'note') {
-        // Use base64 data directly instead of storage URLs
-        if (data.base64Data) {
+        // Handle hybrid system: Firebase Storage URLs for videos, base64 for images
+        if (data.mediaUrl) {
+          // Firebase Storage URL (for videos)
+          url = data.mediaUrl;
+          console.log(`✅ Using Firebase Storage URL for ${data.name}`);
+        } else if (data.base64Data) {
+          // Base64 data (for images and small videos)
           url = data.base64Data;
+          console.log(`✅ Using base64 data for ${data.name}`);
         } else {
-          console.warn(`⚠️ No base64 data found for ${data.name}`);
+          console.warn(`⚠️ No media URL or base64 data found for ${data.name}`);
           url = '';
         }
       }
@@ -90,45 +102,86 @@ export const uploadGalleryFiles = async (
     
     let processedFile = file;
     
-    // Compress file if needed to prevent Firebase errors
-    if (shouldCompress(file)) {
-      console.log(`🗜️ Compressing large file...`);
-      try {
-        if (file.type.startsWith('image/')) {
-          processedFile = await compressImage(file, { targetSizeKB: 200, maxWidth: 1200, maxHeight: 800 });
-        } else if (file.type.startsWith('video/')) {
-          processedFile = await compressVideo(file, 1024); // 1MB for videos
-        }
-        console.log(`✅ Compression complete: ${(processedFile.size / 1024).toFixed(1)}KB`);
-      } catch (error) {
-        console.warn(`⚠️ Compression failed, using original file:`, error);
-        processedFile = file;
+    // Enhanced compression for Firebase document size limits
+    const isVideo = file.type.startsWith('video/');
+    
+    let mediaUrl: string;
+    let storageFileName: string | undefined;
+    
+    if (isVideo) {
+      // Use Firebase Storage for videos (supports large files)
+      console.log(`🎬 Uploading video to Firebase Storage...`);
+      
+      // Check reasonable video size limit (100MB)
+      const maxVideoSizeForStorage = 100 * 1024 * 1024; // 100MB limit for videos
+      if (file.size > maxVideoSizeForStorage) {
+        throw new Error(`Video zu groß: ${(file.size / 1024 / 1024).toFixed(1)}MB (max. 100MB für Video-Upload)\n\nTipp: Verwende ein kürzeres Video oder reduziere die Qualität vor dem Upload.`);
       }
+      
+      // Upload to Firebase Storage
+      storageFileName = `galleries/${galleryId}/videos/${Date.now()}-${file.name}`;
+      const storageRef = ref(storage, storageFileName);
+      
+      try {
+        const snapshot = await uploadBytes(storageRef, file);
+        mediaUrl = await getDownloadURL(snapshot.ref);
+        console.log(`✅ Video uploaded to Firebase Storage successfully (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      } catch (error: any) {
+        console.error('Firebase Storage upload failed:', error);
+        
+        if (error?.code === 'storage/unauthorized') {
+          throw new Error(`Video-Upload nicht möglich: Firebase Storage-Berechtigung fehlt.\n\nLösung: Bitte den Administrator kontaktieren, um Firebase Storage-Regeln zu aktualisieren.\n\nAlternativ: Verwende die Video-Aufnahme-Funktion der App für kleinere Videos.`);
+        } else {
+          throw new Error(`Video-Upload fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}\n\nBitte versuche es erneut oder verwende ein kleineres Video.`);
+        }
+      }
+    } else if (file.type.startsWith('image/')) {
+      // Use base64 for images (smaller files, better for comments/likes)
+      if (shouldCompress(file)) {
+        console.log(`🗜️ Compressing image file...`);
+        try {
+          processedFile = await compressImage(file, { targetSizeKB: 150, maxWidth: 1000, maxHeight: 800 });
+          console.log(`✅ Image compression complete: ${(processedFile.size / 1024).toFixed(1)}KB`);
+        } catch (error) {
+          console.warn(`⚠️ Image compression failed, using original file:`, error);
+          processedFile = file;
+        }
+      }
+      
+      // Convert to base64 for images
+      const reader = new FileReader();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(processedFile);
+      });
+      
+      // Check base64 size
+      const base64SizeKB = base64Data.length * 0.75 / 1024;
+      const maxBase64Size = 800; // 800KB limit for images
+      
+      if (base64SizeKB > maxBase64Size) {
+        throw new Error(`Bild zu groß für Firebase: ${base64SizeKB.toFixed(0)}KB (max. ${maxBase64Size}KB)\n\nTipp: Verwende ein kleineres Bild oder reduziere die Qualität`);
+      }
+      
+      mediaUrl = base64Data;
+      console.log(`✅ Image converted to base64 successfully (${base64SizeKB.toFixed(0)}KB)`);
+    } else {
+      throw new Error(`Dateityp nicht unterstützt: ${file.type}`);
     }
     
-    // Convert file to base64
-    const reader = new FileReader();
-    const base64Data = await new Promise<string>((resolve, reject) => {
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(processedFile);
-    });
-    
-    console.log(`✅ Media file converted to base64 successfully`);
-    
-    // Add metadata to gallery-specific collection with base64 data
-    const isVideo = processedFile.type.startsWith('video/');
+    // Add metadata to gallery-specific collection
     const mediaCollection = `galleries/${galleryId}/media`;
     await addDoc(collection(db, mediaCollection), {
-      name: `${Date.now()}-${processedFile.name}`,
+      name: `${Date.now()}-${file.name}`,
       uploadedBy: userName,
       deviceId: deviceId,
       uploadedAt: new Date().toISOString(),
       type: isVideo ? 'video' : 'image',
-      base64Data: base64Data, // Store compressed base64 data
-      mimeType: processedFile.type,
-      size: processedFile.size,
-      originalSize: file.size // Keep track of original size
+      mediaUrl: mediaUrl,
+      size: file.size,
+      mimeType: file.type,
+      ...(storageFileName && { fileName: storageFileName }) // Store Firebase Storage path for videos
     });
     
     uploaded++;
@@ -150,30 +203,49 @@ export const uploadGalleryVideoBlob = async (
   
   onProgress(25);
   
-  // Convert video blob to base64
-  const reader = new FileReader();
-  const base64Data = await new Promise<string>((resolve, reject) => {
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(videoBlob);
-  });
+  // Check video size limit (50MB for recorded videos)
+  const maxVideoSize = 50 * 1024 * 1024; // 50MB
+  if (videoBlob.size > maxVideoSize) {
+    throw new Error(`Video zu groß: ${(videoBlob.size / 1024 / 1024).toFixed(1)}MB (max. 50MB für aufgenommene Videos)\n\nTipp: Verwende eine kürzere Aufnahme oder niedrigere Qualität`);
+  }
   
-  onProgress(75);
+  onProgress(50);
   
-  const mediaCollection = `galleries/${galleryId}/media`;
-  await addDoc(collection(db, mediaCollection), {
-    name: fileName,
-    uploadedBy: userName,
-    deviceId: deviceId,
-    uploadedAt: new Date().toISOString(),
-    type: 'video',
-    base64Data: base64Data,
-    mimeType: videoBlob.type,
-    size: videoBlob.size
-  });
-  
-  onProgress(100);
-  console.log(`✅ Video blob uploaded successfully`);
+  try {
+    // Convert video blob to base64
+    const reader = new FileReader();
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(videoBlob);
+    });
+    
+    onProgress(75);
+    
+    // Check base64 size (Firebase document limit is ~1MB)
+    const base64SizeKB = base64Data.length * 0.75 / 1024; // Approximate size in KB
+    if (base64SizeKB > 800) { // Leave some buffer
+      throw new Error(`Video zu groß für Firebase: ${base64SizeKB.toFixed(0)}KB (max. 800KB)\n\nTipp: Verwende eine kürzere Aufnahme mit niedriger Auflösung`);
+    }
+    
+    const mediaCollection = `galleries/${galleryId}/media`;
+    await addDoc(collection(db, mediaCollection), {
+      name: fileName,
+      uploadedBy: userName,
+      deviceId: deviceId,
+      uploadedAt: new Date().toISOString(),
+      type: 'video',
+      base64Data: base64Data,
+      mimeType: videoBlob.type,
+      size: videoBlob.size
+    });
+    
+    onProgress(100);
+    console.log(`✅ Video blob uploaded successfully`);
+  } catch (error: any) {
+    console.error(`❌ Video upload failed:`, error);
+    throw error;
+  }
 };
 
 // Gallery-specific note addition
@@ -502,89 +574,101 @@ export const addGalleryStory = async (
       throw new Error(`Ungültiger Dateityp: ${file.type}`);
     }
     
-    let processedFile = file;
+    const isVideo = file.type.startsWith('video/');
+    let mediaUrl: string;
+    let storageFileName: string | undefined;
     
-    // Compress file to prevent Firebase document size errors
-    if (shouldCompress(file)) {
-      console.log(`🗜️ Compressing story file for optimal Firebase storage...`);
+    if (isVideo) {
+      // Use Firebase Storage for videos (supports large files up to 100MB)
+      console.log(`🎬 Uploading story video to Firebase Storage...`);
+      
+      // Check video size limit for stories (100MB)
+      const maxVideoSize = 100 * 1024 * 1024; // 100MB
+      if (file.size > maxVideoSize) {
+        throw new Error(`Video zu groß: ${(file.size / 1024 / 1024).toFixed(1)}MB (max. 100MB für Story-Videos)\n\nTipp: Verwende ein kürzeres Video oder reduziere die Qualität`);
+      }
+      
+      // Upload to Firebase Storage
+      storageFileName = `galleries/${galleryId}/stories/${Date.now()}-${file.name}`;
+      const storageRef = ref(storage, storageFileName);
+      
       try {
-        if (file.type.startsWith('image/')) {
-          processedFile = await compressImage(file, { targetSizeKB: 50, maxWidth: 600, maxHeight: 400 }); // Much smaller for stories
-        } else if (file.type.startsWith('video/')) {
-          // Video compression isn't implemented yet, skip for videos
-          console.warn(`⚠️ Video compression not available, checking file size...`);
+        const snapshot = await uploadBytes(storageRef, file);
+        mediaUrl = await getDownloadURL(storageRef);
+        console.log(`✅ Story video uploaded to Firebase Storage successfully (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      } catch (error: any) {
+        console.error('Firebase Storage upload failed:', error);
+        
+        if (error?.code === 'storage/unauthorized') {
+          throw new Error(`Story-Video-Upload nicht möglich: Firebase Storage-Berechtigung fehlt.\n\nLösung: Bitte den Administrator kontaktieren, um Firebase Storage-Regeln zu aktualisieren.\n\nAlternativ: Verwende die Video-Aufnahme-Funktion für kleinere Videos.`);
+        } else {
+          throw new Error(`Story-Video-Upload fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}\n\nBitte versuche es erneut oder verwende ein kleineres Video.`);
+        }
+      }
+    } else {
+      // Use base64 for images (compress for stories)
+      let processedFile = file;
+      
+      if (shouldCompress(file)) {
+        console.log(`🗜️ Compressing story image for optimal storage...`);
+        try {
+          processedFile = await compressImage(file, { targetSizeKB: 100, maxWidth: 800, maxHeight: 600 }); // Compress for stories
+          console.log(`✅ Story image compression complete: ${(processedFile.size / 1024).toFixed(1)}KB`);
+        } catch (error) {
+          console.warn(`⚠️ Image compression failed, using original file:`, error);
           processedFile = file;
         }
-        console.log(`✅ Story compression complete: ${(processedFile.size / 1024).toFixed(1)}KB`);
-      } catch (error) {
-        console.warn(`⚠️ Story compression failed, using original file:`, error);
-        processedFile = file;
       }
-    }
-    
-    // Different size limits for images vs videos
-    const maxSizeForImages = 512 * 1024; // 512KB for images
-    const maxSizeForVideos = 100 * 1024 * 1024; // 100MB for videos as requested
-    
-    const isVideo = processedFile.type.startsWith('video/');
-    const maxSize = isVideo ? maxSizeForVideos : maxSizeForImages;
-    
-    if (processedFile.size > maxSize) {
-      console.warn(`⚠️ File too large: ${(processedFile.size / 1024).toFixed(1)}KB`);
       
-      if (!isVideo) {
+      // Check compressed image size limit (800KB for story images)
+      const maxImageSize = 800 * 1024; // 800KB
+      if (processedFile.size > maxImageSize) {
         // Try extremely aggressive compression for images as last resort
-        console.log(`🗜️ Attempting ultra-aggressive compression...`);
+        console.log(`🗜️ Attempting ultra-aggressive compression for story image...`);
         try {
           processedFile = await compressImage(processedFile, { 
-            targetSizeKB: 25, 
-            maxWidth: 400, 
-            maxHeight: 300,
-            quality: 0.3 
+            targetSizeKB: 100, 
+            maxWidth: 600, 
+            maxHeight: 400,
+            quality: 0.4 
           });
-          console.log(`✅ Ultra compression result: ${(processedFile.size / 1024).toFixed(1)}KB`);
+          console.log(`✅ Story ultra compression result: ${(processedFile.size / 1024).toFixed(1)}KB`);
         } catch (error) {
-          console.error(`❌ Ultra compression failed:`, error);
+          console.error(`❌ Story ultra compression failed:`, error);
         }
         
         // Final check after ultra compression
-        if (processedFile.size > maxSizeForImages) {
-          throw new Error(`Bild nach maximaler Komprimierung immer noch zu groß: ${(processedFile.size / 1024).toFixed(1)}KB (max. 512KB für Story-Bilder)`);
+        if (processedFile.size > maxImageSize) {
+          throw new Error(`Story-Bild nach maximaler Komprimierung immer noch zu groß: ${(processedFile.size / 1024).toFixed(1)}KB (max. 800KB für Story-Bilder)`);
         }
-      } else {
-        // Video is too large and we can't compress it
-        throw new Error(`Video zu groß: ${(processedFile.size / 1024 / 1024).toFixed(1)}MB (max. 100MB für Story-Videos)\n\nTipp: Verwende eine kürzere Aufnahme oder niedrigere Qualität`);
       }
+      
+      // Convert image to base64
+      console.log(`📸 Converting story image to base64...`);
+      const reader = new FileReader();
+      mediaUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(processedFile);
+      });
+      console.log(`✅ Story image converted to base64 successfully (${(processedFile.size / 1024).toFixed(1)}KB)`);
     }
     
-    console.log(`📸 Converting story file to base64...`);
-    
-    // Convert file to base64
-    const reader = new FileReader();
-    const base64Data = await new Promise<string>((resolve, reject) => {
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(processedFile);
-    });
-    
-    console.log(`✅ Story file converted to base64 successfully`);
-    
-    // Determine media type and generate filename
-    const mediaType = processedFile.type.startsWith('video/') ? 'video' : 'image';
+    // Generate filename
     const timestamp = Date.now();
     const cleanUserName = userName.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_');
-    const fileExtension = processedFile.name.split('.').pop()?.toLowerCase() || (mediaType === 'video' ? 'mp4' : 'jpg');
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || (isVideo ? 'mp4' : 'jpg');
     const fileName = `STORY_${timestamp}_${cleanUserName}.${fileExtension}`;
     
     // Set expiry time (24 hours from now)
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     
-    // Save to gallery-specific stories collection with compressed base64 data
+    // Save to gallery-specific stories collection
     const storiesCollection = `galleries/${galleryId}/stories`;
     const storyData = {
-      mediaUrl: base64Data, // Using compressed base64 data
-      mediaType,
+      mediaUrl: mediaUrl,
+      mediaType: isVideo ? 'video' : 'image',
       userName,
       deviceId,
       createdAt: now.toISOString(),
@@ -592,9 +676,11 @@ export const addGalleryStory = async (
       views: [],
       fileName: fileName,
       isStory: true,
-      base64Data: base64Data, // Store compressed base64 for consistency
-      originalSize: file.size, // Track original size
-      compressedSize: processedFile.size // Track compressed size
+      size: file.size,
+      mimeType: file.type,
+      ...(storageFileName && { fileName: storageFileName }), // Store Firebase Storage path for videos
+      ...(isVideo && { isFirebaseStorage: true }), // Flag for videos in storage
+      ...(!isVideo && { base64Data: mediaUrl }) // Store base64 flag for images
     };
     
     console.log(`💾 Saving to gallery stories collection: ${storiesCollection}`);

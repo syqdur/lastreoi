@@ -1,6 +1,66 @@
-// Firebase Firestore Security Rules for Multi-Instance Wedding Gallery Platform
-// Copy these rules to your Firebase Console -> Firestore -> Rules
-// Navigate to: Firebase Console -> Project -> Firestore -> Rules Tab
+COMPLETE FIREBASE RULES SETUP FOR VIDEO UPLOAD PLATFORM
+=======================================================
+
+Your video uploading platform requires both Firestore AND Storage rules.
+This file contains BOTH rule sets that need to be configured.
+
+===============================================
+PART 1: FIREBASE STORAGE RULES (FOR VIDEOS)
+===============================================
+
+Problem: Video uploads fail with "storage/unauthorized" error
+Solution: Copy these rules to Firebase Console -> Storage -> Rules
+
+FIREBASE STORAGE RULES:
+----------------------
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow uploads to galleries/{galleryId}/videos/ 
+    match /galleries/{galleryId}/videos/{fileName} {
+      allow read, write: if true; // Allow all users to upload/read videos (up to 100MB)
+    }
+    
+    // Allow uploads to galleries/{galleryId}/images/
+    match /galleries/{galleryId}/images/{fileName} {
+      allow read, write: if true; // Allow all users to upload/read images
+    }
+    
+    // Allow uploads to stories
+    match /stories/{fileName} {
+      allow read, write: if true; // Allow story uploads
+    }
+    
+    // Allow general uploads folder
+    match /uploads/{fileName} {
+      allow read, write: if true; // Allow general uploads
+    }
+    
+    // Default: deny all other requests
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+STEPS TO UPDATE STORAGE RULES:
+1. Go to Firebase Console: https://console.firebase.google.com/
+2. Select your project: dev1-b3973  
+3. Click "Storage" in the left sidebar
+4. Click "Rules" tab at the top
+5. Replace existing rules with STORAGE RULES above
+6. Click "Publish"
+
+===============================================
+PART 2: FIREBASE FIRESTORE RULES (YOUR EXISTING)
+===============================================
+
+These are your existing Firestore rules that must stay unchanged.
+Copy these rules to Firebase Console -> Firestore -> Rules
+
+FIREBASE FIRESTORE RULES:
+-------------------------
 
 rules_version = '2';
 service cloud.firestore {
@@ -256,3 +316,23 @@ service cloud.firestore {
     }
   }
 }
+
+STEPS TO UPDATE FIRESTORE RULES:
+1. Go to Firebase Console: https://console.firebase.google.com/
+2. Select your project: dev1-b3973
+3. Click "Firestore Database" in the left sidebar  
+4. Click "Rules" tab at the top
+5. Replace existing rules with FIRESTORE RULES above
+6. Click "Publish"
+
+===============================================
+TESTING AFTER SETUP:
+===============================================
+
+After configuring both Storage and Firestore rules:
+1. Try uploading your 3.2MB video - it should work
+2. Videos up to 100MB are now supported
+3. All existing gallery features remain functional
+4. Your existing data and permissions are preserved
+
+IMPORTANT: You need BOTH rule sets configured for the video platform to work properly!

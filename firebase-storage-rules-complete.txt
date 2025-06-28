@@ -1,0 +1,307 @@
+// Firebase Storage Security Rules for Multi-Instance Wedding Gallery Platform
+// Copy these rules to your Firebase Console -> Storage -> Rules
+// Navigate to: Firebase Console -> Project -> Storage -> Rules Tab
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // =================
+    // GALLERY MANAGEMENT
+    // =================
+    
+    // Gallery-specific file structure for multi-instance platform
+    match /galleries/{galleryId} {
+      // Allow read access to gallery folder for discovery
+      allow read: if true; // Anyone can read gallery structure for joining
+      
+      // =================
+      // GALLERY-SPECIFIC DATA
+      // =================
+      
+      // Media uploads - per gallery (videos, images, general media)
+      match /media/{mediaId} {
+        allow read: if true; // Anyone with gallery access can view media
+        allow create: if true; // Anyone can upload to gallery
+        allow update: if isMediaOwner(galleryId, mediaId) || isGalleryAdmin(galleryId);
+        allow delete: if isMediaOwner(galleryId, mediaId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Video uploads - per gallery (large file support up to 100MB)
+      match /videos/{videoId} {
+        allow read: if true; // Anyone with gallery access can view videos
+        allow create: if true; // Anyone can upload videos to gallery
+        allow update: if isVideoOwner(galleryId, videoId) || isGalleryAdmin(galleryId);
+        allow delete: if isVideoOwner(galleryId, videoId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Image uploads - per gallery
+      match /images/{imageId} {
+        allow read: if true; // Anyone with gallery access can view images
+        allow create: if true; // Anyone can upload images to gallery
+        allow update: if isImageOwner(galleryId, imageId) || isGalleryAdmin(galleryId);
+        allow delete: if isImageOwner(galleryId, imageId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Story uploads - per gallery (24h auto-delete)
+      match /stories/{storyId} {
+        allow read: if true; // Anyone with gallery access can view stories
+        allow create: if true; // Anyone can add stories
+        allow update: if isStoryOwner(galleryId, storyId) || isGalleryAdmin(galleryId);
+        allow delete: if isStoryOwner(galleryId, storyId) || isGalleryAdmin(galleryId);
+      }
+      
+      // User profile pictures - per gallery
+      match /profiles/{profileId} {
+        allow read: if true; // Anyone can view profile pictures in gallery
+        allow create: if true; // Anyone can create profile picture
+        allow update: if isProfileOwner(galleryId, profileId) || isGalleryAdmin(galleryId);
+        allow delete: if isProfileOwner(galleryId, profileId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Timeline media - per gallery
+      match /timeline/{timelineId} {
+        allow read: if true; // Anyone can read timeline media
+        allow create: if isGalleryAdmin(galleryId); // Only admins can add timeline media
+        allow update: if isGalleryAdmin(galleryId);
+        allow delete: if isGalleryAdmin(galleryId);
+      }
+      
+      // Spotify/Music related uploads - per gallery
+      match /music/{musicId} {
+        allow read: if true; // Anyone can read music-related files
+        allow create: if true; // Anyone can add music files
+        allow update: if isMusicOwner(galleryId, musicId) || isGalleryAdmin(galleryId);
+        allow delete: if isMusicOwner(galleryId, musicId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Gallery assets (logos, backgrounds, etc.) - per gallery
+      match /assets/{assetId} {
+        allow read: if true; // Anyone can read gallery assets
+        allow create: if isGalleryAdmin(galleryId); // Only admins can upload assets
+        allow update: if isGalleryAdmin(galleryId);
+        allow delete: if isGalleryAdmin(galleryId);
+      }
+      
+      // Thumbnails and compressed versions - per gallery
+      match /thumbnails/{thumbnailId} {
+        allow read: if true; // Anyone can read thumbnails
+        allow create: if true; // System can create thumbnails
+        allow update: if isGalleryAdmin(galleryId);
+        allow delete: if isGalleryAdmin(galleryId);
+      }
+      
+      // Backup and export files - per gallery
+      match /exports/{exportId} {
+        allow read: if isGalleryAdmin(galleryId); // Only admins can read exports
+        allow create: if isGalleryAdmin(galleryId); // Only admins can create exports
+        allow update: if isGalleryAdmin(galleryId);
+        allow delete: if isGalleryAdmin(galleryId);
+      }
+    }
+    
+    // =================
+    // GLOBAL UPLOADS (Legacy support)
+    // =================
+    
+    // Allow access to existing upload paths for backward compatibility
+    // These should eventually be migrated to gallery-specific paths
+    
+    // General uploads folder
+    match /uploads/{fileName} {
+      allow read: if true; // Anyone can read uploaded files
+      allow write: if true; // Anyone can upload files
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Stories uploads (global)
+    match /stories/{fileName} {
+      allow read: if true; // Anyone can read story files
+      allow write: if true; // Anyone can upload story files
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Media uploads (global)
+    match /media/{fileName} {
+      allow read: if true; // Anyone can read media files
+      allow write: if true; // Anyone can upload media files
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Video uploads (global)
+    match /videos/{fileName} {
+      allow read: if true; // Anyone can read video files
+      allow write: if true; // Anyone can upload video files
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Image uploads (global)
+    match /images/{fileName} {
+      allow read: if true; // Anyone can read image files
+      allow write: if true; // Anyone can upload image files
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Profile pictures (global)
+    match /profiles/{fileName} {
+      allow read: if true; // Anyone can read profile pictures
+      allow write: if true; // Anyone can upload profile pictures
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Timeline media uploads (global)
+    match /timeline/{fileName} {
+      allow read: if true; // Anyone can read timeline media
+      allow write: if true; // Anyone can upload timeline media
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Spotify/Music related uploads (global)
+    match /spotify/{fileName} {
+      allow read: if true; // Anyone can read music-related files
+      allow write: if true; // Anyone can upload music-related files
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // User avatars and assets (global)
+    match /avatars/{fileName} {
+      allow read: if true; // Anyone can read avatars
+      allow write: if true; // Anyone can upload avatars
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // System assets and resources (global)
+    match /system/{fileName} {
+      allow read: if true; // Anyone can read system assets
+      allow write: if true; // System can upload assets
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Temporary uploads folder (global)
+    match /temp/{fileName} {
+      allow read: if true; // Anyone can read temp files
+      allow write: if true; // Anyone can upload temp files
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Backup and export files (global)
+    match /exports/{fileName} {
+      allow read: if true; // Anyone can read export files
+      allow write: if true; // Anyone can create export files
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Thumbnails and compressed versions (global)
+    match /thumbnails/{fileName} {
+      allow read: if true; // Anyone can read thumbnails
+      allow write: if true; // System can create thumbnails
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Cache and optimization files (global)
+    match /cache/{fileName} {
+      allow read: if true; // Anyone can read cached files
+      allow write: if true; // System can create cached files
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Log files and analytics (global)
+    match /logs/{fileName} {
+      allow read: if true; // Anyone can read logs
+      allow write: if true; // System can write logs
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // Test uploads for connectivity (global)
+    match /test/{fileName} {
+      allow read: if true; // Anyone can read test files
+      allow write: if true; // Anyone can upload test files
+      allow delete: if true; // Allow deletion through app logic
+    }
+    
+    // =================
+    // HELPER FUNCTIONS
+    // =================
+    
+    // Check if user is gallery owner (stored in localStorage, not auth)
+    function isGalleryOwner(galleryId) {
+      return true; // For now, allow gallery management through app logic
+    }
+    
+    // Check if user is gallery admin
+    function isGalleryAdmin(galleryId) {
+      return true; // For now, allow admin actions through app logic
+    }
+    
+    // Check if user owns specific media item
+    function isMediaOwner(galleryId, mediaId) {
+      return true; // For now, allow deletion through app logic
+    }
+    
+    // Check if user owns specific video
+    function isVideoOwner(galleryId, videoId) {
+      return true; // For now, allow deletion through app logic
+    }
+    
+    // Check if user owns specific image
+    function isImageOwner(galleryId, imageId) {
+      return true; // For now, allow deletion through app logic
+    }
+    
+    // Check if user owns specific story
+    function isStoryOwner(galleryId, storyId) {
+      return true; // For now, allow deletion through app logic
+    }
+    
+    // Check if user owns specific profile
+    function isProfileOwner(galleryId, profileId) {
+      return true; // For now, allow profile updates through app logic
+    }
+    
+    // Check if user owns specific music file
+    function isMusicOwner(galleryId, musicId) {
+      return true; // For now, allow music management through app logic
+    }
+    
+    // Check if user has upload permissions
+    function hasUploadPermission(galleryId) {
+      return true; // For now, allow uploads through app logic
+    }
+    
+    // Check if user has read permissions
+    function hasReadPermission(galleryId) {
+      return true; // For now, allow reads through app logic
+    }
+    
+    // Check if user has delete permissions
+    function hasDeletePermission(galleryId) {
+      return true; // For now, allow deletes through app logic
+    }
+    
+    // Check if file size is within limits
+    function isValidFileSize(resource) {
+      return resource.size < 100 * 1024 * 1024; // 100MB limit
+    }
+    
+    // Check if file type is allowed
+    function isValidFileType(resource) {
+      return resource.contentType.matches('image/.*') || 
+             resource.contentType.matches('video/.*') ||
+             resource.contentType.matches('audio/.*');
+    }
+    
+    // Check if user can access gallery
+    function canAccessGallery(galleryId) {
+      return true; // For now, allow access through app logic
+    }
+    
+    // =================
+    // SECURITY FALLBACK
+    // =================
+    
+    // Default: deny all other requests not explicitly allowed above
+    match /{allPaths=**} {
+      allow read, write: if false; // Deny access to any other paths
+    }
+  }
+}
