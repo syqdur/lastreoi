@@ -271,7 +271,7 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode, isAdmi
 
   if (!isSpotifyAvailable) {
     return (
-      <div className={`mx-4 my-6 p-8 rounded-3xl transition-all duration-500 relative overflow-hidden ${
+      <div className={`mx-2 sm:mx-4 my-4 sm:my-6 p-4 sm:p-8 rounded-2xl sm:rounded-3xl transition-all duration-500 relative overflow-hidden ${
         isDarkMode 
           ? 'bg-gradient-to-br from-green-900/40 via-emerald-900/30 to-teal-900/30 border border-green-500/20 backdrop-blur-xl shadow-2xl shadow-green-500/20' 
           : 'bg-gradient-to-br from-green-50/90 via-emerald-50/80 to-teal-50/80 border border-green-200/60 backdrop-blur-xl shadow-2xl shadow-green-500/15'
@@ -310,7 +310,7 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode, isAdmi
 
   if (!selectedPlaylist) {
     return (
-      <div className={`mx-4 my-6 p-8 rounded-3xl transition-all duration-500 relative overflow-hidden ${
+      <div className={`mx-2 sm:mx-4 my-4 sm:my-6 p-4 sm:p-8 rounded-2xl sm:rounded-3xl transition-all duration-500 relative overflow-hidden ${
         isDarkMode 
           ? 'bg-gradient-to-br from-green-900/40 via-emerald-900/30 to-teal-900/30 border border-green-500/20 backdrop-blur-xl shadow-2xl shadow-green-500/20' 
           : 'bg-gradient-to-br from-green-50/90 via-emerald-50/80 to-teal-50/80 border border-green-200/60 backdrop-blur-xl shadow-2xl shadow-green-500/15'
@@ -348,9 +348,9 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode, isAdmi
   }
 
   return (
-    <div className="mx-4 my-6 space-y-6">
-      {/* Header with Spotify Green Theme */}
-      <div className={`p-6 rounded-3xl transition-all duration-500 relative overflow-hidden ${
+    <div className="mx-2 sm:mx-4 my-4 sm:my-6 space-y-4 sm:space-y-6">
+      {/* Header with Spotify Green Theme - Mobile optimized */}
+      <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-3xl transition-all duration-500 relative overflow-hidden ${
         isDarkMode 
           ? 'bg-gradient-to-br from-green-900/40 via-emerald-900/30 to-teal-900/30 border border-green-500/20 backdrop-blur-xl shadow-2xl shadow-green-500/20' 
           : 'bg-gradient-to-br from-green-50/90 via-emerald-50/80 to-teal-50/80 border border-green-200/60 backdrop-blur-xl shadow-2xl shadow-green-500/15'
@@ -436,14 +436,14 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode, isAdmi
             </a>
           </div>
 
-          {/* Search Section with Instagram 2.0 Style */}
-          <div className={`relative p-6 rounded-2xl transition-all duration-500 backdrop-blur-sm ${
+          {/* Search Section with Instagram 2.0 Style - Mobile optimized */}
+          <div className={`relative p-4 sm:p-6 rounded-2xl transition-all duration-500 backdrop-blur-sm ${
             isDarkMode 
               ? 'bg-white/5 border border-white/10' 
               : 'bg-white/50 border border-white/30'
           }`}>
             <div className="relative">
-              <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+              <Search className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 ${
                 isDarkMode ? 'text-green-300/60' : 'text-green-500/60'
               }`} />
               <input
@@ -451,20 +451,22 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode, isAdmi
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for your favorite songs..."
-                className={`w-full pl-12 pr-12 py-4 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-green-500/50 outline-none backdrop-blur-sm ${
+                className={`w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-green-500/50 outline-none backdrop-blur-sm text-sm sm:text-base touch-manipulation ${
                   isDarkMode 
                     ? 'bg-white/10 text-white placeholder-white/50 border border-white/20 focus:bg-white/15' 
                     : 'bg-white/70 text-gray-900 placeholder-gray-500 border border-white/30 focus:bg-white/90'
                 }`}
+                style={{ minHeight: '48px' }}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className={`absolute right-4 top-1/2 transform -translate-y-1/2 p-1.5 rounded-full transition-all duration-300 hover:scale-110 ${
+                  className={`absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 touch-manipulation ${
                     isDarkMode ? 'hover:bg-white/20' : 'hover:bg-gray-200/50'
                   }`}
+                  style={{ minWidth: '32px', minHeight: '32px' }}
                 >
-                  <X className={`w-4 h-4 ${
+                  <X className={`w-3 h-3 sm:w-4 sm:h-4 ${
                     isDarkMode ? 'text-white/70' : 'text-gray-500'
                   }`} />
                 </button>

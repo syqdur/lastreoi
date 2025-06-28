@@ -1,0 +1,59 @@
+Failed to load resource: the server responded with a status of 403 ()
+index-DM5I8Un0.js:3186 Failed to get user playlists: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async j6 (index-DM5I8Un0.js:3186:13423)
+    at async v (index-DM5I8Un0.js:3240:44981)
+    at async p (index-DM5I8Un0.js:3240:44797)
+index-DM5I8Un0.js:3240 Failed to load user data: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async j6 (index-DM5I8Un0.js:3186:13423)
+    at async v (index-DM5I8Un0.js:3240:44981)
+    at async p (index-DM5I8Un0.js:3240:44797)
+api.spotify.com/v1/me:1 
+ Failed to load resource: the server responded with a status of 403 ()
+index-DM5I8Un0.js:3186 Failed to get current user: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async A6 (index-DM5I8Un0.js:3186:16372)
+    at async v (index-DM5I8Un0.js:3240:44957)
+api.spotify.com/v1/m…laylists?limit=50:1 
+ Failed to load resource: the server responded with a status of 403 ()
+index-DM5I8Un0.js:3186 Failed to get user playlists: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async j6 (index-DM5I8Un0.js:3186:13423)
+    at async v (index-DM5I8Un0.js:3240:44981)
+index-DM5I8Un0.js:3240 Failed to load user data: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async j6 (index-DM5I8Un0.js:3186:13423)
+    at async v (index-DM5I8Un0.js:3240:44981)
+api.spotify.com/v1/me:1 
+ Failed to load resource: the server responded with a status of 403 ()
+index-DM5I8Un0.js:3186 Failed to get current user: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async A6 (index-DM5I8Un0.js:3186:16372)
+    at async v (index-DM5I8Un0.js:3240:44957)
+api.spotify.com/v1/me:1 
+ Failed to load resource: the server responded with a status of 403 ()
+index-DM5I8Un0.js:3186 Failed to get current user: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async A6 (index-DM5I8Un0.js:3186:16372)
+    at async v (index-DM5I8Un0.js:3240:44957)
+api.spotify.com/v1/m…laylists?limit=50:1 
+ Failed to load resource: the server responded with a status of 403 ()
+index-DM5I8Un0.js:3186 Failed to get user playlists: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async j6 (index-DM5I8Un0.js:3186:13423)
+    at async v (index-DM5I8Un0.js:3240:44981)
+index-DM5I8Un0.js:3240 Failed to load user data: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async j6 (index-DM5I8Un0.js:3186:13423)
+    at async v (index-DM5I8Un0.js:3240:44981)
+api.spotify.com/v1/m…laylists?limit=50:1 
+ Failed to load resource: the server responded with a status of 403 ()
+index-DM5I8Un0.js:3186 Failed to get user playlists: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async j6 (index-DM5I8Un0.js:3186:13423)
+    at async v (index-DM5I8Un0.js:3240:44981)
+index-DM5I8Un0.js:3240 Failed to load user data: Error: Spotify API error: 
+    at ms (index-DM5I8Un0.js:3186:13262)
+    at async j6 (index-DM5I8Un0.js:3186:13423)
+    at async v (index-DM5I8Un0.js:3240:44981)

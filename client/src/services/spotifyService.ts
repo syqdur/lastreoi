@@ -614,21 +614,35 @@ const makeSpotifyApiCall = async (url: string, options: RequestInit = {}): Promi
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     
-    // Check for insufficient scope error (403 with specific message)
-    if (response.status === 403 && errorData.error?.message?.includes('Insufficient client scope')) {
-      console.log('🔒 === INSUFFICIENT SCOPE DETECTED ===');
-      console.log('Error:', errorData.error.message);
-      console.log('Required action: Re-authentication needed');
+    // Handle 403 Forbidden errors
+    if (response.status === 403) {
+      console.log('🚫 === 403 FORBIDDEN ERROR DETECTED ===');
+      console.log('Error details:', errorData);
       
-      // Clear existing credentials to force re-auth
-      await disconnectSpotify();
+      // Check for insufficient scope
+      if (errorData.error?.message?.includes('Insufficient client scope')) {
+        console.log('🔒 Cause: Insufficient scope - re-authentication needed');
+        await disconnectSpotify();
+        
+        const scopeError = new Error('Insufficient Spotify permissions. Please reconnect to grant required access.');
+        (scopeError as any).status = response.status;
+        (scopeError as any).body = errorData;
+        (scopeError as any).requiresReauth = true;
+        throw scopeError;
+      }
       
-      // Create enhanced error with re-auth instructions
-      const scopeError = new Error('Insufficient Spotify permissions. Please reconnect to grant required access.');
-      (scopeError as any).status = response.status;
-      (scopeError as any).body = errorData;
-      (scopeError as any).requiresReauth = true;
-      throw scopeError;
+      // Check for development mode restriction
+      if (errorData.error?.message?.includes('User not registered') || 
+          errorData.error?.message?.includes('The user does not have access') ||
+          response.status === 403) {
+        console.log('👤 Cause: User not in Spotify app whitelist (Development Mode)');
+        
+        const devModeError = new Error('Spotify app is in Development Mode. Your account needs to be added to the app\'s user list in the Spotify Developer Dashboard.');
+        (devModeError as any).status = response.status;
+        (devModeError as any).body = errorData;
+        (devModeError as any).isDevelopmentMode = true;
+        throw devModeError;
+      }
     }
     
     const error = new Error(`Spotify API error: ${errorData.error?.message || response.statusText}`);

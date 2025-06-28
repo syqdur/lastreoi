@@ -181,13 +181,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
           </div>
 
-          {/* Controls - User Profile and Admin - Only show if not in top bar */}
+          {/* Controls - User Profile and Admin - Mobile optimized */}
           {showTopBarControls && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {/* User Profile Edit Button - Shows user's profile picture or default icon */}
               <button
                 onClick={() => onOpenUserProfile?.()}
-                className={`w-8 h-8 rounded-full transition-all duration-300 hover:scale-110 overflow-hidden ring-2 ${
+                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 overflow-hidden ring-2 touch-manipulation ${
                   currentUserProfile?.profilePicture
                     ? 'ring-blue-400/50 hover:ring-blue-400/70'
                     : isDarkMode 
@@ -195,6 +195,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                       : 'bg-blue-500/50 hover:bg-blue-600/50 backdrop-blur-sm ring-blue-400/50'
                 }`}
                 title="Mein Profil bearbeiten"
+                style={{ minWidth: '40px', minHeight: '40px' }}
               >
                 {currentUserProfile?.profilePicture ? (
                   <img 
@@ -214,7 +215,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               {/* Admin Toggle */}
               <button
                 onClick={() => onToggleAdmin?.(!isAdmin)}
-                className={`w-8 h-8 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center ring-2 ${
+                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center ring-2 touch-manipulation ${
                   isDarkMode 
                     ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
                     : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'

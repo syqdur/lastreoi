@@ -121,18 +121,18 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
       {/* Upload Options Modal - Jetzt außerhalb des Containers */}
       {showUploadOptions && (
         <div 
-          className="fixed inset-0 flex items-center justify-center p-4"
+          className="fixed inset-0 flex items-center justify-center p-3 sm:p-4"
           style={{ 
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            zIndex: 2147483647 // Maximaler z-index Wert
+            zIndex: 2147483647
           }}
           onClick={() => setShowUploadOptions(false)}
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className={`relative rounded-3xl p-6 max-w-md w-full mx-4 transform transition-all duration-300 ${
+            className={`relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-md w-full mx-2 sm:mx-4 transform transition-all duration-300 max-h-[90vh] overflow-y-auto ${
               isDarkMode 
                 ? 'bg-gray-800 border border-gray-600 shadow-2xl' 
                 : 'bg-white border border-gray-200 shadow-2xl'
@@ -161,12 +161,14 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
             </div>
             
             {/* Upload Options */}
-            <div className="space-y-3">
-              <label className={`group flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] ${
+            <div className="space-y-2 sm:space-y-3">
+              <label className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] touch-manipulation ${
                 isDarkMode 
-                  ? 'bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30' 
-                  : 'bg-blue-50 hover:bg-blue-100 border border-blue-200'
-              }`}>
+                  ? 'bg-blue-600/10 hover:bg-blue-600/20 active:bg-blue-600/30 border border-blue-500/30' 
+                  : 'bg-blue-50 hover:bg-blue-100 active:bg-blue-200 border border-blue-200'
+              }`}
+              style={{ minHeight: '60px' }}
+              >
                 <input
                   type="file"
                   multiple
@@ -203,11 +205,12 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                   setShowVideoRecorder(true);
                   setShowUploadOptions(false);
                 }}
-                className={`group flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] w-full ${
+                className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] w-full touch-manipulation ${
                   isDarkMode 
-                    ? 'bg-red-600/10 hover:bg-red-600/20 border border-red-500/30' 
-                    : 'bg-red-50 hover:bg-red-100 border border-red-200'
+                    ? 'bg-red-600/10 hover:bg-red-600/20 active:bg-red-600/30 border border-red-500/30' 
+                    : 'bg-red-50 hover:bg-red-100 active:bg-red-200 border border-red-200'
                 }`}
+                style={{ minHeight: '60px' }}
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                   isDarkMode ? 'bg-red-500/20' : 'bg-red-500/10'
@@ -238,11 +241,12 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                   setShowNoteInput(true);
                   setShowUploadOptions(false);
                 }}
-                className={`group flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] w-full ${
+                className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] w-full touch-manipulation ${
                   isDarkMode 
-                    ? `bg-${themeStyles?.primaryColor || 'purple-500'}/10 hover:bg-${themeStyles?.primaryColor || 'purple-500'}/20 border border-${themeStyles?.primaryColor || 'purple-500'}/30` 
-                    : `bg-${themeStyles?.primaryColor || 'purple-500'}/10 hover:bg-${themeStyles?.primaryColor || 'purple-500'}/20 border border-${themeStyles?.primaryColor || 'purple-500'}/30`
+                    ? `bg-${themeStyles?.primaryColor || 'purple-500'}/10 hover:bg-${themeStyles?.primaryColor || 'purple-500'}/20 active:bg-${themeStyles?.primaryColor || 'purple-500'}/30 border border-${themeStyles?.primaryColor || 'purple-500'}/30` 
+                    : `bg-${themeStyles?.primaryColor || 'purple-500'}/10 hover:bg-${themeStyles?.primaryColor || 'purple-500'}/20 active:bg-${themeStyles?.primaryColor || 'purple-500'}/30 border border-${themeStyles?.primaryColor || 'purple-500'}/30`
                 }`}
+                style={{ minHeight: '60px' }}
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                   isDarkMode ? 'bg-purple-500/20' : 'bg-purple-500/10'
@@ -272,11 +276,12 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                     onAddStory();
                     setShowUploadOptions(false);
                   }}
-                  className={`group flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.02] w-full ${
+                  className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] w-full touch-manipulation ${
                     isDarkMode 
-                      ? 'bg-pink-600/10 hover:bg-pink-600/20 border border-pink-500/30' 
-                      : 'bg-pink-50 hover:bg-pink-100 border border-pink-200'
+                      ? 'bg-pink-600/10 hover:bg-pink-600/20 active:bg-pink-600/30 border border-pink-500/30' 
+                      : 'bg-pink-50 hover:bg-pink-100 active:bg-pink-200 border border-pink-200'
                   }`}
+                  style={{ minHeight: '60px' }}
                 >
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                     isDarkMode ? 'bg-pink-500/20' : 'bg-pink-500/10'

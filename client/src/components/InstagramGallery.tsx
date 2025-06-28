@@ -447,7 +447,7 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
               }`}>
                 📸 Medien ({mediaItems.length})
               </h3>
-              <div className="grid grid-cols-3 gap-1 px-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 sm:gap-2 px-2 sm:px-3">
                 {mediaItems.map((item, mediaIndex) => {
                   // Find the original index in the full items array
                   const originalIndex = items.findIndex(i => i.id === item.id);
@@ -457,8 +457,9 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
                   return (
                     <div
                       key={item.id}
-                      className="relative aspect-square cursor-pointer group"
+                      className="relative aspect-square cursor-pointer group touch-manipulation"
                       onClick={() => onItemClick(originalIndex)}
+                      style={{ minHeight: '120px' }}
                     >
                       {/* Media Content */}
                       <div className="w-full h-full overflow-hidden">
@@ -487,15 +488,15 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
                         )}
                       </div>
                       
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                      {/* Mobile optimized overlay - shows on touch devices */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center md:hover:opacity-100">
                         <div className="text-white text-center">
-                          <div className="flex items-center justify-center gap-4 text-sm font-medium">
-                            <span className="flex items-center gap-1">
+                          <div className="flex items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-medium">
+                            <span className="flex items-center gap-1 bg-black/30 px-2 py-1 rounded-full">
                               <span>❤️</span>
                               {itemLikes.length}
                             </span>
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 bg-black/30 px-2 py-1 rounded-full">
                               <span>💬</span>
                               {itemComments.length}
                             </span>

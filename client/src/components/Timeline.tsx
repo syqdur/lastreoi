@@ -485,24 +485,24 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
       <div className={`transition-colors duration-300 ${
         isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}>
-        {/* Header */}
-        <div className={`p-6 border-b transition-colors duration-300 ${
+        {/* Header - Mobile optimized */}
+        <div className={`p-4 sm:p-6 border-b transition-colors duration-300 ${
           isDarkMode ? 'border-gray-700' : 'border-gray-200'
         }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-full transition-colors duration-300 ${
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <div className={`p-2 sm:p-3 rounded-full transition-colors duration-300 ${
                 isDarkMode ? 'bg-pink-600' : 'bg-pink-500'
               }`}>
-                <Heart className="w-6 h-6 text-white" />
+                <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+              <div className="flex-1 min-w-0">
+                <h2 className={`text-lg sm:text-2xl font-bold transition-colors duration-300 truncate ${
                   isDarkMode ? 'text-white' : 'text-gray-900'
                 }`}>
                   💕 Unsere Geschichte
                 </h2>
-                <p className={`text-sm transition-colors duration-300 ${
+                <p className={`text-xs sm:text-sm transition-colors duration-300 ${
                   isDarkMode ? 'text-gray-400' : 'text-gray-600'
                 }`}>
                   Die wichtigsten Momente unserer Beziehung mit Fotos & Videos
@@ -513,14 +513,16 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
             {isAdmin && (
               <button
                 onClick={() => setShowAddForm(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 hover:scale-105 ${
+                className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 touch-manipulation text-sm sm:text-base ${
                   isDarkMode 
                     ? 'bg-pink-600 hover:bg-pink-700 text-white' 
                     : 'bg-pink-500 hover:bg-pink-600 text-white'
                 }`}
+                style={{ minHeight: '40px' }}
               >
-                <Plus className="w-5 h-5" />
-                Event hinzufügen
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden xs:inline">Event hinzufügen</span>
+                <span className="xs:hidden">Hinzufügen</span>
               </button>
             )}
           </div>

@@ -190,11 +190,11 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </>
       )}
 
-      {/* Main content area */}
-      <div className="w-full h-full flex flex-col lg:flex-row items-center justify-center max-w-7xl mx-auto">
-        {/* Media container */}
-        <div className="flex-1 lg:w-2/3 h-full flex items-center justify-center p-2 sm:p-4">
-          <div className="relative max-w-full max-h-full flex items-center justify-center">
+      {/* Main content area - Mobile optimized layout */}
+      <div className="w-full h-full flex flex-col max-w-7xl mx-auto">
+        {/* Media container - Full screen on mobile */}
+        <div className="flex-1 w-full h-full flex items-center justify-center p-2 sm:p-4 lg:w-2/3 lg:mx-auto">
+          <div className="relative w-full h-full max-w-full max-h-full flex items-center justify-center">
             {currentItem.type === 'video' ? (
               <video
                 src={currentItem.url}
@@ -285,8 +285,8 @@ export const MediaModal: React.FC<MediaModalProps> = ({
         </div>
       </div>
 
-      {/* Info panel - bottom overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-white">
+      {/* Info panel - mobile optimized bottom overlay */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-3 sm:p-6 text-white">
         <div className="max-w-2xl mx-auto">
           {/* User info */}
           <div className="flex items-center gap-3 mb-4">
@@ -368,9 +368,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             </div>
           )}
 
-          {/* Add comment */}
-          <form onSubmit={handleSubmitComment} className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+          {/* Add comment - mobile optimized */}
+          <form onSubmit={handleSubmitComment} className="flex items-center gap-2 sm:gap-3">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0">
               <img 
                 src={getAvatarUrl(userName, undefined)}
                 alt={userName}
@@ -382,14 +382,17 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder="Kommentieren..."
-              className="flex-1 bg-white/10 text-white placeholder-gray-400 px-3 py-2 rounded-lg border border-white/20 outline-none focus:border-white/40 transition-colors"
+              className="flex-1 bg-white/10 text-white placeholder-gray-400 px-3 py-2.5 sm:py-2 rounded-lg border border-white/20 outline-none focus:border-white/40 transition-colors text-sm sm:text-base touch-manipulation"
+              style={{ minHeight: '44px' }}
             />
             {commentText.trim() && (
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                className="px-3 sm:px-4 py-2.5 sm:py-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg transition-colors text-sm sm:text-base touch-manipulation"
+                style={{ minHeight: '44px', minWidth: '44px' }}
               >
-                Senden
+                <span className="hidden sm:inline">Senden</span>
+                <span className="sm:hidden">✓</span>
               </button>
             )}
           </form>
