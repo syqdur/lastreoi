@@ -65,6 +65,43 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     }
   };
 
+  const compressImage = (file: File, maxWidth: number = 400, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions while maintaining aspect ratio
+        const { width, height } = img;
+        const ratio = Math.min(maxWidth / width, maxWidth / height);
+        const newWidth = width * ratio;
+        const newHeight = height * ratio;
+        
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        // Draw and compress the image
+        ctx?.drawImage(img, 0, 0, newWidth, newHeight);
+        
+        // Convert to JPEG with compression to stay under Firebase limit
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        
+        // Check if still too large (Firebase limit ~1MB base64)
+        if (compressedBase64.length > 800000) { // 800KB to be safe
+          // Try with lower quality
+          const lowerQualityBase64 = canvas.toDataURL('image/jpeg', 0.5);
+          resolve(lowerQualityBase64);
+        } else {
+          resolve(compressedBase64);
+        }
+      };
+      
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!canEdit) {
       alert('Sie können nur Ihr eigenes Profil bearbeiten.');
@@ -90,31 +127,26 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
     setIsUploading(true);
     try {
-
-      // Convert image to base64 with better error handling
-      console.log('📸 Converting visitor profile picture to base64...');
-      const base64Image = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        
-        reader.onload = () => {
-          const result = reader.result as string;
-          if (result && result.startsWith('data:image/')) {
-            resolve(result);
-          } else {
-            reject(new Error('Invalid image format'));
-          }
-        };
-        
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.onabort = () => reject(new Error('File reading was aborted'));
-        
-        reader.readAsDataURL(file);
-      });
+      console.log('📸 Processing profile picture...');
+      console.log('📊 Original file:', { name: file.name, size: file.size, type: file.type });
       
-      console.log('✅ Profile picture converted to base64 successfully');
-      setProfilePicture(base64Image);
+      // Always compress images to ensure they fit Firebase limits
+      const compressedBase64 = await compressImage(file, 400, 0.7);
+      
+      console.log('✅ Profile picture compressed successfully');
+      console.log('📏 Compressed size:', Math.round(compressedBase64.length / 1024), 'KB');
+      
+      // Final check - if still too large, compress more aggressively
+      if (compressedBase64.length > 900000) { // 900KB final check
+        console.log('🔄 Still too large, compressing more aggressively...');
+        const finalCompressed = await compressImage(file, 300, 0.5);
+        console.log('📏 Final compressed size:', Math.round(finalCompressed.length / 1024), 'KB');
+        setProfilePicture(finalCompressed);
+      } else {
+        setProfilePicture(compressedBase64);
+      }
     } catch (error) {
-      console.error('Error converting profile picture:', error);
+      console.error('Error processing profile picture:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       alert(`Fehler beim Verarbeiten des Profilbildes: ${errorMessage}. Bitte versuchen Sie es mit einem anderen Bild.`);
     } finally {
@@ -135,17 +167,45 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
     setIsSaving(true);
     try {
+      console.log('🔄 Starting profile save process...');
+      console.log('📝 Display name:', displayName.trim());
+      console.log('🖼️ Profile picture size:', profilePicture ? `${profilePicture.length} characters` : 'none');
+      console.log('👤 User:', userName, 'Device:', deviceId);
+      console.log('🎪 Gallery:', galleryId);
+
+      // Validate profile picture size (Firebase field limit ~1MB)
+      if (profilePicture && profilePicture.length > 900000) { // 900KB limit for Firebase
+        throw new Error('Profilbild ist zu groß für Firebase. Bitte wählen Sie ein kleineres Bild oder reduzieren Sie die Qualität.');
+      }
+
       const updatedProfile = await createOrUpdateGalleryUserProfile(userName, deviceId, {
         displayName: displayName.trim(),
         profilePicture: profilePicture || undefined
       }, galleryId);
       
+      console.log('✅ Profile saved successfully:', updatedProfile);
       setUserProfile(updatedProfile);
       onProfileUpdated?.(updatedProfile);
       onClose();
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      alert('Fehler beim Speichern des Profils. Bitte versuchen Sie es erneut.');
+    } catch (error: any) {
+      console.error('❌ Error saving profile:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+      
+      let errorMessage = 'Fehler beim Speichern des Profils.';
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = 'Keine Berechtigung zum Speichern. Bitte versuchen Sie es erneut.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Verbindung unterbrochen. Bitte prüfen Sie Ihre Internetverbindung.';
+      } else if (error.message && error.message.includes('Profilbild')) {
+        errorMessage = error.message;
+      } else if (error.message) {
+        errorMessage = `Fehler: ${error.message}`;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsSaving(false);
     }

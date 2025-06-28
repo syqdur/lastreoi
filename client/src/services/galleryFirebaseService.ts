@@ -355,39 +355,81 @@ export const createOrUpdateGalleryUserProfile = async (
   profileData: Partial<UserProfile>,
   galleryId: string
 ): Promise<UserProfile> => {
-  const profilesCollection = `galleries/${galleryId}/userProfiles`;
-  
-  // Check if profile already exists
-  const existingProfile = await getGalleryUserProfile(userName, deviceId, galleryId);
-  
-  const timestamp = new Date().toISOString();
-  const updatedData = {
-    userName,
-    deviceId,
-    ...profileData,
-    updatedAt: timestamp
-  };
-  
-  if (existingProfile) {
-    // Update existing profile
-    await updateDoc(doc(db, profilesCollection, existingProfile.id), updatedData);
-    return {
-      ...existingProfile,
-      ...updatedData
-    };
-  } else {
-    // Create new profile
-    const newProfileData = {
-      ...updatedData,
-      createdAt: timestamp
+  try {
+    console.log('🔄 Starting createOrUpdateGalleryUserProfile...');
+    console.log('📊 Parameters:', { userName, deviceId, galleryId });
+    console.log('📝 Profile data keys:', Object.keys(profileData));
+    
+    const profilesCollection = `galleries/${galleryId}/userProfiles`;
+    console.log('📂 Collection path:', profilesCollection);
+    
+    // Check if profile already exists
+    console.log('🔍 Checking for existing profile...');
+    const existingProfile = await getGalleryUserProfile(userName, deviceId, galleryId);
+    console.log('👤 Existing profile found:', !!existingProfile);
+    
+    const timestamp = new Date().toISOString();
+    
+    // Clean profile data to remove undefined values that might cause Firebase issues
+    const cleanedProfileData = Object.fromEntries(
+      Object.entries(profileData).filter(([_, value]) => value !== undefined)
+    );
+    
+    const updatedData = {
+      userName,
+      deviceId,
+      ...cleanedProfileData,
+      updatedAt: timestamp
     };
     
-    const docRef = await addDoc(collection(db, profilesCollection), newProfileData);
+    console.log('💾 Data to save:', updatedData);
     
-    return {
-      id: docRef.id,
-      ...newProfileData
-    } as UserProfile;
+    if (existingProfile) {
+      // Update existing profile
+      console.log('🔄 Updating existing profile with ID:', existingProfile.id);
+      await updateDoc(doc(db, profilesCollection, existingProfile.id), updatedData);
+      console.log('✅ Profile updated successfully');
+      
+      return {
+        ...existingProfile,
+        ...updatedData
+      };
+    } else {
+      // Create new profile
+      const newProfileData = {
+        ...updatedData,
+        createdAt: timestamp
+      };
+      
+      console.log('➕ Creating new profile');
+      const docRef = await addDoc(collection(db, profilesCollection), newProfileData);
+      console.log('✅ New profile created with ID:', docRef.id);
+      
+      return {
+        id: docRef.id,
+        ...newProfileData
+      } as UserProfile;
+    }
+  } catch (error: any) {
+    console.error('❌ Error in createOrUpdateGalleryUserProfile:', error);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error message:', error.message);
+    
+    // Provide more specific error messages
+    if (error.code === 'permission-denied') {
+      throw new Error('Keine Berechtigung zum Speichern des Profils. Bitte versuchen Sie es erneut.');
+    } else if (error.code === 'unavailable') {
+      throw new Error('Verbindung unterbrochen. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.');
+    } else if (error.code === 'quota-exceeded') {
+      throw new Error('Speicher-Limit erreicht. Bitte versuchen Sie es mit einem kleineren Profilbild.');
+    } else if (error.code === 'invalid-argument' && error.message && error.message.includes('longer than')) {
+      throw new Error('Profilbild ist zu groß. Firebase erlaubt maximal 1MB pro Feld. Bitte wählen Sie ein kleineres Bild.');
+    } else if (error.message && error.message.includes('base64')) {
+      throw new Error('Profilbild konnte nicht verarbeitet werden. Bitte wählen Sie ein anderes Bild.');
+    }
+    
+    // Re-throw the original error if no specific handling
+    throw error;
   }
 };
 
