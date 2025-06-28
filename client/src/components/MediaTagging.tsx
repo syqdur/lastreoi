@@ -14,6 +14,7 @@ import {
   getCurrentLocation,
   getUserProfilesOnce
 } from '../services/firebaseService';
+import { getGalleryUsers } from '../services/galleryFirebaseService';
 import { MediaTag, LocationTag } from '../types';
 
 interface MediaTaggingProps {
@@ -28,6 +29,7 @@ interface MediaTaggingProps {
   mediaUploader?: string; // The user who uploaded this media
   mediaType?: string; // Type of media (image/video)
   mediaUrl?: string; // URL of the media for notifications
+  galleryId: string; // Gallery ID for filtering users by gallery
 }
 
 interface User {
@@ -53,7 +55,8 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
   getUserDisplayName,
   mediaUploader,
   mediaType,
-  mediaUrl
+  mediaUrl,
+  galleryId
 }) => {
   const [showTagInput, setShowTagInput] = useState(false);
   const [showLocationInput, setShowLocationInput] = useState(false);
@@ -103,10 +106,11 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
 
   const loadUsers = async () => {
     try {
-      const allUsers = await getAllUsers();
-      setUsers(allUsers);
+      console.log(`🔍 Loading users for gallery tagging: ${galleryId}`);
+      const galleryUsers = await getGalleryUsers(galleryId);
+      setUsers(galleryUsers);
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('Error loading gallery users:', error);
     }
   };
 
@@ -369,22 +373,22 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
           )}
 
           {showTagInput && (
-            <div className="p-4 rounded-2xl bg-white/80 dark:bg-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-800/50 shadow-xl">
+            <div className="p-3 rounded-xl bg-white/90 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
               {/* Search Input */}
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Nach Person suchen..."
-                className="w-full px-4 py-3 rounded-xl border-2 border-transparent bg-white/60 dark:bg-gray-800/80 backdrop-blur-lg focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 focus:outline-none placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 transition-all duration-300 mb-4"
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 focus:outline-none placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 transition-all duration-200 mb-3 text-base"
+                style={{ fontSize: '16px' }}
                 autoFocus
               />
 
-              {/* User List */}
-              <div className="max-h-48 overflow-y-auto space-y-3">
+              {/* User List - Mobile Optimized */}
+              <div className="max-h-48 overflow-y-auto space-y-2">
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((user) => {
-                    const userAvatar = getUserAvatar(user.userName, user.deviceId);
                     const displayName = getUserDisplayName(user.userName, user.deviceId);
                     
                     return (
@@ -392,34 +396,21 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
                         key={`${user.userName}_${user.deviceId}`}
                         onClick={() => handleAddTag(user)}
                         disabled={isLoading}
-                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 transform hover:scale-[1.02] ${
+                        className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 touch-manipulation ${
                           isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                        } bg-white/60 dark:bg-gray-800/80 hover:bg-white/80 dark:hover:bg-gray-700/90 backdrop-blur-lg text-gray-900 dark:text-gray-100 border border-white/30 dark:border-gray-700/50 hover:border-purple-300 dark:hover:border-purple-500 shadow-md hover:shadow-lg`}
+                        } bg-white/70 dark:bg-gray-800/70 hover:bg-white/90 dark:hover:bg-gray-700/90 active:bg-purple-50 dark:active:bg-purple-900/30 text-gray-900 dark:text-gray-100 border border-gray-200/50 dark:border-gray-700/50 hover:border-purple-300 dark:hover:border-purple-500 shadow-sm hover:shadow-md`}
+                        style={{ minHeight: '48px' }}
                       >
-                        {/* Profile Picture */}
-                        <div className="relative flex-shrink-0">
-                          {userAvatar ? (
-                            <img
-                              src={userAvatar}
-                              alt={displayName}
-                              className="w-10 h-10 rounded-full object-cover border-2 border-white/50 dark:border-gray-600/50 shadow-sm"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-medium text-sm border-2 border-white/50 dark:border-gray-600/50 shadow-sm">
-                              {displayName.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* User Name */}
-                        <div className="flex-1 text-left">
-                          <span className="font-medium">{displayName}</span>
+                        {/* User Name with Initial Circle */}
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                            {displayName.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium text-left truncate">{displayName}</span>
                         </div>
                         
                         {/* Add Icon */}
-                        <div className="flex-shrink-0">
-                          <UserPlus className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-                        </div>
+                        <UserPlus className="w-5 h-5 text-purple-500 dark:text-purple-400 flex-shrink-0" />
                       </button>
                     );
                   })
@@ -436,13 +427,14 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
               </div>
 
               {/* Cancel Button */}
-              <div className="flex justify-end mt-4">
+              <div className="flex justify-end mt-3">
                 <button
                   onClick={() => {
                     setShowTagInput(false);
                     setSearchTerm('');
                   }}
-                  className="px-4 py-2 text-sm rounded-xl font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 bg-white/30 dark:bg-gray-800/60 hover:bg-white/50 dark:hover:bg-gray-700/80 text-gray-700 dark:text-gray-100 backdrop-blur-lg border border-white/30 dark:border-gray-700/40 shadow-lg"
+                  className="px-4 py-2 text-sm rounded-lg font-medium transition-all duration-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-100 border border-gray-200 dark:border-gray-700 touch-manipulation"
+                  style={{ minHeight: '40px' }}
                 >
                   Abbrechen
                 </button>

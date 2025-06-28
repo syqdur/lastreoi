@@ -55,16 +55,16 @@ export const StoryUploadModal: React.FC<StoryUploadModalProps> = ({
     }
 
     // Validate file size with detailed feedback
-    const maxSize = 100 * 1024 * 1024; // 100MB
+    const maxSize = 50 * 1024 * 1024; // 50MB - reduced for better performance with base64
     if (file.size > maxSize) {
-      const errorMsg = `Datei zu groß: ${fileSizeMB}MB (max. 100MB)`;
+      const errorMsg = `Datei zu groß: ${fileSizeMB}MB (max. 50MB)`;
       console.error(`❌ ${errorMsg}`);
       setUploadError(`${errorMsg}\n\n💡 Tipps zur Verkleinerung:\n• Komprimiere das Bild/Video\n• Wähle eine niedrigere Auflösung\n• Verwende ein anderes Format`);
       return;
     }
 
-    // Show warning for large files (>20MB)
-    if (file.size > 20 * 1024 * 1024) {
+    // Show warning for large files (>10MB)
+    if (file.size > 10 * 1024 * 1024) {
       const proceed = window.confirm(
         `📁 Große Datei erkannt (${fileSizeMB}MB)\n\n⏳ Upload kann länger dauern.\n📶 Stelle sicher, dass deine Internetverbindung stabil ist.\n\n✅ Trotzdem hochladen?`
       );

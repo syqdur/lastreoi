@@ -233,6 +233,14 @@ This is a comprehensive wedding gallery application with the following architect
 - **Complete Button Theming**: Updated both "Add Event" buttons and form submission button to use dynamic theme colors instead of hardcoded pink/purple
 - **Comprehensive Color Coordination**: All Timeline UI elements including shadows, borders, gradients, and interactive states now follow the selected gallery theme configuration
 
+### June 28, 2025 (Replit Migration & Mobile Optimization)
+- **Successful Replit Migration**: Completed migration from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
+- **Gallery-Scoped User Tagging**: Fixed MediaTagging component to only show gallery participants instead of all platform users by implementing getGalleryUsers function with proper gallery ID filtering
+- **Mobile-Optimized Tagging Interface**: Enhanced MediaTagging component with mobile-first design - removed profile pictures from user list, simplified layout with initial circles, improved touch targets (48px minimum), clean card-based design, and optimized input fields with proper font sizing for mobile devices
+- **Timeline Admin Access Fix**: Updated Timeline component to use gallery-specific collections (galleries/{galleryId}/timeline) for proper admin access and data isolation
+- **Media Upload Limits**: Standardized all media uploads (Timeline, Stories, main uploads) to 10MB limit for optimal performance across all components
+- **Package Installation & Workflow Setup**: Successfully installed all required packages and configured Replit workflow for seamless development environment
+
 ### June 27, 2025 (Replit Migration Complete)
 - **Successful Migration from Replit Agent**: Completed full migration from Replit Agent to Replit environment with all core functionality preserved
 - **Spotify OAuth Callback Fix**: Added SpotifyCallback route handling to GalleryRouter component to properly process OAuth redirects

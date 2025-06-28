@@ -422,10 +422,10 @@ export const addGalleryStory = async (
   console.log(`📁 File: ${file.name}`);
   
   try {
-    // Validate file size (100MB max)
-    const maxSize = 100 * 1024 * 1024;
+    // Validate file size (50MB max for better performance with base64)
+    const maxSize = 50 * 1024 * 1024;
     if (file.size > maxSize) {
-      throw new Error(`Datei zu groß: ${(file.size / 1024 / 1024).toFixed(1)}MB (max. 100MB)`);
+      throw new Error(`Datei zu groß: ${(file.size / 1024 / 1024).toFixed(1)}MB (max. 50MB)`);
     }
     
     // Validate file type
@@ -663,5 +663,79 @@ export const cleanupExpiredGalleryStories = async (galleryId: string): Promise<v
     
   } catch (error) {
     console.error('Error cleaning up expired gallery stories:', error);
+  }
+};
+
+// Get all users in a specific gallery for tagging
+export const getGalleryUsers = async (galleryId: string): Promise<any[]> => {
+  console.log(`🔍 === FETCHING GALLERY USERS ===`);
+  console.log(`🎪 Gallery: ${galleryId}`);
+  
+  try {
+    const userMap = new Map<string, any>();
+    
+    // 1. Get users from gallery-specific live_users collection
+    const liveUsersQuery = query(collection(db, `galleries/${galleryId}/live_users`));
+    const liveUsersSnapshot = await getDocs(liveUsersQuery);
+    console.log(`👥 Found ${liveUsersSnapshot.docs.length} live users in gallery`);
+    
+    liveUsersSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.userName && data.deviceId) {
+        const key = `${data.userName}-${data.deviceId}`;
+        userMap.set(key, {
+          userName: data.userName,
+          deviceId: data.deviceId,
+          displayName: data.displayName || data.userName,
+          profilePicture: data.profilePicture
+        });
+      }
+    });
+    
+    // 2. Get users from gallery-specific userProfiles collection
+    const profilesQuery = query(collection(db, `galleries/${galleryId}/userProfiles`));
+    const profilesSnapshot = await getDocs(profilesQuery);
+    console.log(`👤 Found ${profilesSnapshot.docs.length} user profiles in gallery`);
+    
+    profilesSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.userName && data.deviceId) {
+        const key = `${data.userName}-${data.deviceId}`;
+        const existingUser = userMap.get(key);
+        userMap.set(key, {
+          userName: data.userName,
+          deviceId: data.deviceId,
+          displayName: data.displayName || existingUser?.displayName || data.userName,
+          profilePicture: data.profilePicture || existingUser?.profilePicture
+        });
+      }
+    });
+    
+    // 3. Get users from gallery media uploads
+    const mediaQuery = query(collection(db, `galleries/${galleryId}/media`));
+    const mediaSnapshot = await getDocs(mediaQuery);
+    console.log(`📸 Found ${mediaSnapshot.docs.length} media items in gallery`);
+    
+    mediaSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.uploadedBy && data.deviceId) {
+        const key = `${data.uploadedBy}-${data.deviceId}`;
+        if (!userMap.has(key)) {
+          userMap.set(key, {
+            userName: data.uploadedBy,
+            deviceId: data.deviceId,
+            displayName: data.uploadedBy
+          });
+        }
+      }
+    });
+    
+    const users = Array.from(userMap.values());
+    console.log(`📋 Returning ${users.length} gallery-specific users for tagging`);
+    
+    return users;
+  } catch (error) {
+    console.error('❌ Error fetching gallery users:', error);
+    return [];
   }
 };

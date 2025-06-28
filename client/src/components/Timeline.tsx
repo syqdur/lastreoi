@@ -194,8 +194,9 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
         // Test Firebase connection first
         console.log('🔗 Testing Firebase connection...');
         
-        // Create query with error handling
-        const q = query(collection(db, 'timeline'), orderBy('date', 'asc'));
+        // Create query with error handling - use gallery-specific collection
+        const timelineCollection = `galleries/${galleryId}/timeline`;
+        const q = query(collection(db, timelineCollection), orderBy('date', 'asc'));
         
         unsubscribe = onSnapshot(q, 
           (snapshot) => {
@@ -294,23 +295,28 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileName = `TIMELINE_${Date.now()}-${i}-${file.name}`;
-      const storageRef = ref(storage, `uploads/${fileName}`);
       
       try {
-        console.log(`📤 Uploading timeline file: ${fileName}`);
-        await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(storageRef);
+        console.log(`📤 Converting timeline file to base64: ${fileName}`);
         
-        urls.push(url);
+        // Convert file to base64 instead of uploading to Firebase Storage
+        const reader = new FileReader();
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        urls.push(base64Data);
         types.push(file.type.startsWith('video/') ? 'video' : 'image');
         fileNames.push(fileName);
         
         setUploadProgress(((i + 1) / files.length) * 100);
-        console.log(`✅ Timeline file uploaded successfully: ${fileName}`);
+        console.log(`✅ Timeline file converted successfully: ${fileName}`);
       } catch (error) {
-        console.error(`❌ Error uploading ${file.name}:`, error);
+        console.error(`❌ Error converting ${file.name}:`, error);
         const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
-        throw new Error(`Fehler beim Hochladen von ${file.name}: ${errorMessage}`);
+        throw new Error(`Fehler beim Konvertieren von ${file.name}: ${errorMessage}`);
       }
     }
     
@@ -366,12 +372,14 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
       if (editingEvent) {
         // Update existing event
         console.log('📝 Updating existing timeline event...');
-        await updateDoc(doc(db, 'timeline', editingEvent.id), eventData);
+        const timelineCollection = `galleries/${galleryId}/timeline`;
+        await updateDoc(doc(db, timelineCollection, editingEvent.id), eventData);
         console.log('✅ Timeline event updated successfully');
       } else {
         // Add new event
         console.log('➕ Adding new timeline event...');
-        await addDoc(collection(db, 'timeline'), {
+        const timelineCollection = `galleries/${galleryId}/timeline`;
+        await addDoc(collection(db, timelineCollection), {
           ...eventData,
           createdBy: userName,
           createdAt: new Date().toISOString()
@@ -442,7 +450,8 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
 
       // Delete event from Firestore
       console.log('🗑️ Deleting event from Firestore...');
-      await deleteDoc(doc(db, 'timeline', event.id));
+      const timelineCollection = `galleries/${galleryId}/timeline`;
+      await deleteDoc(doc(db, timelineCollection, event.id));
       console.log('✅ Timeline event deleted successfully');
     } catch (error: any) {
       console.error('❌ Error deleting timeline event:', error);

@@ -1211,6 +1211,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
               getUserDisplayName={getUserDisplayName}
               deviceId={deviceId || ''}
               galleryTheme={gallery.theme}
+              galleryId={gallery.id}
             />
           </>
         ) : activeTab === 'timeline' ? (

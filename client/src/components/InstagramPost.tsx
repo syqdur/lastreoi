@@ -21,6 +21,7 @@ interface InstagramPostProps {
   getUserAvatar?: (userName: string, deviceId?: string) => string | null;
   getUserDisplayName?: (userName: string, deviceId?: string) => string;
   getUserDeviceId?: () => string;
+  galleryId: string;
 }
 
 export const InstagramPost: React.FC<InstagramPostProps> = ({
@@ -39,7 +40,8 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
   isDarkMode,
   getUserAvatar,
   getUserDisplayName,
-  getUserDeviceId
+  getUserDeviceId,
+  galleryId
 }) => {
   const [commentText, setCommentText] = useState('');
   const [showAllComments, setShowAllComments] = useState(false);
@@ -318,6 +320,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
             mediaUploader={item.uploadedBy}
             mediaType={item.type}
             mediaUrl={item.url}
+            galleryId={galleryId}
           />
         </div>
 

@@ -22,6 +22,7 @@ interface InstagramGalleryProps {
   getUserDisplayName?: (userName: string, deviceId?: string) => string;
   deviceId: string;
   galleryTheme: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes';
+  galleryId: string;
 }
 
 export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
@@ -40,7 +41,8 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
   getUserAvatar,
   getUserDisplayName,
   deviceId,
-  galleryTheme
+  galleryTheme,
+  galleryId
 }) => {
   const [viewMode, setViewMode] = useState<'feed' | 'grid'>('feed');
   const [notesSliderIndex, setNotesSliderIndex] = useState(0);
@@ -189,6 +191,7 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
                 getUserAvatar={getUserAvatar}
                 getUserDisplayName={getUserDisplayName}
                 getUserDeviceId={() => deviceId}
+                galleryId={galleryId}
               />
             )
           ))}
