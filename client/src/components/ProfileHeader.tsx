@@ -48,18 +48,24 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-
+  // Always show content - use gallery data as fallback if profileData is loading
+  const displayData = profileData || {
+    name: gallery?.eventName || 'Gallery',
+    bio: gallery?.description || '',
+    profilePicture: null,
+    countdownDate: gallery?.eventDate || null
+  };
 
   // Countdown timer effect with memoized calculation
   useEffect(() => {
-    if (!profileData?.countdownDate) {
+    if (!displayData?.countdownDate) {
       setCountdown(null);
       setCountdownEnded(false);
       return;
     }
 
     const updateCountdown = () => {
-      const target = new Date(profileData.countdownDate!);
+      const target = new Date(displayData.countdownDate!);
       const now = new Date();
       const difference = target.getTime() - now.getTime();
 
@@ -93,34 +99,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const interval = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(interval);
-  }, [profileData?.countdownDate]);
-
-  // Show loading state if no profile data exists yet
-  if (!profileData) {
-    return (
-      <div className={`mx-2 sm:mx-4 my-4 sm:my-6 p-4 sm:p-6 rounded-3xl transition-all duration-500 ${
-        isDarkMode 
-          ? 'bg-gray-800/40 border border-gray-700/30 backdrop-blur-xl shadow-2xl shadow-purple-500/10' 
-          : 'bg-white/60 border border-gray-200/40 backdrop-blur-xl shadow-2xl shadow-pink-500/10'
-      }`}>
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full animate-pulse ${
-              isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-            }`} />
-            <div className="flex-1">
-              <div className={`h-6 w-32 rounded animate-pulse mb-2 ${
-                isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-              }`} />
-              <div className={`h-4 w-48 rounded animate-pulse ${
-                isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-              }`} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  }, [displayData?.countdownDate]);
 
   return (
     <>
@@ -144,10 +123,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 animation: 'pulse 2s ease-in-out infinite, ring-glow 3s ease-in-out infinite'
               }}
             >
-              {profileData?.profilePicture ? (
+              {displayData?.profilePicture ? (
                 <img 
-                  src={profileData?.profilePicture} 
-                  alt={profileData?.name || "Profile"}
+                  src={displayData?.profilePicture} 
+                  alt={displayData?.name || "Profile"}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -183,7 +162,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <h2 className={`text-lg sm:text-xl font-bold tracking-tight transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                {profileData?.name || gallery?.eventName || 'Gallery'}
+                {displayData?.name || gallery?.eventName || 'Gallery'}
               </h2>
               <div className={`flex gap-6 sm:gap-8 mt-2 sm:mt-3 text-sm font-medium transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -273,11 +252,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
        
         <div className="space-y-4">
-          {profileData?.bio && (
+          {displayData?.bio && (
             <p className={`text-sm transition-colors duration-300 ${
               isDarkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              {profileData.bio}
+              {displayData.bio}
             </p>
           )}
           

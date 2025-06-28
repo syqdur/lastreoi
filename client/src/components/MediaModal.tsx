@@ -200,7 +200,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 src={currentItem.url}
                 controls
                 className="max-w-full max-h-full rounded-lg shadow-2xl"
-                preload="metadata"
+                preload="auto"
                 playsInline
                 webkit-playsinline="true"
                 muted
@@ -340,7 +340,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
             <div className="space-y-3 mb-4 max-h-32 overflow-y-auto">
               {currentComments.slice(-3).map((comment) => {
                 const commentAvatarUrl = getUserAvatar 
-                  ? getUserAvatar(comment.userName, comment.deviceId) 
+                  ? getUserAvatar(comment.userName, comment.deviceId) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(comment.userName)}&backgroundColor=transparent`
                   : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(comment.userName)}&backgroundColor=transparent`;
                 
                 return (

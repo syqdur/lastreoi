@@ -270,7 +270,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
             src={item.url}
             className="w-full aspect-square object-cover"
             controls
-            preload="metadata"
+            preload="auto"
             playsInline
             webkit-playsinline="true"
             muted
