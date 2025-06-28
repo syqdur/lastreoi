@@ -271,6 +271,9 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
             className="w-full aspect-square object-cover"
             controls
             preload="metadata"
+            playsInline
+            webkit-playsinline="true"
+            muted
             onLoadStart={() => setImageLoading(true)}
             onLoadedData={() => setImageLoading(false)}
             onError={() => {
@@ -307,7 +310,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                 <div className={`mt-4 px-3 py-1 rounded-full text-xs transition-colors duration-300 ${
                   isDarkMode ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-800'
                 }`}>
-                  {item.type === 'video' ? '🎥 Video' : item.type === 'note' ? '📝 Notiz' : '📷 Bild'}
+                  {item.type === 'note' ? '📝 Notiz' : '📷 Bild'}
                 </div>
               </div>
             ) : (

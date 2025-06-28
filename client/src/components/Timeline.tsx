@@ -638,6 +638,9 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
     src={modalMedia.url}
     controls
     autoPlay
+    playsInline
+    webkit-playsinline="true"
+    muted
     className="max-h-[70vh] max-w-full rounded-lg object-contain border border-gray-200"
   />
 )}

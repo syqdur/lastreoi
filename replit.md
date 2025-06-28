@@ -283,6 +283,7 @@ This is a comprehensive wedding gallery application with the following architect
 - **Upload Button Text Clarification**: Updated first upload option description from "Aus der Galerie auswählen" to "Fotos & Videos aus der Galerie" to clearly indicate that both photos and videos are supported from device gallery
 - **Event-Specific NotePost Styling**: Implemented complete theme-based styling for NotePost component with event-specific colors, icons, titles, and subtitles - Pink/Rose for weddings (💌 Notiz), Purple/Violet for birthdays (🎂 Geburtstagswunsch), Blue/Cyan for vacations (🏖️ Reise-Notiz), Green/Emerald for custom events (🎊 Event-Notiz)
 - **Event-Specific BackToTopButton**: Enhanced BackToTopButton with theme-based gradients and made it smaller (p-2 instead of p-3, w-4 h-4 icon instead of w-6 h-6) - automatically adapts colors to match gallery theme (Pink/Rose for weddings, Purple/Violet for birthdays, Blue/Cyan for vacations, Green/Emerald for custom events)
+- **Mobile Video Preview Fix**: Fixed video playback issues on mobile devices by adding critical mobile video attributes (playsInline, webkit-playsinline, muted) to all video elements in InstagramPost, MediaModal, and Timeline components for proper iOS Safari and mobile browser compatibility
 
 
 

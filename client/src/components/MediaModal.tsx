@@ -201,6 +201,9 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                 controls
                 className="max-w-full max-h-full rounded-lg shadow-2xl"
                 preload="metadata"
+                playsInline
+                webkit-playsinline="true"
+                muted
                 onLoadStart={() => setImageLoading(true)}
                 onLoadedData={() => setImageLoading(false)}
                 onError={() => {
