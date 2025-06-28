@@ -44,29 +44,140 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setProfilePicture(file);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setProfilePicturePreview(reader.result as string);
+  const compressImage = (file: File, maxWidth: number = 400, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions while maintaining aspect ratio
+        const { width, height } = img;
+        const ratio = Math.min(maxWidth / width, maxWidth / height);
+        const newWidth = width * ratio;
+        const newHeight = height * ratio;
+        
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        // Draw and compress the image
+        ctx?.drawImage(img, 0, 0, newWidth, newHeight);
+        
+        // Convert to JPEG with compression to stay under Firebase limit
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        
+        // Check if still too large (Firebase limit ~1MB base64)
+        if (compressedBase64.length > 800000) { // 800KB to be safe
+          // Try with lower quality
+          const lowerQualityBase64 = canvas.toDataURL('image/jpeg', 0.5);
+          resolve(lowerQualityBase64);
+        } else {
+          resolve(compressedBase64);
+        }
       };
-      reader.readAsDataURL(file);
+      
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file type - support more formats
+    const supportedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/svg+xml'];
+    if (!supportedFormats.includes(file.type.toLowerCase())) {
+      alert(`Nicht unterstütztes Bildformat. Erlaubte Formate: JPG, PNG, GIF, WebP, BMP, TIFF, SVG`);
+      return;
+    }
+
+    // Validate file size (max 4MB)
+    if (file.size > 4 * 1024 * 1024) {
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      alert(`Datei zu groß: ${fileSizeMB}MB. Maximale Größe: 4MB`);
+      return;
+    }
+
+    try {
+      console.log('📸 Processing gallery profile picture...');
+      console.log('📊 Original file:', { name: file.name, size: file.size, type: file.type });
+      
+      // Always compress images to ensure they fit Firebase limits
+      const compressedBase64 = await compressImage(file, 400, 0.7);
+      
+      console.log('✅ Gallery profile picture compressed successfully');
+      console.log('📏 Compressed size:', Math.round(compressedBase64.length / 1024), 'KB');
+      
+      // Final check - if still too large, compress more aggressively
+      if (compressedBase64.length > 900000) { // 900KB final check
+        console.log('🔄 Still too large, compressing more aggressively...');
+        const finalCompressed = await compressImage(file, 300, 0.5);
+        console.log('📏 Final compressed size:', Math.round(finalCompressed.length / 1024), 'KB');
+        
+        // Create a file from compressed base64 for compatibility
+        const response = await fetch(finalCompressed);
+        const blob = await response.blob();
+        const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+        setProfilePicture(compressedFile);
+        setProfilePicturePreview(finalCompressed);
+      } else {
+        // Create a file from compressed base64 for compatibility
+        const response = await fetch(compressedBase64);
+        const blob = await response.blob();
+        const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+        setProfilePicture(compressedFile);
+        setProfilePicturePreview(compressedBase64);
+      }
+    } catch (error) {
+      console.error('Error processing gallery profile picture:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Fehler beim Verarbeiten des Profilbildes: ${errorMessage}. Bitte versuchen Sie es mit einem anderen Bild.`);
     }
   };
 
-  const handleCameraCapture = (blob: Blob) => {
-    // Convert blob to file
-    const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
-    setProfilePicture(file);
-    
-    const reader = new FileReader();
-    reader.onload = () => {
-      setProfilePicturePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-    setShowCamera(false);
+  const handleCameraCapture = async (blob: Blob) => {
+    try {
+      // Convert blob to file
+      const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
+      
+      console.log('📸 Processing camera capture for gallery profile...');
+      console.log('📊 Original selfie:', { size: file.size, type: file.type });
+      
+      // Always compress camera captures to ensure they fit Firebase limits
+      const compressedBase64 = await compressImage(file, 400, 0.7);
+      
+      console.log('✅ Camera selfie compressed successfully');
+      console.log('📏 Compressed size:', Math.round(compressedBase64.length / 1024), 'KB');
+      
+      // Final check - if still too large, compress more aggressively
+      if (compressedBase64.length > 900000) { // 900KB final check
+        console.log('🔄 Still too large, compressing more aggressively...');
+        const finalCompressed = await compressImage(file, 300, 0.5);
+        console.log('📏 Final compressed size:', Math.round(finalCompressed.length / 1024), 'KB');
+        
+        // Create a file from compressed base64 for compatibility
+        const response = await fetch(finalCompressed);
+        const newBlob = await response.blob();
+        const compressedFile = new File([newBlob], 'selfie.jpg', { type: 'image/jpeg' });
+        setProfilePicture(compressedFile);
+        setProfilePicturePreview(finalCompressed);
+      } else {
+        // Create a file from compressed base64 for compatibility
+        const response = await fetch(compressedBase64);
+        const newBlob = await response.blob();
+        const compressedFile = new File([newBlob], 'selfie.jpg', { type: 'image/jpeg' });
+        setProfilePicture(compressedFile);
+        setProfilePicturePreview(compressedBase64);
+      }
+      
+      setShowCamera(false);
+    } catch (error) {
+      console.error('Error processing camera capture:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Fehler beim Verarbeiten des Kamera-Fotos: ${errorMessage}. Bitte versuchen Sie es erneut.`);
+      setShowCamera(false);
+    }
   };
 
   const handleSave = async () => {

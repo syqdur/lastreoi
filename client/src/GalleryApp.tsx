@@ -1359,15 +1359,26 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
               
               // Handle profile picture update
               if (profileData.profilePicture instanceof File) {
-                console.log('📸 Converting image to base64...');
-                // Convert to base64 instead of uploading to Storage
+                console.log('📸 Processing gallery profile picture...');
+                
+                // Since ProfileEditModal already compresses the image, the File should already be compressed
+                // But let's ensure it's under Firebase limits by converting to base64
                 const reader = new FileReader();
                 profilePictureUrl = await new Promise((resolve, reject) => {
-                  reader.onload = () => resolve(reader.result as string);
+                  reader.onload = () => {
+                    const result = reader.result as string;
+                    // Check if the base64 is under Firebase limit (900KB)
+                    if (result.length > 900000) {
+                      console.warn('⚠️ Profile picture still too large after compression:', Math.round(result.length / 1024), 'KB');
+                      reject(new Error('Profilbild ist zu groß für Firebase. Bitte wählen Sie ein kleineres Bild.'));
+                    } else {
+                      console.log('✅ Gallery profile picture processed successfully:', Math.round(result.length / 1024), 'KB');
+                      resolve(result);
+                    }
+                  };
                   reader.onerror = reject;
                   reader.readAsDataURL(profileData.profilePicture as File);
                 });
-                console.log('✅ Image converted to base64');
               } else if (typeof profileData.profilePicture === 'string') {
                 profilePictureUrl = profileData.profilePicture;
               }
