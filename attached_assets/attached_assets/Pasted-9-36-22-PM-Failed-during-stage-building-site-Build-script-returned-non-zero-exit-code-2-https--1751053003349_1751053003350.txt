@@ -1,0 +1,100 @@
+9:36:22 PM: Failed during stage 'building site': Build script returned non-zero exit code: 2 (https://ntl.fyi/exit-code-2)
+9:36:18 PM: Netlify Build                                                 
+9:36:18 PM: ────────────────────────────────────────────────────────────────
+9:36:18 PM: ​
+9:36:18 PM: ❯ Version
+9:36:18 PM:   @netlify/build 33.4.7
+9:36:18 PM: ​
+9:36:18 PM: ❯ Flags
+9:36:18 PM:   accountId: 684e5ef2c1f52487087aa806
+9:36:18 PM:   baseRelDir: true
+9:36:18 PM:   buildId: 685ef29c80af260008be2762
+9:36:18 PM:   deployId: 685ef29c80af260008be2764
+9:36:18 PM: ​
+9:36:18 PM: ❯ Current directory
+9:36:18 PM:   /opt/build/repo
+9:36:18 PM: ​
+9:36:18 PM: ❯ Config file
+9:36:18 PM:   /opt/build/repo/netlify.toml
+9:36:18 PM: ​
+9:36:18 PM: ❯ Context
+9:36:18 PM:   production
+9:36:18 PM: ​
+9:36:18 PM: ❯ Installing extensions
+9:36:18 PM:    - neon
+9:36:20 PM: ​
+9:36:20 PM: ❯ Loading extensions
+9:36:20 PM:    - neon
+9:36:21 PM: ​
+9:36:21 PM: build.command from netlify.toml                               
+9:36:21 PM: ────────────────────────────────────────────────────────────────
+9:36:21 PM: ​
+9:36:21 PM: $ npm run build
+9:36:21 PM: > rest-express@1.0.0 build
+9:36:21 PM: > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+9:36:21 PM: /opt/build/repo/node_modules/rollup/dist/native.js:63
+9:36:21 PM: 		throw new Error(
+9:36:21 PM: 		      ^
+9:36:21 PM: Error: Cannot find module @rollup/rollup-linux-x64-gnu. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.
+9:36:21 PM:     at requireWithFriendlyError (/opt/build/repo/node_modules/rollup/dist/native.js:63:9)
+9:36:21 PM:     at Object.<anonymous> (/opt/build/repo/node_modules/rollup/dist/native.js:72:76)
+9:36:21 PM:     ... 3 lines matching cause stack trace ...
+9:36:21 PM:     at Module._load (node:internal/modules/cjs/loader:1096:12)
+9:36:21 PM:     at cjsLoader (node:internal/modules/esm/translators:298:15)
+9:36:21 PM:     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+9:36:21 PM:     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+9:36:21 PM:     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24) {
+9:36:21 PM:   [cause]: Error: Cannot find module '@rollup/rollup-linux-x64-gnu'
+9:36:21 PM:   Require stack:
+9:36:21 PM:   - /opt/build/repo/node_modules/rollup/dist/native.js
+9:36:21 PM:       at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+9:36:21 PM:       at Module._load (node:internal/modules/cjs/loader:1043:27)
+9:36:21 PM:       at Module.require (node:internal/modules/cjs/loader:1298:19)
+9:36:21 PM:       at require (node:internal/modules/helpers:182:18)
+9:36:21 PM:       at requireWithFriendlyError (/opt/build/repo/node_modules/rollup/dist/native.js:45:10)
+9:36:21 PM:       at Object.<anonymous> (/opt/build/repo/node_modules/rollup/dist/native.js:72:76)
+9:36:21 PM:       at Module._compile (node:internal/modules/cjs/loader:1529:14)
+9:36:21 PM:       at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+9:36:21 PM:       at Module.load (node:internal/modules/cjs/loader:1275:32)
+9:36:21 PM:       at Module._load (node:internal/modules/cjs/loader:1096:12) {
+9:36:21 PM:     code: 'MODULE_NOT_FOUND',
+9:36:21 PM:     requireStack: [ '/opt/build/repo/node_modules/rollup/dist/native.js' ]
+9:36:21 PM:   }
+9:36:21 PM: }
+9:36:21 PM: Node.js v20.19.3
+9:36:21 PM: ​
+9:36:21 PM: "build.command" failed                                        
+9:36:21 PM: ────────────────────────────────────────────────────────────────
+9:36:21 PM: ​
+9:36:21 PM:   Error message
+9:36:21 PM:   Command failed with exit code 1: npm run build (https://ntl.fyi/exit-code-1)
+9:36:21 PM: ​
+9:36:21 PM:   Error location
+9:36:21 PM:   In build.command from netlify.toml:
+9:36:21 PM:   npm run build
+9:36:21 PM: ​
+9:36:21 PM:   Resolved config
+9:36:21 PM:   build:
+9:36:21 PM:     command: npm run build
+9:36:21 PM:     commandOrigin: config
+9:36:21 PM:     environment:
+9:36:21 PM:       - VITE_API_BASE_URL
+9:36:21 PM:       - NODE_VERSION
+9:36:21 PM:       - NPM_FLAGS
+9:36:21 PM:     publish: /opt/build/repo/dist/public
+9:36:21 PM:     publishOrigin: config
+9:36:21 PM:   functions:
+9:36:21 PM:     "*":
+9:36:21 PM:       node_bundler: esbuild
+9:36:21 PM:   functionsDirectory: /opt/build/repo/netlify/functions
+9:36:21 PM:   redirects:
+9:36:22 PM:     - from: /api/*
+      status: 200
+      to: /.netlify/functions/api/:splat
+    - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+9:36:22 PM: Build failed due to a user error: Build script returned non-zero exit code: 2
+9:36:22 PM: Failing build: Failed to build site
+9:36:22 PM: Finished processing build request in 24.756s

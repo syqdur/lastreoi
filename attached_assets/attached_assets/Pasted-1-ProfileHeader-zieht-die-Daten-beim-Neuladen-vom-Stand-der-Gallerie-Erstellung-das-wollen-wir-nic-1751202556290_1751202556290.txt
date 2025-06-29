@@ -1,0 +1,118 @@
+1. ProfileHeader zieht die Daten beim Neuladen vom Stand der Gallerie Erstellung, das wollen wir nicht. Wir möchten schnell und die aktuellen daten im profilheader haben. Die neuen daten sollen preloaded werden in "Gallerie wird geladen" (f5 refresh browser)
+
+2. ENTFERNE DEN BISHERIGEN TAGGING MODUS
+
+Instagram Tagging Workflow hinzufügen  - Detaillierte Beschreibung Responsive für alle Endgeräte in einem Modal
+📱 Schritt-für-Schritt Instagram Tagging Prozess:
+1. Medien-Upload Phase
+
+User wählt Foto/Video aus Galerie oder macht neues Foto
+Datei wird hochgeladen und komprimiert
+Preview wird angezeigt mit "Weiter" Button
+
+2. Tagging-Modus aktivieren
+
+User tippt auf "Personen markieren" Button (echte Gallery Visitors)
+Bild wechselt in interaktiven Tagging-Modus
+Cursor/Finger wird zu Tagging-Icon (kleines "+" Symbol)
+Orte können via Google Maps API (Siehe Code) ausgewählt und markiert werden.
+Texte sollen nicht markiert werden können 
+
+3. Tag-Platzierung
+
+Personen taggen:
+
+User tippt auf gewünschte Stelle im Bild
+Kleiner weißer Punkt mit Pulsanimation erscheint
+Search-Popup öffnet sich: "Wen möchtest du markieren?"
+Autocomplete-Suche durch Follower/Freunde
+User wählt Person aus Liste oder gibt Namen manuell ein
+
+
+Orte taggen:
+
+User tippt auf "Ort hinzufügen" (echte Orte von Google) KEINE MOCKUP DATEN 
+Google Places Autocomplete öffnet sich
+Suche nach Bars, Restaurants, POIs
+GPS-Vorschläge für nahe Locations
+User wählt Ort aus Liste
+
+
+
+4. Tag-Darstellung
+
+Personen-Tags: Weißer Kreis mit Benutzername in weißem Rechteck
+Orts-Tags: Pin-Symbol mit Locationname
+Tags sind draggable - können nach Platzierung verschoben werden
+Beim Tippen auf Tag: Edit/Delete Optionen
+
+5. Tag-Management
+
+User kann mehrere Tags pro Bild setzen
+Tags können repositioniert werden (Drag & Drop)
+"X" Button zum Entfernen einzelner Tags
+"Alle Tags entfernen" Option
+
+6. Publishing Phase
+
+User tippt "Weiter" nach Tag-Platzierung
+Caption/Beschreibung hinzufügen
+Weitere Post-Einstellungen (Sichtbarkeit, etc.)
+"Teilen" - Post wird publiziert
+
+🎯 Technische Tag-Interaktion:
+Tag-Platzierung Logic:
+typescriptconst handleImageTap = (event: TouchEvent) => {
+  const rect = imageElement.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width) * 100;
+  const y = ((event.clientY - rect.top) / rect.height) * 100;
+  
+  // Neue Tag-Position als Prozentsatz gespeichert
+  createTag({ x, y, type: 'pending' });
+  showTaggingPopup({ x, y });
+};
+Tag-Visualisierung:
+
+Aktive Tags: Sichtbar mit weißem Hintergrund
+Hover/Tap State: Tags werden highlighted
+Versteckte Tags: User kann Tags temporär ausblenden
+Responsive: Tags skalieren mit Bildgröße
+
+📋 UI/UX Details:
+Tagging Interface:
+
+Bild nimmt Vollbild ein
+"Personen markieren" Button unten
+Tag-Counter: "2 Personen markiert"
+"Fertig" Button zum Beenden des Tagging-Modus
+
+Search-Popup (Personen):
+
+Erscheint direkt über getippter Stelle
+Keyboard öffnet sich automatisch
+Kürzlich getaggte Personen als Schnellauswahl
+"Nicht auf Instagram" Option für externe Personen
+
+Places-Popup:
+
+GPS-Icon mit "Aktueller Standort"
+Suchfeld mit Google Places Autocomplete
+Kategorien: Restaurant, Bar, Sehenswürdigkeit, etc.
+Map-Preview bei Ortsauswahl
+
+🔄 Tag-Status Workflow:
+
+Pending: Tag wurde platziert, wartet auf Zuweisung
+Draft: Person/Ort ausgewählt, noch nicht gespeichert
+Active: Tag ist komplett und sichtbar
+Hidden: Tag existiert, aber temporär ausgeblendet
+
+💡 Instagram-spezifische Features:
+
+Tag-Limit: Max. 20 Personen pro Post
+Auto-suggest: Häufig getaggte Personen werden vorgeschlagen
+Privacy: Getaggte Personen können Tags entfernen
+Notifications: Getaggte Personen erhalten Benachrichtigung
+Story-Tags: Andere Darstellung als Post-Tags (kleiner, temporär)
+
+Dieser Workflow sollte 1:1 nachgebaut werden mit allen Animationen, Interaktionen und der exakten visuellen Darstellung wie bei Instagram.

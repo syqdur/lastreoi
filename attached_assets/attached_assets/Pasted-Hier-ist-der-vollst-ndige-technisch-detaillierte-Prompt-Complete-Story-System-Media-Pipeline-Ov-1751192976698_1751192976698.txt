@@ -1,0 +1,205 @@
+Hier ist der vollständige, technisch detaillierte Prompt:
+
+Complete Story System & Media Pipeline Overhaul - Technical Implementation
+🎯 Project Overview:
+Rebuild core story functionality with Instagram-style tagging, implement media compression, fix story viewing logic, and optimize profile loading.
+✅ Completed Tasks:
+
+ProfileHeader Data Loading Fix: Eliminated flash of old gallery data with proper loading state management
+React Hook Error Resolution: Fixed "Rendered more hooks than during the previous render" error
+Basic story infrastructure established
+
+🚀 Remaining Implementation Tasks:
+1. Instagram-Style Tagging System (Complete Rebuild)
+
+Remove existing system completely:
+
+Delete TagOverlay.tsx, TagManager.tsx, OldTagSystem/ directory
+Remove all old tagging logic and database references
+
+
+New technical implementation:
+
+typescriptinterface TagPosition {
+  x: number; // percentage 0-100
+  y: number; // percentage 0-100
+  userId?: string;
+  placeId?: string; // Google Places ID
+  customText?: string;
+}
+
+interface MediaTag {
+  id: string;
+  position: TagPosition;
+  type: 'user' | 'place' | 'custom';
+  data: UserTag | PlaceTag | CustomTag;
+}
+
+Google Places Integration:
+
+Install @googlemaps/places, @googlemaps/js-api-loader
+Implement Place Autocomplete for bars, restaurants, POIs
+Store place_id, formatted_address, geometry data
+24h cache in IndexedDB for places
+Map preview in tag overlays
+
+
+
+2. Media Compression & Optimization
+
+Automatic compression before upload:
+
+typescriptconst compressImage = async (file: File) => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Target resolutions:
+  // Stories: 1080x1920 (9:16 aspect ratio)
+  // Posts: 1080x1080 (1:1) or 1080x1350 (4:5)
+  // Quality: 85% JPEG, WebP preferred format
+};
+
+Video compression with FFmpeg.wasm:
+
+Max bitrate: 2Mbps for stories, 5Mbps for posts
+H.264 codec, AAC audio
+Progressive upload with chunk processing
+
+
+
+3. Story Viewing Logic & Ring Removal
+
+State management with Zustand:
+
+typescriptinterface StoryStore {
+  viewedStories: Set<string>;
+  storyRings: Map<string, boolean>;
+  markAsViewed: (storyId: string) => void;
+  removeRing: (userId: string) => void;
+}
+
+Database schema (IndexedDB):
+
+Table: story_views
+Fields: story_id, user_id, viewed_at, is_ring_hidden
+Automatic ring removal after story view
+Persistent view status across sessions
+
+
+
+4. Profile Picture Loading Optimization
+
+Fix first-start popup issue:
+
+typescriptconst ProfileAvatar = React.lazy(() => 
+  import('./ProfileAvatar').then(module => ({
+    default: module.ProfileAvatar
+  }))
+);
+
+// Fallback hierarchy:
+// 1. Gallery profile pic (high-res)
+// 2. Thumbnail cache  
+// 3. Skeleton placeholder
+// 4. Default avatar
+🏗️ Required Tech Stack:
+
+Frontend: React 18+ with TypeScript, Zustand for state management
+Media Processing: Sharp.js/Canvas API, FFmpeg.wasm for video
+Maps & Places: Google Places API, @googlemaps/js-api-loader
+Storage: IndexedDB with Dexie.js, LocalStorage fallback
+Animations: Framer Motion for smooth transitions
+File Upload: react-dropzone, axios with progress tracking
+Performance: react-window for virtual scrolling, react-intersection-observer
+
+📁 Component Architecture:
+components/
+├── Story/
+│   ├── StoryViewer.tsx (with ring removal logic)
+│   ├── StoryRing.tsx (animated ring component)
+│   ├── StoryUpload.tsx (with compression pipeline)
+│   └── StoryViewTracker.tsx
+├── Tagging/
+│   ├── TaggableMedia.tsx (Instagram-style interface)
+│   ├── TagCreator.tsx (drag & drop positioning)
+│   ├── PlacePicker.tsx (Google Places integration)
+│   ├── TagRenderer.tsx (display component)
+│   └── TagManager.tsx (CRUD operations)
+├── Media/
+│   ├── MediaCompressor.ts (image/video processing)
+│   ├── ImageProcessor.ts (Canvas-based compression)
+│   ├── VideoProcessor.ts (FFmpeg integration)
+│   └── UploadProgressTracker.tsx
+└── Profile/
+    ├── ProfileAvatar.tsx (optimized loading)
+    ├── ProfilePopup.tsx (fixed first-start issue)
+    └── GalleryImageLoader.tsx
+🔧 Backend API Requirements:
+typescript// New/Updated endpoints needed:
+POST /api/stories/:id/view          // Mark story as viewed
+PUT /api/stories/:id/ring/hide      // Hide ring after view
+POST /api/media/tags                // Create/update tags
+DELETE /api/media/tags/:id          // Remove tags
+GET /api/places/search?q={query}    // Google Places search
+POST /api/media/upload              // With compression metadata
+GET /api/profile/gallery-image      // High-res profile pic
+📊 Performance Optimizations:
+
+Virtual scrolling for story feeds (react-window)
+Lazy loading with intersection observer
+Memoized tag position calculations
+Web Workers for media compression
+Service Worker for offline story caching
+Progressive image loading
+Debounced place search queries
+
+🧪 Testing Strategy:
+
+Jest unit tests for compression algorithms
+Playwright E2E tests for tagging interactions
+Performance benchmarks for large media files
+Cross-browser compatibility testing
+Mobile device testing (iOS/Android)
+
+📱 Mobile-Specific Features:
+
+Touch-optimized tag positioning
+iOS HEIC to WebP conversion
+Android camera/gallery permissions
+Haptic feedback for tag interactions
+PWA installation prompts
+Offline story viewing capability
+
+🎯 Implementation Priority:
+
+Media compression pipeline (foundation)
+Story viewing & ring removal logic (user experience)
+Instagram-style tagging system (core feature)
+Profile loading optimization (polish)
+Google Places integration (enhancement)
+Performance optimizations (scalability)
+
+🔍 Key Technical Considerations:
+
+Ensure proper TypeScript typing throughout
+Implement comprehensive error handling
+Add loading states for all async operations
+Use React.memo for performance-critical components
+Implement proper cleanup in useEffect hooks
+Add accessibility features (ARIA labels, keyboard navigation)
+Consider bundle size impact of new dependencies
+
+📋 Definition of Done:
+
+ Old tagging system completely removed
+ New Instagram-style tagging fully functional
+ Google Places integration working
+ Media compression reducing file sizes by 60%+
+ Story rings disappear immediately after viewing
+ Profile popup shows gallery image on first start
+ All components properly typed with TypeScript
+ Performance metrics improved (Core Web Vitals)
+ Cross-browser compatibility verified
+ Mobile responsiveness confirmed
+
+Execute this implementation with clean, maintainable code following React best practices and TypeScript strict mode.

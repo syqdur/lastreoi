@@ -1,0 +1,258 @@
+// Firebase Firestore Security Rules for Multi-Instance Wedding Gallery Platform
+// Copy these rules to your Firebase Console -> Firestore -> Rules
+// Navigate to: Firebase Console -> Project -> Firestore -> Rules Tab
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // =================
+    // GALLERY MANAGEMENT
+    // =================
+    
+    // Public read access to galleries collection for discovery
+    match /galleries/{galleryId} {
+      allow read: if true; // Anyone can read gallery info for joining
+      allow create: if true; // Anyone can create a new gallery
+      allow update: if true; // Allow updates for now (controlled by app logic)
+      allow delete: if true; // Allow deletes for now (controlled by app logic)
+      
+      // =================
+      // GALLERY-SPECIFIC DATA
+      // =================
+      
+      // Media collection - per gallery
+      match /media/{mediaId} {
+        allow read: if true; // Anyone with gallery access can view media
+        allow create: if true; // Anyone can upload to gallery
+        allow update: if isMediaOwner(mediaId) || isGalleryAdmin(galleryId);
+        allow delete: if isMediaOwner(mediaId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Comments collection - per gallery
+      match /comments/{commentId} {
+        allow read: if true; // Anyone with gallery access can read comments
+        allow create: if true; // Anyone can comment
+        allow update: if isCommentOwner(commentId) || isGalleryAdmin(galleryId);
+        allow delete: if isCommentOwner(commentId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Likes collection - per gallery
+      match /likes/{likeId} {
+        allow read: if true; // Anyone can read likes
+        allow create: if true; // Anyone can like
+        allow delete: if isLikeOwner(likeId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Stories collection - per gallery (24h auto-delete)
+      match /stories/{storyId} {
+        allow read: if true; // Anyone with gallery access can view stories
+        allow create: if true; // Anyone can add stories
+        allow update: if isStoryOwner(storyId) || isGalleryAdmin(galleryId); // For view tracking
+        allow delete: if isStoryOwner(storyId) || isGalleryAdmin(galleryId);
+      }
+      
+      // User profiles - per gallery
+      match /userProfiles/{profileId} {
+        allow read: if true; // Anyone can read user profiles in gallery
+        allow create: if true; // Anyone can create profile
+        allow update: if isProfileOwner(profileId) || isGalleryAdmin(galleryId);
+        allow delete: if isProfileOwner(profileId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Gallery users - per gallery
+      match /users/{userId} {
+        allow read: if true; // Anyone can read gallery users
+        allow create: if true; // Anyone can join gallery
+        allow update: if isGalleryUserOwner(userId) || isGalleryAdmin(galleryId);
+        allow delete: if isGalleryUserOwner(userId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Timeline events - per gallery
+      match /timeline/{eventId} {
+        allow read: if true; // Anyone can read timeline
+        allow create: if isGalleryAdmin(galleryId); // Only admins can add timeline events
+        allow update: if isGalleryAdmin(galleryId);
+        allow delete: if isGalleryAdmin(galleryId);
+      }
+      
+      // Spotify/Music - per gallery
+      match /spotify/{musicId} {
+        allow read: if true; // Anyone can read music wishlist
+        allow create: if true; // Anyone can add music requests
+        allow update: if isMusicOwner(musicId) || isGalleryAdmin(galleryId);
+        allow delete: if isMusicOwner(musicId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Notifications - per gallery
+      match /notifications/{notificationId} {
+        allow read: if isNotificationTarget(notificationId);
+        allow create: if true; // System can create notifications
+        allow update: if isNotificationTarget(notificationId);
+        allow delete: if isNotificationTarget(notificationId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Media tags - per gallery
+      match /media_tags/{tagId} {
+        allow read: if true; // Anyone can read tags
+        allow create: if true; // Anyone can tag
+        allow delete: if isTagOwner(tagId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Location tags - per gallery  
+      match /location_tags/{locationId} {
+        allow read: if true; // Anyone can read location tags
+        allow create: if true; // Anyone can add location tags
+        allow delete: if isLocationTagOwner(locationId) || isGalleryAdmin(galleryId);
+      }
+      
+      // Admin credentials - per gallery
+      match /admin/{adminDoc} {
+        allow read: if true; // Anyone can check if admin credentials exist
+        allow create: if true; // Gallery owner can create admin credentials
+        allow update: if true; // Allow updates for password changes etc.
+        allow delete: if true; // Allow admin credential deletion
+      }
+      
+      // Gallery profile - per gallery
+      match /profile/{profileDoc} {
+        allow read: if true; // Anyone can read gallery profile
+        allow create: if true; // Allow profile creation
+        allow update: if true; // Allow profile updates
+        allow delete: if true; // Allow profile deletion
+      }
+    }
+    
+    // =================
+    // GLOBAL COLLECTIONS (Legacy support)
+    // =================
+    
+    // Allow access to existing collections for backward compatibility
+    // These should eventually be migrated to gallery-specific collections
+    
+    match /media/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /comments/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /likes/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /stories/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /userProfiles/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /live_users/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /notifications/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /profile/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /moments/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /thankYouCards/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /timeline/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /spotify/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /media_tags/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /location_tags/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Test collection for connectivity
+    match /test/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // =================
+    // HELPER FUNCTIONS
+    // =================
+    
+    // Check if user is gallery owner (stored in localStorage, not auth)
+    function isGalleryOwner(galleryId) {
+      return true; // For now, allow gallery management through app logic
+    }
+    
+    // Check if user is gallery admin
+    function isGalleryAdmin(galleryId) {
+      return true; // For now, allow admin actions through app logic
+    }
+    
+    // Check if user owns specific media item
+    function isMediaOwner(mediaId) {
+      return true; // For now, allow deletion through app logic
+    }
+    
+    // Check if user owns specific comment
+    function isCommentOwner(commentId) {
+      return true; // For now, allow deletion through app logic
+    }
+    
+    // Check if user owns specific like
+    function isLikeOwner(likeId) {
+      return true; // For now, allow deletion through app logic
+    }
+    
+    // Check if user owns specific story
+    function isStoryOwner(storyId) {
+      return true; // For now, allow deletion through app logic
+    }
+    
+    // Check if user owns specific profile
+    function isProfileOwner(profileId) {
+      return true; // For now, allow profile updates through app logic
+    }
+    
+    // Check if user owns specific gallery user record
+    function isGalleryUserOwner(userId) {
+      return true; // For now, allow user management through app logic
+    }
+    
+    // Check if user owns specific music request
+    function isMusicOwner(musicId) {
+      return true; // For now, allow music management through app logic
+    }
+    
+    // Check if user is target of notification
+    function isNotificationTarget(notificationId) {
+      return true; // For now, allow notification access through app logic
+    }
+    
+    // Check if user owns specific tag
+    function isTagOwner(tagId) {
+      return true; // For now, allow tag management through app logic
+    }
+    
+    // Check if user owns specific location tag
+    function isLocationTagOwner(locationId) {
+      return true; // For now, allow location tag management through app logic
+    }
+  }
+}
