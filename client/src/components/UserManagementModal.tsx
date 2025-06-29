@@ -59,11 +59,18 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [uploadingProfilePic, setUploadingProfilePic] = useState<string | null>(null);
+  const [userProfilePictures, setUserProfilePictures] = useState<Map<string, string>>(new Map());
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   // Generate avatar URL with custom profile picture support
   const getAvatarUrl = (username: string, deviceId?: string) => {
-    // Try to get custom avatar first
+    const userKey = `${username}-${deviceId}`;
+    
+    // First check local state for updated profile pictures
+    const localProfilePic = userProfilePictures.get(userKey);
+    if (localProfilePic) return localProfilePic;
+    
+    // Try to get custom avatar from parent component
     const customAvatar = getUserAvatar?.(username, deviceId);
     if (customAvatar) return customAvatar;
     
@@ -106,10 +113,35 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     };
   }, [isOpen]);
 
+  // Load profile pictures for all users
+  const loadUserProfilePictures = async () => {
+    try {
+      const profilesQuery = query(collection(db, 'galleries', galleryId, 'userProfiles'));
+      const profilesSnapshot = await getDocs(profilesQuery);
+      
+      const profilePicMap = new Map<string, string>();
+      
+      profilesSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.userName && data.deviceId && data.profilePicture) {
+          const userKey = `${data.userName}-${data.deviceId}`;
+          profilePicMap.set(userKey, data.profilePicture);
+        }
+      });
+      
+      setUserProfilePictures(profilePicMap);
+      console.log(`📸 Loaded ${profilePicMap.size} user profile pictures`);
+      
+    } catch (error) {
+      console.warn('Could not load user profile pictures:', error);
+    }
+  };
+
   // Load user data when modal opens
   useEffect(() => {
     if (isOpen) {
       loadUserData();
+      loadUserProfilePictures();
     }
   }, [isOpen]);
 
@@ -399,6 +431,13 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       
       console.log(`✅ Profile picture uploaded successfully for ${userName}: ${downloadURL}`);
       
+      // Update local profile picture state immediately
+      setUserProfilePictures(prev => {
+        const newMap = new Map(prev);
+        newMap.set(userKey, downloadURL);
+        return newMap;
+      });
+      
       // Force immediate refresh of user data
       await loadUserData();
       
@@ -430,21 +469,28 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const handleFileChange = async (userName: string, deviceId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Check file type - support more formats
-      const supportedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/svg+xml'];
-      if (!supportedFormats.includes(file.type.toLowerCase())) {
-        setError(`Nicht unterstütztes Bildformat. Erlaubte Formate: JPG, PNG, GIF, WebP, BMP, TIFF, SVG`);
+      try {
+        // Use enhanced format validation and processing including HEIC/HEIF support
+        const { processImageFile } = await import('../utils/imageFormatSupport');
+        
+        // Validate file size (max 4MB before processing)
+        if (file.size > 4 * 1024 * 1024) {
+          const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+          setError(`Datei zu groß: ${fileSizeMB}MB. Maximale Größe: 4MB`);
+          return;
+        }
+        
+        setError('');
+        
+        // Process the image (includes HEIC conversion and compression)
+        const processedFile = await processImageFile(file, 200); // 200KB target for profile pictures
+        await handleProfilePictureUpload(userName, deviceId, processedFile);
+        
+      } catch (error) {
+        console.error('❌ Image processing failed:', error);
+        setError(error instanceof Error ? error.message : 'Bildverarbeitung fehlgeschlagen');
         return;
       }
-      
-      // Validate file size (max 4MB)
-      if (file.size > 4 * 1024 * 1024) {
-        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-        setError(`Datei zu groß: ${fileSizeMB}MB. Maximale Größe: 4MB`);
-        return;
-      }
-      
-      await handleProfilePictureUpload(userName, deviceId, file);
     }
     
     // Reset file input
@@ -1029,15 +1075,22 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                               ? isDarkMode ? 'bg-green-600 text-white border-green-400' : 'bg-green-500 text-white border-green-300'
                               : isDarkMode ? 'bg-gray-600 text-gray-300 border-gray-500' : 'bg-gray-300 text-gray-700 border-gray-200'
                           }`}>
-                            {getUserAvatar?.(user.userName, user.deviceId) ? (
+                            {getAvatarUrl(user.userName, user.deviceId) ? (
                               <img 
-                                src={getUserAvatar(user.userName, user.deviceId)!}
+                                src={getAvatarUrl(user.userName, user.deviceId)}
                                 alt={user.userName}
                                 className="w-full h-full object-cover rounded-full"
+                                onError={(e) => {
+                                  // Fallback to initials on image load error
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  target.nextElementSibling?.classList.remove('hidden');
+                                }}
                               />
-                            ) : (
-                              <span>{user.userName.charAt(0).toUpperCase()}</span>
-                            )}
+                            ) : null}
+                            <span className={getAvatarUrl(user.userName, user.deviceId) ? 'hidden' : ''}>
+                              {user.userName.charAt(0).toUpperCase()}
+                            </span>
                           </div>
                           
                           {/* Hidden File Input */}

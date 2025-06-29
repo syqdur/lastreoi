@@ -191,7 +191,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                 <input
                   type="file"
                   multiple
-                  accept="image/*,video/*"
+                  accept="image/*,video/*,.heic,.heif,.avif"
                   onChange={handleFileChange}
                   className="hidden"
                 />

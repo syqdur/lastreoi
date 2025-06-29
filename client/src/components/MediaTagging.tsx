@@ -473,9 +473,9 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
                   )}
                 </div>
 
-                {/* Location Suggestions Dropdown */}
+                {/* Location Suggestions Dropdown - Enhanced z-index for Instagram-style overlay */}
                 {locationSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-white/30 dark:border-gray-700/50 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                  <div className="absolute z-[2147483646] w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-white/30 dark:border-gray-700/50 rounded-xl shadow-xl max-h-60 overflow-y-auto">
                     {locationSuggestions.map((suggestion, index) => (
                       <button
                         key={index}

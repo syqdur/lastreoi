@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, UserPlus, Clock, X, Heart, Lock, Unlock } from 'lucide-react';
 import { getThemeConfig } from '../config/themes';
+import { HeaderLoadingSkeleton } from './HeaderLoadingSkeleton';
 
 interface ProfileHeaderProps {
   isDarkMode: boolean;
@@ -42,8 +43,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   } | null>(null);
   const [countdownEnded, setCountdownEnded] = useState(false);
 
-  // Use gallery profile data instead of loading separate profile data
-  const profileData = galleryProfileData;
+  // Prevent showing old data by only using profileData when it's actually loaded
+  const profileData = galleryProfileData && gallery ? galleryProfileData : null;
   
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');

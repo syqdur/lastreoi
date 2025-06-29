@@ -32,20 +32,34 @@ class NotificationService {
   async init() {
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       try {
-        // Register service worker
-        this.registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('✅ Service Worker registered');
+        // Register service worker with proper scope
+        this.registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/'
+        });
         
-        // Request notification permission
-        await this.requestPermission();
+        console.log('✅ Service Worker registered successfully');
         
+        // Wait for service worker to be ready
+        await navigator.serviceWorker.ready;
+        
+        // Request notification permission with better error handling
+        const permissionGranted = await this.requestPermission();
+        
+        if (!permissionGranted) {
+          console.warn('⚠️ Notification permission denied');
+          return false;
+        }
+        
+        console.log('✅ Notification system initialized');
         return true;
       } catch (error) {
         console.error('❌ Service Worker registration failed:', error);
         return false;
       }
+    } else {
+      console.warn('⚠️ Push notifications not supported in this browser');
+      return false;
     }
-    return false;
   }
 
   async requestPermission(): Promise<boolean> {

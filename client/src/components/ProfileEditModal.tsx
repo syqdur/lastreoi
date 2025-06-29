@@ -44,7 +44,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const compressImage = (file: File, maxWidth: number = 400, quality: number = 0.7): Promise<string> => {
+  const compressImage = (file: File, maxWidth: number = 300, quality: number = 0.6): Promise<string> => {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -63,17 +63,42 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         // Draw and compress the image
         ctx?.drawImage(img, 0, 0, newWidth, newHeight);
         
-        // Convert to JPEG with compression to stay under Firebase limit
-        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        // Progressive compression to stay under Firebase 1MB limit
+        let currentQuality = quality;
+        let attempts = 0;
+        const maxAttempts = 8;
         
-        // Check if still too large (Firebase limit ~1MB base64)
-        if (compressedBase64.length > 800000) { // 800KB to be safe
-          // Try with lower quality
-          const lowerQualityBase64 = canvas.toDataURL('image/jpeg', 0.5);
-          resolve(lowerQualityBase64);
-        } else {
-          resolve(compressedBase64);
-        }
+        const tryCompress = () => {
+          const compressedBase64 = canvas.toDataURL('image/jpeg', currentQuality);
+          const sizeKB = Math.round(compressedBase64.length / 1024);
+          
+          console.log(`🗜️ Compression attempt ${attempts + 1}: ${sizeKB}KB (quality: ${currentQuality.toFixed(2)})`);
+          
+          // Firebase limit is ~1MB (1048576 bytes), but base64 adds ~33% overhead
+          // Target 700KB to be safe with base64 encoding
+          if (compressedBase64.length <= 700000 || attempts >= maxAttempts) {
+            console.log(`✅ Final compression: ${sizeKB}KB`);
+            resolve(compressedBase64);
+            return;
+          }
+          
+          // Reduce quality and dimensions more aggressively
+          attempts++;
+          currentQuality *= 0.7;
+          
+          // Also reduce canvas size if still too large
+          if (attempts > 3) {
+            const reductionFactor = 0.8;
+            canvas.width *= reductionFactor;
+            canvas.height *= reductionFactor;
+            ctx?.clearRect(0, 0, canvas.width, canvas.height);
+            ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          }
+          
+          tryCompress();
+        };
+        
+        tryCompress();
       };
       
       img.onerror = () => reject(new Error('Failed to load image for compression'));
@@ -85,10 +110,19 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file type - support more formats
-    const supportedFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/svg+xml'];
-    if (!supportedFormats.includes(file.type.toLowerCase())) {
-      alert(`Nicht unterstütztes Bildformat. Erlaubte Formate: JPG, PNG, GIF, WebP, BMP, TIFF, SVG`);
+    // Check file type - support more formats including HEIC/HEIF
+    const supportedFormats = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 
+      'image/webp', 'image/bmp', 'image/tiff', 'image/svg+xml',
+      'image/heic', 'image/heif', 'image/avif'
+    ];
+    
+    const fileTypeSupported = supportedFormats.includes(file.type.toLowerCase()) || 
+                              file.name.toLowerCase().endsWith('.heic') || 
+                              file.name.toLowerCase().endsWith('.heif');
+    
+    if (!fileTypeSupported) {
+      alert(`Nicht unterstütztes Bildformat. Erlaubte Formate: JPG, PNG, GIF, WebP, BMP, TIFF, SVG, HEIC, HEIF, AVIF`);
       return;
     }
 
@@ -287,7 +321,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/tiff,image/svg+xml"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/tiff,image/svg+xml,image/heic,image/heif,image/avif"
                 onChange={handleProfilePictureChange}
                 className="hidden"
                 disabled={isSaving}
