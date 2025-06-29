@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, MoreHorizontal, Trash2, Edit3, AlertTriangle, Users, Check } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Trash2, Edit3, AlertTriangle, Users, Check, MapPin } from 'lucide-react';
 import { MediaItem, Comment, Like, PersonTag } from '../types';
 
 interface InstagramPostProps {
@@ -323,7 +323,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
             {item.tags && item.tags.length > 0 && item.tags.map((tag) => (
               <div
                 key={tag.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer transition-opacity"
                 style={{
                   left: `${tag.position?.x || 50}%`,
                   top: `${tag.position?.y || 50}%`
@@ -332,14 +332,53 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                 {/* Tag Dot */}
                 <div className="w-6 h-6 bg-white rounded-full border-2 border-white shadow-lg animate-pulse" />
                 
-                {/* Tag Label */}
-                <div className={`absolute mt-2 px-3 py-1 bg-black/80 text-white text-xs rounded-full whitespace-nowrap transform -translate-x-1/2 ${
+                {/* Tag Label - Always visible with transparent background */}
+                <div className={`absolute mt-2 px-3 py-1 bg-black/60 backdrop-blur-sm text-white text-xs rounded-full whitespace-nowrap transform -translate-x-1/2 shadow-lg border border-white/20 ${
                   (tag.position?.y || 50) > 80 ? 'bottom-8' : 'top-8'
                 }`}>
-                  {getUserDisplayName ? getUserDisplayName(tag.userName, tag.deviceId) : tag.userName}
+                  {tag.type === 'person' 
+                    ? getUserDisplayName ? getUserDisplayName((tag as any).userName, (tag as any).deviceId) : (tag as any).userName
+                    : tag.type === 'location' 
+                    ? (tag as any).locationName
+                    : 'Tag'
+                  }
                 </div>
               </div>
             ))}
+
+            {/* Bottom Badge Overlay - Persons (Bottom Left) and Location (Bottom Right) */}
+            {item.tags && item.tags.length > 0 && (
+              <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 flex justify-between items-end">
+                {/* Tagged Persons Badge - Bottom Left */}
+                {item.tags.filter(tag => tag.type === 'person').length > 0 && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-black/70 backdrop-blur-sm rounded-full text-white text-xs border border-white/20">
+                    <Users className="w-3 h-3" />
+                    <span className="hidden xs:inline">
+                      {item.tags.filter(tag => tag.type === 'person').length === 1 
+                        ? '1 Person' 
+                        : `${item.tags.filter(tag => tag.type === 'person').length} Personen`
+                      }
+                    </span>
+                    <span className="xs:hidden">
+                      {item.tags.filter(tag => tag.type === 'person').length}
+                    </span>
+                  </div>
+                )}
+
+                {/* Tagged Location Badge - Bottom Right */}
+                {item.tags.filter(tag => tag.type === 'location').length > 0 && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-black/70 backdrop-blur-sm rounded-full text-white text-xs border border-white/20">
+                    <MapPin className="w-3 h-3" />
+                    <span className="hidden sm:inline truncate max-w-20 md:max-w-32">
+                      {((item.tags.find(tag => tag.type === 'location') as any)?.locationName || 'Ort')}
+                    </span>
+                    <span className="sm:hidden">
+                      📍
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           )}
         </div>

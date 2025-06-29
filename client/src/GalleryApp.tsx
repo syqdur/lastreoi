@@ -27,6 +27,7 @@ import { NotificationCenter } from './components/NotificationCenter';
 import { GalleryTutorial } from './components/GalleryTutorial';
 import { AdminTutorial } from './components/AdminTutorial';
 import { MediaTaggingModal } from './components/MediaTaggingModal';
+import { InstagramTaggingModal } from './components/InstagramTaggingModal';
 import { useUser } from './hooks/useUser';
 import { MediaItem, Comment, Like } from './types';
 import { Gallery, galleryService } from './services/galleryService';
@@ -1578,6 +1579,17 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           galleryUsers={galleryUsers}
         />
       )}
+
+      {/* Instagram-Style Tagging Modal */}
+      <InstagramTaggingModal
+        isOpen={showTaggingModal}
+        onClose={handleTaggingCancel}
+        onConfirm={handleTaggingConfirm}
+        mediaUrl={pendingUploadUrl}
+        mediaType={pendingUploadFiles?.[0]?.type.startsWith('video') ? 'video' : 'image'}
+        isDarkMode={isDarkMode}
+        galleryUsers={galleryUsers}
+      />
     </div>
   );
 };

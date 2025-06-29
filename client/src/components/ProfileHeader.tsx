@@ -46,12 +46,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-  // Use galleryProfileData directly since it's preloaded with current data in GalleryApp
-  // No fallback to old gallery creation data to prevent data flashing
+  // Use gallery data immediately while Firebase data loads to prevent loading flash
   const displayData = galleryProfileData || {
-    name: 'Galerie wird geladen...',
-    bio: 'Lade aktuelle Daten...',
-    profilePicture: null,
+    name: gallery?.eventName || 'Galerie wird geladen...',
+    bio: gallery?.eventName ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : 'Lade aktuelle Daten...',
+    profilePicture: gallery?.theme ? `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" x="50" text-anchor="middle" dy="0.35em" font-size="40">${gallery.theme === 'hochzeit' ? '💍' : gallery.theme === 'geburtstag' ? '🎂' : gallery.theme === 'urlaub' ? '🏖️' : '🎊'}</text></svg>`)}` : null,
     countdownDate: null
   };
 

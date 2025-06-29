@@ -9,7 +9,7 @@ export interface MediaItem {
   noteText?: string;
   note?: string; // Legacy support
   isUnavailable?: boolean;
-  tags?: PersonTag[]; // Tagged users in this media (Instagram-style tags)
+  tags?: (PersonTag | LocationTagWithPosition)[]; // Tagged users and locations in this media (Instagram-style tags)
   location?: LocationTag; // Geographic location where media was taken
 }
 
@@ -26,6 +26,21 @@ export interface PersonTag {
   displayName?: string;
 }
 
+// Instagram-style location tag with position
+export interface LocationTagWithPosition {
+  id: string;
+  type: 'location';
+  position?: {
+    x: number; // percentage 0-100
+    y: number; // percentage 0-100
+  };
+  locationName: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+}
+
 export interface LocationTag {
   id: string;
   mediaId: string;
@@ -39,6 +54,21 @@ export interface LocationTag {
   addedBy: string;
   addedByDeviceId: string;
   createdAt: string;
+}
+
+// Instagram-style location tag with position
+export interface LocationTagWithPosition {
+  id: string;
+  type: 'location';
+  position?: {
+    x: number; // percentage 0-100
+    y: number; // percentage 0-100
+  };
+  locationName: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 export interface MediaTag {

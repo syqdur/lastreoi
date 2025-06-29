@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Users, User, Plus, Navigation } from 'lucide-react';
+import { X, Users, User, Plus, Navigation, MapPin, Search } from 'lucide-react';
 
 interface TagPosition {
   x: number;
@@ -14,7 +14,15 @@ interface PersonTag {
   displayName?: string;
 }
 
-type MediaTag = PersonTag;
+interface LocationTag {
+  id: string;
+  type: 'location';
+  position: TagPosition;
+  locationName: string;
+  coordinates?: { lat: number; lng: number } | null;
+}
+
+type MediaTag = PersonTag | LocationTag;
 
 interface GalleryUser {
   userName: string;
@@ -40,6 +48,246 @@ interface SearchPopupProps {
   galleryUsers: GalleryUser[];
   isDarkMode: boolean;
 }
+
+interface LocationSearchPopupProps {
+  position: TagPosition;
+  onSelectLocation: (location: { name: string; coordinates?: { lat: number; lng: number } }) => void;
+  onCancel: () => void;
+  isDarkMode: boolean;
+}
+
+// Google Maps API integration
+const loadGoogleMapsAPI = () => {
+  return new Promise((resolve, reject) => {
+    if ((window as any).google && (window as any).google.maps) {
+      resolve((window as any).google);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAo-Ak_1bLGFriNq-LiQUQqzQfwYwleBfw&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve((window as any).google);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
+
+// Location Search Popup Component
+const LocationSearchPopup: React.FC<LocationSearchPopupProps> = ({
+  position,
+  onSelectLocation,
+  onCancel,
+  isDarkMode
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUsingGPS, setIsUsingGPS] = useState(false);
+
+  // Search places using Google Places API
+  const searchPlaces = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSuggestions([]);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await loadGoogleMapsAPI();
+      const google = (window as any).google;
+      const service = new google.maps.places.PlacesService(document.createElement('div'));
+      
+      const request = {
+        query,
+        fields: ['name', 'formatted_address', 'geometry']
+      };
+
+      service.textSearch(request, (results: any, status: any) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          setSuggestions(results.slice(0, 5));
+        } else {
+          setSuggestions([]);
+        }
+        setIsLoading(false);
+      });
+    } catch (error) {
+      console.error('Google Places API error:', error);
+      // Fallback to Nominatim
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`
+        );
+        const data = await response.json();
+        setSuggestions(data);
+      } catch (fallbackError) {
+        console.error('Fallback search error:', fallbackError);
+        setSuggestions([]);
+      }
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Get current location
+  const getCurrentLocation = useCallback(async () => {
+    setIsUsingGPS(true);
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 60000
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      
+      // Try Google Geocoding first
+      try {
+        await loadGoogleMapsAPI();
+        const google = (window as any).google;
+        const geocoder = new google.maps.Geocoder();
+        const response = await geocoder.geocode({
+          location: { lat: latitude, lng: longitude }
+        });
+        
+        if (response.results[0]) {
+          const place = response.results[0];
+          onSelectLocation({
+            name: place.formatted_address.split(',')[0],
+            coordinates: { lat: latitude, lng: longitude }
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Google Geocoding error:', error);
+      }
+
+      // Fallback to Nominatim
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+      );
+      const data = await response.json();
+      
+      const locationName = data.display_name?.split(',')[0] || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+      onSelectLocation({
+        name: locationName,
+        coordinates: { lat: latitude, lng: longitude }
+      });
+    } catch (error) {
+      console.error('Geolocation error:', error);
+      alert('Standort konnte nicht ermittelt werden. Bitte manuell eingeben.');
+    }
+    setIsUsingGPS(false);
+  }, [onSelectLocation]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => searchPlaces(searchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm, searchPlaces]);
+
+  return (
+    <div 
+      className="absolute bg-black/90 backdrop-blur-md rounded-xl p-4 min-w-80 max-w-sm shadow-2xl border border-white/20"
+      style={{
+        left: position.x > 50 ? 'auto' : '0',
+        right: position.x > 50 ? '0' : 'auto',
+        top: position.y > 50 ? 'auto' : '100%',
+        bottom: position.y > 50 ? '100%' : 'auto',
+        transform: position.y > 50 ? 'translateY(-8px)' : 'translateY(8px)'
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-white font-medium">Ort hinzufügen</h3>
+        <button
+          onClick={onCancel}
+          className="p-1 rounded-full hover:bg-white/10 transition-colors"
+        >
+          <X className="w-4 h-4 text-white/60" />
+        </button>
+      </div>
+
+      {/* GPS Button */}
+      <button
+        onClick={getCurrentLocation}
+        disabled={isUsingGPS}
+        className="w-full flex items-center justify-center gap-2 py-2.5 mb-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg text-white text-sm font-medium transition-colors"
+      >
+        <Navigation className={`w-4 h-4 ${isUsingGPS ? 'animate-spin' : ''}`} />
+        {isUsingGPS ? 'Standort wird ermittelt...' : 'Aktueller Standort'}
+      </button>
+
+      {/* Search Input */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/60" />
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Ort suchen..."
+          className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          autoFocus
+        />
+      </div>
+
+      {/* Suggestions */}
+      {isLoading && (
+        <div className="text-white/60 text-sm text-center py-2">
+          Suche...
+        </div>
+      )}
+
+      {suggestions.length > 0 && (
+        <div className="space-y-1 max-h-40 overflow-y-auto">
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                const name = suggestion.name || suggestion.display_name?.split(',')[0] || 'Unbekannter Ort';
+                const coordinates = suggestion.geometry?.location ? 
+                  { lat: suggestion.geometry.location.lat(), lng: suggestion.geometry.location.lng() } :
+                  suggestion.lat && suggestion.lon ?
+                  { lat: parseFloat(suggestion.lat), lng: parseFloat(suggestion.lon) } :
+                  undefined;
+                
+                onSelectLocation({ name, coordinates });
+              }}
+              className="w-full text-left p-2 rounded-lg hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-white text-sm font-medium">
+                    {suggestion.name || suggestion.display_name?.split(',')[0]}
+                  </div>
+                  {(suggestion.formatted_address || suggestion.display_name) && (
+                    <div className="text-white/60 text-xs">
+                      {suggestion.formatted_address || suggestion.display_name}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {searchTerm && !isLoading && suggestions.length === 0 && (
+        <button
+          onClick={() => onSelectLocation({ name: searchTerm })}
+          className="w-full text-left p-2 rounded-lg hover:bg-white/10 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Plus className="w-4 h-4 text-white/60" />
+            <span className="text-white text-sm">"{searchTerm}" hinzufügen</span>
+          </div>
+        </button>
+      )}
+    </div>
+  );
+};
 
 const SearchPopup: React.FC<SearchPopupProps> = ({
   position,
@@ -219,6 +467,25 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
     setPendingTag(null);
   }, [pendingTag]);
 
+  const [showLocationSearch, setShowLocationSearch] = useState(false);
+
+  const handleLocationSelect = useCallback((location: { name: string; coordinates?: { lat: number; lng: number } }) => {
+    const locationTag: LocationTag = {
+      id: `location_${Date.now()}`,
+      type: 'location',
+      position: { x: 50, y: 15 }, // Top center
+      locationName: location.name,
+      coordinates: location.coordinates || null
+    };
+
+    setTags(prev => [...prev, locationTag]);
+    setShowLocationSearch(false);
+  }, []);
+
+  const handleAddLocation = useCallback(() => {
+    setShowLocationSearch(true);
+  }, []);
+
   const handleRemoveTag = useCallback((tagId: string) => {
     setTags(prev => prev.filter(tag => tag.id !== tagId));
   }, []);
@@ -303,6 +570,8 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
                 }`}>
                   {tag.type === 'person' 
                     ? (tag as PersonTag).displayName || (tag as PersonTag).userName
+                    : tag.type === 'location'
+                    ? (tag as LocationTag).locationName
                     : ''
                   }
                 </div>
@@ -319,23 +588,45 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
                 isDarkMode={isDarkMode}
               />
             )}
+
+            {/* Location Search Popup */}
+            {showLocationSearch && (
+              <LocationSearchPopup
+                position={{ x: 50, y: 50 }}
+                onSelectLocation={handleLocationSelect}
+                onCancel={() => setShowLocationSearch(false)}
+                isDarkMode={isDarkMode}
+              />
+            )}
           </div>
         </div>
 
         {/* Bottom Controls */}
         <div className="p-4 space-y-3">
-          {/* Tag Mode Toggle */}
-          <button
-            onClick={() => setIsTagMode(!isTagMode)}
-            className={`w-full flex items-center justify-center space-x-2 py-3 rounded-xl font-medium transition-colors ${
-              isTagMode
-                ? 'bg-blue-600 text-white'
-                : 'bg-white/10 text-white hover:bg-white/20'
-            }`}
-          >
-            <Users className="w-5 h-5" />
-            <span>{isTagMode ? 'Tagging-Modus aktiv' : 'Personen markieren'}</span>
-          </button>
+          {/* Control Buttons Row */}
+          <div className="flex gap-3">
+            {/* Person Tagging Toggle */}
+            <button
+              onClick={() => setIsTagMode(!isTagMode)}
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 rounded-xl font-medium transition-colors ${
+                isTagMode
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+            >
+              <Users className="w-5 h-5" />
+              <span className="hidden sm:inline">{isTagMode ? 'Aktiv' : 'Personen'}</span>
+            </button>
+
+            {/* Location Tagging Button */}
+            <button
+              onClick={handleAddLocation}
+              className="flex-1 flex items-center justify-center space-x-2 py-3 rounded-xl font-medium transition-colors bg-white/10 text-white hover:bg-white/20"
+            >
+              <Navigation className="w-5 h-5" />
+              <span className="hidden sm:inline">Ort</span>
+            </button>
+          </div>
 
           {/* Tag Counter */}
           {personTags.length > 0 && (
