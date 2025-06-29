@@ -391,9 +391,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20 z-10">
         {/* Apple-style Hero Section */}
         <div className="text-center">
-          {/* Apple-style Logo */}
+          {/* Logo */}
           <div className="mb-12">
-            <TelyaLogo size="lg" className="mx-auto opacity-90 drop-shadow-lg" />
+            <img 
+              src="/attached_assets/ChatGPT Image 29. Juni 2025, 11_02_34_1751211059760.png" 
+              alt="EventPix Logo" 
+              className="mx-auto h-24 w-auto opacity-90 drop-shadow-lg"
+            />
           </div>
 
           {/* Apple-style Headline - Mobile Optimized */}

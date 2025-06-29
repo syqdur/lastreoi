@@ -246,11 +246,13 @@ class NotificationService {
     deviceId: string,
     callback: (notifications: Notification[]) => void
   ) {
+    console.log('🔔 Creating notification query for:', userName, `(${deviceId})`);
+    
+    // Simplified query without orderBy to avoid index issues
     const q = query(
       collection(db, 'notifications'),
       where('targetUser', '==', userName),
       where('targetDeviceId', '==', deviceId),
-      orderBy('createdAt', 'desc'),
       limit(50)
     );
 
@@ -262,10 +264,37 @@ class NotificationService {
           ...doc.data()
         } as Notification);
       });
-      console.log('📬 Loaded notifications:', notifications.length);
+      
+      // Sort manually by createdAt descending (newest first)
+      notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      console.log('📬 Loaded and sorted notifications:', notifications.length);
       callback(notifications);
     }, (error) => {
       console.error('❌ Notification subscription error:', error);
+      // Fallback with even simpler query
+      const fallbackQ = query(
+        collection(db, 'notifications'),
+        where('targetUser', '==', userName),
+        limit(20)
+      );
+      
+      return onSnapshot(fallbackQ, (snapshot) => {
+        const fallbackNotifications: Notification[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.targetDeviceId === deviceId) {
+            fallbackNotifications.push({
+              id: doc.id,
+              ...data
+            } as Notification);
+          }
+        });
+        
+        fallbackNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        console.log('📬 Fallback notifications loaded:', fallbackNotifications.length);
+        callback(fallbackNotifications);
+      });
     });
   }
 

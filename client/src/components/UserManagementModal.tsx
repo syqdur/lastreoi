@@ -9,7 +9,8 @@ import {
   getDocs,
   doc,
   deleteDoc,
-  writeBatch
+  writeBatch,
+  setDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { uploadUserProfilePicture, createOrUpdateUserProfile } from '../services/firebaseService';
@@ -546,6 +547,19 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           batch.delete(doc.ref);
         });
         
+        // Add real-time kick-out signal for bulk deleted user
+        try {
+          await setDoc(doc(db, 'galleries', galleryId, 'kick_signals', deviceId), {
+            userName: userName,
+            deviceId: deviceId,
+            kickedAt: new Date().toISOString(),
+            reason: 'bulk_deleted_by_admin'
+          });
+          console.log(`🚨 Bulk kick signal sent for user: ${userName} (${deviceId})`);
+        } catch (kickError) {
+          console.warn('Failed to send bulk kick signal:', kickError);
+        }
+
         // Delete all user content from gallery-scoped collections
         const mediaQuery = query(
           collection(db, 'galleries', galleryId, 'media'), 
@@ -718,6 +732,19 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       });
       
       await batch.commit();
+      
+      // Add real-time kick-out signal for the deleted user
+      try {
+        await setDoc(doc(db, 'galleries', galleryId, 'kick_signals', deviceId), {
+          userName: userName,
+          deviceId: deviceId,
+          kickedAt: new Date().toISOString(),
+          reason: 'deleted_by_admin'
+        });
+        console.log(`🚨 Kick signal sent for user: ${userName} (${deviceId})`);
+      } catch (kickError) {
+        console.warn('Failed to send kick signal:', kickError);
+      }
       
       // Clear localStorage if the deleted user is the current user
       const currentUserName = localStorage.getItem('userName');

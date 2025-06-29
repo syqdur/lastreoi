@@ -118,6 +118,40 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
   const [galleryProfileData, setGalleryProfileData] = useState<any>(null);
   const [profileDataLoaded, setProfileDataLoaded] = useState(false);
+  
+  // Kick-out detection system
+  useEffect(() => {
+    if (!userName || !deviceId || !gallery?.id) return;
+
+    console.log('🚨 Setting up kick-out detection for:', userName, deviceId);
+
+    const kickSignalRef = doc(db, 'galleries', gallery.id, 'kick_signals', deviceId);
+    
+    const unsubscribe = onSnapshot(kickSignalRef, (doc) => {
+      if (doc.exists()) {
+        const kickData = doc.data();
+        console.log('🚨 KICK SIGNAL RECEIVED:', kickData);
+        
+        // User has been kicked by admin - immediate logout
+        localStorage.setItem('userDeleted', 'true');
+        localStorage.setItem('kickReason', kickData.reason || 'deleted_by_admin');
+        
+        alert('Sie wurden von einem Administrator aus der Galerie entfernt.');
+        
+        // Clear all data and redirect to home
+        setTimeout(() => {
+          localStorage.clear();
+          window.location.href = '/';
+        }, 1000);
+      }
+    }, (error) => {
+      console.warn('Kick detection error:', error);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [userName, deviceId, gallery?.id]);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const [galleryUsers, setGalleryUsers] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -1164,6 +1198,23 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
               </h1>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
+              {/* Debug Test Button */}
+              <button
+                onClick={async () => {
+                  if (userName && deviceId) {
+                    try {
+                      await createTestNotification(userName, deviceId);
+                      console.log('🧪 Test notification created!');
+                    } catch (error) {
+                      console.error('❌ Failed to create test notification:', error);
+                    }
+                  }
+                }}
+                className="px-2 py-1 bg-red-500 text-white text-xs rounded"
+              >
+                Test
+              </button>
+              
               {/* Notification Center */}
               {userName && (
                 <NotificationCenter

@@ -17,6 +17,7 @@ import {
 import { getGalleryUsers } from '../services/galleryFirebaseService';
 import { MediaTag, LocationTag } from '../types';
 
+
 interface MediaTaggingProps {
   mediaId: string;
   tags: MediaTag[];
@@ -137,30 +138,82 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
   };
 
   const handleAddTag = async (user: User) => {
+    console.log('🏷️ MediaTagging: handleAddTag called for user:', user.userName, user.deviceId);
+    
     // Check if user is already tagged
     const isAlreadyTagged = tags.some(tag => 
       tag.userName === user.userName && tag.deviceId === user.deviceId
     );
     
     if (isAlreadyTagged) {
+      console.log('❌ User already tagged, skipping');
       alert('Diese Person ist bereits markiert.');
       return;
     }
     
+    console.log('🏷️ Adding tag for user:', user.userName, 'to media:', mediaId);
     setIsLoading(true);
     try {
       await addMediaTag(mediaId, user.userName, user.deviceId, currentUser, currentDeviceId);
+      console.log('✅ Media tag added successfully');
       
-      // Send notification to tagged user (only if not tagging themselves)
-      if (user.userName !== currentUser || user.deviceId !== currentDeviceId) {
-        await addNotification(
-          user.userName,
-          user.deviceId,
-          'tagged',
-          `${getUserDisplayName(currentUser, currentDeviceId)} hat Sie in einem ${mediaType === 'video' ? 'Video' : 'Foto'} markiert`,
-          mediaId,
-          mediaUrl
-        );
+      // Send notification to tagged user (including self-tagging for testing)
+      // Note: Self-tagging notifications are useful for testing and confirmation
+      {
+        try {
+          console.log(`📨 Sending tag notification to ${user.userName} (${user.deviceId})`);
+          
+          // Enhanced notification with proper fromUser information
+          const isSelfTag = user.userName === currentUser && user.deviceId === currentDeviceId;
+          const notificationData = {
+            type: 'tagged' as const,
+            title: isSelfTag ? 'Du hast dich selbst markiert!' : 'Du wurdest markiert!',
+            message: isSelfTag 
+              ? `Du hast dich selbst in einem ${mediaType === 'video' ? 'Video' : 'Foto'} markiert`
+              : `${getUserDisplayName(currentUser, currentDeviceId)} hat dich in einem ${mediaType === 'video' ? 'Video' : 'Foto'} markiert`,
+            targetUser: user.userName,
+            targetDeviceId: user.deviceId,
+            fromUser: currentUser,
+            fromDeviceId: currentDeviceId,
+            mediaId: mediaId,
+            mediaUrl: mediaUrl,
+            mediaType: mediaType,
+            read: false,
+            createdAt: new Date().toISOString()
+          };
+          
+          console.log('📨 Notification data to send:', notificationData);
+
+          await addNotification(
+            user.userName,
+            user.deviceId,
+            'tagged',
+            notificationData.message,
+            mediaId,
+            mediaUrl
+          );
+          console.log('✅ Enhanced tag notification sent successfully');
+          
+          // Force refresh notifications after creating one
+          window.dispatchEvent(new CustomEvent('notificationCreated'));
+          
+          // Try browser notification if permission granted
+          if (Notification.permission === 'granted') {
+            new Notification(notificationData.title, {
+              body: notificationData.message,
+              icon: '/icon-192x192.png',
+              badge: '/icon-72x72.png',
+              tag: `tag-${mediaId}`,
+              data: {
+                mediaId,
+                type: 'tagged'
+              }
+            });
+          }
+        } catch (notificationError) {
+          console.error('❌ Failed to send tag notification:', notificationError);
+          // Don't block the tagging process if notification fails
+        }
       }
       
       setShowTagInput(false);
@@ -287,8 +340,24 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
     }
   };
 
+  // Add current user to the users list for self-tagging
+  const allUsers = [...users];
+  
+  // Check if current user is already in the list
+  const currentUserExists = users.some(user => 
+    user.userName === currentUser && user.deviceId === currentDeviceId
+  );
+  
+  // If current user is not in the list, add them for self-tagging
+  if (!currentUserExists && currentUser && currentDeviceId) {
+    allUsers.unshift({
+      userName: currentUser,
+      deviceId: currentDeviceId
+    });
+  }
+
   // Filter users based on search term and exclude already tagged users
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = allUsers.filter(user => {
     const isAlreadyTagged = tags.some(tag => 
       tag.userName === user.userName && tag.deviceId === user.deviceId
     );
@@ -352,9 +421,8 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
         </div>
       )}
 
-      {/* Add Tag and Location Buttons - Only show for media uploader or admin */}
-      {(mediaUploader === currentUser || isAdmin) && (
-        <>
+      {/* Add Tag and Location Buttons - Allow everyone to tag (including self-tagging) */}
+      <div>
           {!showTagInput && !showLocationInput && (
             <div className="flex items-center gap-3">
               <button
@@ -444,16 +512,17 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
 
           {showLocationInput && (
             <div className="p-4 rounded-2xl bg-white/80 dark:bg-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-800/50 shadow-xl">
-              {/* Current Location Button */}
+              {/* Enhanced Mobile GPS Location Button */}
               <button
                 onClick={handleAddCurrentLocation}
                 disabled={isLoadingLocation}
-                className={`w-full flex items-center justify-center gap-2 px-4 py-3 mb-3 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-[1.02] ${
+                className={`w-full flex items-center justify-center gap-3 px-6 py-4 mb-4 rounded-2xl text-base font-semibold transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation ${
                   isLoadingLocation ? 'opacity-50 cursor-not-allowed' : ''
-                } bg-gradient-to-r from-green-500/20 to-blue-500/20 hover:from-green-500/30 hover:to-blue-500/30 text-green-700 dark:text-green-300 backdrop-blur-sm border border-green-200/30 dark:border-green-600/30 shadow-lg hover:shadow-xl`}
+                } bg-gradient-to-br from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white backdrop-blur-sm shadow-lg hover:shadow-xl`}
+                style={{ minHeight: '56px' }}
               >
-                <Navigation className="w-4 h-4" />
-                {isLoadingLocation ? 'Standort wird ermittelt...' : 'Aktueller Standort'}
+                <Navigation className="w-5 h-5" />
+                {isLoadingLocation ? 'GPS Standort wird ermittelt...' : '📍 Aktueller Standort hinzufügen'}
               </button>
 
               {/* Custom Location Input */}
@@ -528,8 +597,7 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
               </div>
             </div>
           )}
-        </>
-      )}
+      </div>
     </div>
   );
 };

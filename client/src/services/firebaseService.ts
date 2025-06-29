@@ -1280,12 +1280,18 @@ export const addNotification = async (
   mediaUrl?: string
 ): Promise<void> => {
   try {
+    console.log(`📨 Creating ${type} notification for ${targetUser}`);
+    
     // Create base notification object
     const notificationData: any = {
       type,
+      title: type === 'tagged' ? 'Du wurdest markiert!' : 
+             type === 'comment' ? 'Neuer Kommentar' : 'Neues Like',
       message,
       targetUser,
       targetDeviceId,
+      fromUser: 'System', // Will be overridden by caller if needed
+      fromDeviceId: 'system',
       read: false,
       createdAt: new Date().toISOString()
     };
@@ -1300,6 +1306,22 @@ export const addNotification = async (
     }
 
     await addDoc(collection(db, 'notifications'), notificationData);
+    console.log('✅ Notification created successfully');
+    
+    // Try to send browser notification if permission granted
+    if (Notification.permission === 'granted') {
+      new Notification(notificationData.title, {
+        body: notificationData.message,
+        icon: '/icon-192x192.png',
+        badge: '/icon-72x72.png',
+        tag: `${type}-${mediaId || 'general'}`,
+        data: {
+          mediaId: mediaId || '',
+          type: type
+        }
+      });
+      console.log('✅ Browser notification sent');
+    }
   } catch (error) {
     console.error('Error adding notification:', error);
     throw error;
@@ -1344,7 +1366,8 @@ export const createTaggingNotification = async (
 // Create a test notification for debugging
 export const createTestNotification = async (userName: string, deviceId: string) => {
   try {
-    await addDoc(collection(db, 'notifications'), {
+    console.log('🧪 Creating test notification for:', userName, deviceId);
+    const testNotification = {
       type: 'test',
       title: 'Test Benachrichtigung',
       message: 'Dies ist eine Test-Benachrichtigung um das System zu überprüfen',
@@ -1356,8 +1379,11 @@ export const createTestNotification = async (userName: string, deviceId: string)
       mediaUrl: '',
       read: false,
       createdAt: new Date().toISOString()
-    });
-    console.log('✅ Test notification created');
+    };
+    
+    console.log('🧪 Test notification data:', testNotification);
+    const docRef = await addDoc(collection(db, 'notifications'), testNotification);
+    console.log('✅ Test notification created with ID:', docRef.id);
   } catch (error) {
     console.error('❌ Failed to create test notification:', error);
     throw error;

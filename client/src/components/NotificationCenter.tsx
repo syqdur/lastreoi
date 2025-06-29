@@ -44,6 +44,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     
     const unsubscribe = subscribeToNotifications(userName, deviceId, (newNotifications) => {
       console.log('📬 Loaded notifications:', newNotifications.length);
+      console.log('📬 Notifications for user:', userName, `(${deviceId})`);
       console.log('📬 Received notifications:', newNotifications);
       setNotifications(newNotifications);
       
