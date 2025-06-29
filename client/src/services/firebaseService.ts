@@ -1154,6 +1154,47 @@ export const searchLocations = async (query: string): Promise<Array<{
     return [];
   }
 
+  // Try Google Places API first for better accuracy
+  const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  
+  if (googleApiKey) {
+    try {
+      console.log('🔍 Using Google Places API for location search...');
+      
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${googleApiKey}&language=de&region=de`,
+        {
+          method: 'GET'
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.status === 'OK' && data.results.length > 0) {
+          return data.results.slice(0, 5).map((place: any) => ({
+            name: place.name,
+            address: place.formatted_address,
+            coordinates: {
+              latitude: place.geometry.location.lat,
+              longitude: place.geometry.location.lng
+            },
+            placeId: place.place_id
+          }));
+        } else {
+          console.warn('⚠️ Google Places API returned no results:', data.status);
+        }
+      } else {
+        console.warn('⚠️ Google Places API request failed:', response.status);
+      }
+    } catch (error) {
+      console.warn('❌ Google Places API failed:', error);
+    }
+  } else {
+    console.log('ℹ️ Google Maps API key not available, using fallback services');
+  }
+
+  // Fallback to OpenStreetMap Nominatim
   try {
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1&extratags=1&namedetails=1&bounded=0&dedupe=1`,
@@ -1261,6 +1302,41 @@ export const addNotification = async (
     await addDoc(collection(db, 'notifications'), notificationData);
   } catch (error) {
     console.error('Error adding notification:', error);
+    throw error;
+  }
+};
+
+// Create a tagging notification when someone is tagged in a photo
+export const createTaggingNotification = async (
+  taggedUserName: string,
+  taggedDeviceId: string,
+  taggerUserName: string,
+  taggerDeviceId: string,
+  mediaId: string,
+  mediaUrl: string,
+  mediaType: 'image' | 'video'
+) => {
+  try {
+    console.log('📨 Creating tagging notification for:', taggedUserName);
+    
+    await addDoc(collection(db, 'notifications'), {
+      type: 'tag',
+      title: 'Du wurdest markiert!',
+      message: `${taggerUserName} hat dich in einem ${mediaType === 'image' ? 'Foto' : 'Video'} markiert`,
+      targetUser: taggedUserName,
+      targetDeviceId: taggedDeviceId,
+      fromUser: taggerUserName,
+      fromDeviceId: taggerDeviceId,
+      mediaId: mediaId,
+      mediaUrl: mediaUrl,
+      mediaType: mediaType,
+      read: false,
+      createdAt: new Date().toISOString()
+    });
+    
+    console.log('✅ Tagging notification created successfully');
+  } catch (error) {
+    console.error('❌ Failed to create tagging notification:', error);
     throw error;
   }
 };

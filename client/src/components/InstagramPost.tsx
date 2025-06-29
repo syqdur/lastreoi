@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, MoreHorizontal, Trash2, Edit3, AlertTriangle, Users, Check, MapPin } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Trash2, Edit3, AlertTriangle, Users, MapPin } from 'lucide-react';
 import { MediaItem, Comment, Like, PersonTag } from '../types';
 
 interface InstagramPostProps {
@@ -20,6 +20,7 @@ interface InstagramPostProps {
   getUserDisplayName?: (userName: string, deviceId?: string) => string;
   getUserDeviceId?: () => string;
   galleryId: string;
+  galleryTheme?: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes';
 }
 
 export const InstagramPost: React.FC<InstagramPostProps> = ({
@@ -39,7 +40,8 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
   getUserAvatar,
   getUserDisplayName,
   getUserDeviceId,
-  galleryId
+  galleryId,
+  galleryTheme = 'hochzeit'
 }) => {
   const [commentText, setCommentText] = useState('');
   const [showAllComments, setShowAllComments] = useState(false);
@@ -319,32 +321,21 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
               />
             )}
 
-            {/* Instagram-Style Tag Dots */}
-            {item.tags && item.tags.length > 0 && item.tags.map((tag) => (
-              <div
-                key={tag.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer transition-opacity"
-                style={{
-                  left: `${tag.position?.x || 50}%`,
-                  top: `${tag.position?.y || 50}%`
+            {/* Like Button - Centered Bottom with Full Functionality */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-40">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleLike(item.id);
                 }}
+                className={`bg-black/60 backdrop-blur-sm rounded-full p-3 transition-all duration-300 transform hover:scale-110 shadow-lg ${
+                  isLiked ? 'text-red-500' : 'text-white hover:text-red-400'
+                }`}
+                title={isLiked ? 'Unlike' : 'Like'}
               >
-                {/* Tag Dot */}
-                <div className="w-6 h-6 bg-white rounded-full border-2 border-white shadow-lg animate-pulse" />
-                
-                {/* Tag Label - Always visible with transparent background */}
-                <div className={`absolute mt-2 px-3 py-1 bg-black/60 backdrop-blur-sm text-white text-xs rounded-full whitespace-nowrap transform -translate-x-1/2 shadow-lg border border-white/20 ${
-                  (tag.position?.y || 50) > 80 ? 'bottom-8' : 'top-8'
-                }`}>
-                  {tag.type === 'person' 
-                    ? getUserDisplayName ? getUserDisplayName((tag as any).userName, (tag as any).deviceId) : (tag as any).userName
-                    : tag.type === 'location' 
-                    ? (tag as any).locationName
-                    : 'Tag'
-                  }
-                </div>
-              </div>
-            ))}
+                <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
+              </button>
+            </div>
 
             {/* Bottom Badge Overlay - Persons (Bottom Left) and Location (Bottom Right) */}
             {item.tags && item.tags.length > 0 && (
@@ -383,62 +374,9 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
           )}
         </div>
 
-        {/* Instagram-Style Tagging Controls */}
-        <div className={`px-4 py-2 border-b transition-colors duration-300 ${
-          isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  isDarkMode 
-                    ? 'text-purple-400 hover:bg-purple-900/30' 
-                    : 'text-purple-600 hover:bg-purple-50'
-                }`}
-              >
-                <Users className="w-4 h-4" />
-                <span>Personen markieren</span>
-              </button>
-              
-              <div className={`text-xs px-2 py-1 rounded-full ${
-                isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600'
-              }`}>
-                {item.tags?.length || 0} {(item.tags?.length || 0) === 1 ? 'Person' : 'Personen'}
-              </div>
-            </div>
-            
-            <button
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                isDarkMode 
-                  ? 'bg-purple-600 text-white hover:bg-purple-700' 
-                  : 'bg-purple-500 text-white hover:bg-purple-600'
-              }`}
-            >
-              <Check className="w-4 h-4" />
-              <span>Fertig</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="px-6 pb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-6">
-              <button 
-                onClick={() => onToggleLike(item.id)}
-                className={`transition-all duration-300 transform hover:scale-110 ${
-                  isLiked ? 'text-red-500' : isDarkMode ? 'text-gray-300 hover:text-red-400' : 'text-gray-700 hover:text-red-500'
-                }`}
-              >
-                <Heart className={`w-7 h-7 ${isLiked ? 'fill-current' : ''}`} />
-              </button>
-              <MessageCircle className={`w-7 h-7 transition-colors duration-300 cursor-pointer ${
-                isDarkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-700 hover:text-gray-900'
-              }`} />
-            </div>
-          </div>
-
-          {/* Likes */}
+        {/* Clean Post Info Section */}
+        <div className="px-6 py-4">
+          {/* Likes Display */}
           <div className="mb-3">
             <span className={`font-semibold text-base transition-colors duration-300 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
@@ -446,6 +384,40 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
               {likeCount > 0 ? `${likeCount} „Gefällt mir"-Angabe${likeCount > 1 ? 'n' : ''}` : 'Gefällt dir das?'}
             </span>
           </div>
+
+          {/* Simple Tagged People Display */}
+          {item.tags && item.tags.length > 0 && (
+            <div className="mb-3">
+              <div className="flex flex-wrap gap-2">
+                {item.tags.filter(tag => tag.type === 'person').map((tag) => (
+                  <span
+                    key={tag.id}
+                    className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-300 ${
+                      isDarkMode 
+                        ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' 
+                        : 'bg-blue-50 text-blue-700 border border-blue-200'
+                    }`}
+                  >
+                    <Users className="w-4 h-4 mr-1.5" />
+                    {getUserDisplayName ? getUserDisplayName((tag as any).userName, (tag as any).deviceId) : (tag as any).userName}
+                  </span>
+                ))}
+                {item.tags.filter(tag => tag.type === 'location').map((tag) => (
+                  <span
+                    key={tag.id}
+                    className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-300 ${
+                      isDarkMode 
+                        ? 'bg-green-600/20 text-green-300 border border-green-500/30' 
+                        : 'bg-green-50 text-green-700 border border-green-200'
+                    }`}
+                  >
+                    <MapPin className="w-4 h-4 mr-1.5" />
+                    {(tag as any).locationName}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Note Edit Mode */}
           {isEditingNote && item.type === 'note' && (

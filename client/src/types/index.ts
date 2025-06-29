@@ -11,6 +11,7 @@ export interface MediaItem {
   isUnavailable?: boolean;
   tags?: (PersonTag | LocationTagWithPosition)[]; // Tagged users and locations in this media (Instagram-style tags)
   location?: LocationTag; // Geographic location where media was taken
+  galleryTheme?: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'; // Theme for event-based styling
 }
 
 // Instagram-style person tag with position
