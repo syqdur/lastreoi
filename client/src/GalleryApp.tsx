@@ -33,8 +33,7 @@ import { Gallery, galleryService } from './services/galleryService';
 import { getThemeConfig, getThemeTexts, getThemeStyles } from './config/themes';
 import { storage, db } from './config/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
-import { onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, setDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import {
   uploadFiles,
   uploadVideoBlob,
@@ -752,10 +751,16 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     
     console.log('🔄 Setting up real-time profile listener for:', userName);
     
-    const userProfileRef = doc(db, 'galleries', gallery.id, 'userProfiles', `${userName}_${deviceId}`);
+    const profilesCollection = collection(db, 'galleries', gallery.id, 'userProfiles');
+    const q = query(
+      profilesCollection,
+      where('userName', '==', userName),
+      where('deviceId', '==', deviceId)
+    );
     
-    const unsubscribe = onSnapshot(userProfileRef, (doc) => {
-      if (doc.exists()) {
+    const unsubscribe = onSnapshot(q, (querySnapshot: any) => {
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
         const profileData = doc.data();
         const latestProfile = {
           id: doc.id,
@@ -774,7 +779,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           setCurrentUserProfile(null);
         }
       }
-    }, (error) => {
+    }, (error: any) => {
       console.error('Error in profile listener:', error);
     });
     
@@ -831,52 +836,34 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     loadCurrentUserProfile();
   }, [userName, deviceId, gallery.id]);
 
-  // Load gallery profile data from Firebase for current gallery
+  // Real-time gallery profile data synchronization
   useEffect(() => {
     // Reset loading state when gallery changes
     setProfileDataLoaded(false);
     
-    const loadGalleryProfile = async () => {
-      try {
-        console.log('🔄 Loading gallery profile for:', gallery.id);
-        console.log('🎯 Current gallery name:', gallery.eventName);
+    console.log('🔄 Setting up real-time gallery profile listener for:', gallery.id);
+    
+    const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
+    
+    const unsubscribe = onSnapshot(profileDocRef, (docSnapshot: any) => {
+      if (docSnapshot.exists()) {
+        const firebaseData = docSnapshot.data();
+        console.log('✅ Gallery profile updated via real-time listener:', firebaseData);
+        console.log('🔍 Current gallery name:', gallery.eventName);
+        console.log('🔍 Firebase profile name:', firebaseData.name);
         
-        const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-        const profileDoc = await getDoc(profileDocRef);
-        
-        if (profileDoc.exists()) {
-          const firebaseData = profileDoc.data();
-          console.log('✅ Gallery profile loaded from Firebase:', firebaseData);
-          console.log('🔍 Current gallery name:', gallery.eventName);
-          console.log('🔍 Firebase profile name:', firebaseData.name);
-          
-          // Always apply Firebase data if it exists - this contains customized gallery settings
-          // The Firebase data represents the actual configured profile from admin panel
-          console.log('🔄 Applying customized Firebase profile data from Gallery Settings');
-          setGalleryProfileData(firebaseData);
-          setProfileDataLoaded(true);
-        } else {
-          console.log('📝 No Firebase profile found, creating default gallery profile');
-          // Create default profile if none exists
-          const defaultProfile = {
-            name: gallery.eventName,
-            bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-            countdownDate: null, // Disabled by default
-            countdownEndMessage: 'Der große Tag ist da! 🎉',
-            countdownMessageDismissed: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          setGalleryProfileData(defaultProfile);
-          setProfileDataLoaded(true);
-        }
-      } catch (error) {
-        console.error('❌ Error loading gallery profile:', error);
-        // Set default profile on error
+        // Always apply Firebase data if it exists - this contains customized gallery settings
+        // The Firebase data represents the actual configured profile from admin panel
+        console.log('🔄 Applying real-time Firebase profile data from Gallery Settings');
+        setGalleryProfileData(firebaseData);
+        setProfileDataLoaded(true);
+      } else {
+        console.log('📝 No Firebase profile found, creating default gallery profile');
+        // Create default profile if none exists
         const defaultProfile = {
           name: gallery.eventName,
           bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-          countdownDate: null,
+          countdownDate: null, // Disabled by default
           countdownEndMessage: 'Der große Tag ist da! 🎉',
           countdownMessageDismissed: false,
           createdAt: new Date().toISOString(),
@@ -885,10 +872,26 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         setGalleryProfileData(defaultProfile);
         setProfileDataLoaded(true);
       }
+    }, (error: any) => {
+      console.error('❌ Error in gallery profile listener:', error);
+      // Set default profile on error
+      const defaultProfile = {
+        name: gallery.eventName,
+        bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+        countdownDate: null,
+        countdownEndMessage: 'Der große Tag ist da! 🎉',
+        countdownMessageDismissed: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setGalleryProfileData(defaultProfile);
+      setProfileDataLoaded(true);
+    });
+    
+    return () => {
+      console.log('🧹 Cleaning up gallery profile listener');
+      unsubscribe();
     };
-
-    // Load Firebase profile immediately without setting default first
-    loadGalleryProfile();
   }, [gallery.id, gallery.eventName, gallery.eventDate]);
 
   // Subscribe to site status changes

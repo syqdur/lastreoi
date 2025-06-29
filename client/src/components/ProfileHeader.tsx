@@ -46,7 +46,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-  // Use gallery data immediately while Firebase data loads to prevent loading flash
+  // Use gallery profile data from admin panel "Galerie Einstellungen"
   const displayData = galleryProfileData || {
     name: gallery?.eventName || 'Gallery',
     bio: gallery?.eventName ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : 'Teilt eure schönsten Momente mit uns! 📸',

@@ -293,6 +293,20 @@ This is a comprehensive wedding gallery application with the following architect
 
 ### June 29, 2025 (Complete Replit Migration & Enhanced Tagging System)
 - **Replit Agent Migration Complete**: Successfully migrated from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
+- **Real-Time Gallery Profile Updates**: Implemented Firebase real-time listener for gallery profile data so ProfileHeader updates automatically when admins change gallery settings in "Galerie Einstellungen" without requiring visitor page reloads
+- **ProfileHeader Architecture Clarified**: Confirmed ProfileHeader correctly displays gallery profile data from admin panel "Galerie Einstellungen" rather than individual user profiles, maintaining proper separation between gallery settings and visitor profiles
+- **Real-Time Profile Synchronization**: Enhanced Firebase listener in GalleryApp.tsx to use correct collection path (galleries/{galleryId}/userProfiles) with userName and deviceId query filters for immediate individual user profile updates
+- **Firebase Import Fix**: Added missing Firebase imports (collection, query, where, onSnapshot) to enable proper real-time profile data synchronization
+- **TypeScript Error Resolution**: Fixed TypeScript type errors in Firebase listener with proper type annotations for querySnapshot and error parameters
+- **Mobile Image Tagging Fix**: Fixed critical mobile upload tagging visibility issues where high-resolution images caused tagging interface to be invisible or misaligned
+- **Enhanced Touch Event Support**: Added proper touch event handling alongside mouse events for mobile device compatibility
+- **Mobile Viewport Optimization**: Implemented safe area padding, proper image scaling with object-contain, and responsive modal dimensions for mobile devices
+- **Bulk Visitor Deletion Fixed**: Corrected UserManagementModal bulk deletion to properly target gallery-scoped Firebase collections instead of global collections
+- **Gallery Data Isolation**: Fixed bulk deletion to only remove users from current gallery (galleries/{galleryId}/live_users, userProfiles, media, comments, likes, stories) ensuring proper data isolation between galleries
+- **Mobile CSS Enhancements**: Added touch-manipulation, safe area inset support, and prevented mobile zoom on input fields for better mobile user experience
+
+### June 29, 2025 (Complete Replit Migration & Enhanced Tagging System)
+- **Replit Agent Migration Complete**: Successfully migrated from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
 - **Desktop Scrolling Fix**: Fixed horizontal scrolling issue on PC for user selection in tagging modal with mouse wheel support and visible scrollbars
 - **Enhanced Location Tagging System**: Implemented comprehensive location services with GPS detection, OpenStreetMap Nominatim API integration, reverse geocoding, and real-time location search with autocomplete suggestions
 - **Professional Location Modal**: Added dedicated location input interface with GPS button, search field, suggestion dropdown, and custom location entry capabilities

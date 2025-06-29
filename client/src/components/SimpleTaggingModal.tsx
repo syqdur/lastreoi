@@ -104,17 +104,45 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
     }
   }, [customLocationName]);
 
-  const handleMediaClick = useCallback((event: React.MouseEvent) => {
+  const handleMediaClick = useCallback((event: React.MouseEvent | React.TouchEvent) => {
     if (!isTaggingMode) return;
 
-    const rect = mediaRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    const mediaContainer = mediaRef.current;
+    if (!mediaContainer) return;
 
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    // Get the actual media element (img or video)
+    const mediaElement = mediaContainer.querySelector('img, video') as HTMLElement;
+    if (!mediaElement) return;
 
+    const containerRect = mediaContainer.getBoundingClientRect();
+    const mediaRect = mediaElement.getBoundingClientRect();
+
+    // Calculate click position relative to the actual media element
+    let clientX: number, clientY: number;
+    if ('touches' in event) {
+      // Touch event
+      const touch = event.touches[0] || event.changedTouches[0];
+      clientX = touch.clientX;
+      clientY = touch.clientY;
+    } else {
+      // Mouse event
+      clientX = event.clientX;
+      clientY = event.clientY;
+    }
+
+    // Calculate percentage position relative to the media element
+    const x = ((clientX - mediaRect.left) / mediaRect.width) * 100;
+    const y = ((clientY - mediaRect.top) / mediaRect.height) * 100;
+
+    // Ensure position is within bounds with padding
     const boundedX = Math.max(5, Math.min(95, x));
     const boundedY = Math.max(5, Math.min(95, y));
+
+    console.log('Media click:', { 
+      clientX, clientY, 
+      mediaRect: { left: mediaRect.left, top: mediaRect.top, width: mediaRect.width, height: mediaRect.height },
+      calculatedPosition: { x: boundedX, y: boundedY }
+    });
 
     setPendingPosition({ x: boundedX, y: boundedY });
     setShowQuickUsers(true);
@@ -432,7 +460,7 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[2147483647] bg-black/90 flex items-center justify-center">
-      <div className="relative w-full h-full max-w-5xl max-h-[95vh] flex flex-col">
+      <div className="relative w-full h-full max-w-5xl max-h-[100vh] sm:max-h-[95vh] flex flex-col">
         {/* Header - More Compact */}
         <div className="flex items-center justify-between px-4 py-2 bg-gray-900/98 backdrop-blur-xl border-b border-white/10">
           <h2 className="text-white font-semibold text-lg">Markieren</h2>
@@ -444,27 +472,50 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
           </button>
         </div>
 
-        {/* Media Container */}
-        <div className="flex-1 relative bg-black flex items-center justify-center">
+        {/* Media Container - Enhanced for Mobile */}
+        <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
           <div
             ref={mediaRef}
-            className="relative max-w-full max-h-full cursor-crosshair"
+            className="relative w-full h-full flex items-center justify-center cursor-crosshair touch-manipulation"
             onClick={handleMediaClick}
+            onTouchEnd={handleMediaClick}
+            style={{ minHeight: '300px', maxHeight: 'calc(100vh - 200px)' }}
           >
             {mediaType === 'video' ? (
               <video
                 src={mediaUrl}
-                className="max-w-full max-h-full object-contain"
+                className="max-w-full max-h-full w-auto h-auto object-contain"
                 controls={!isTaggingMode}
                 muted
                 playsInline
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: '100%',
+                  width: 'auto',
+                  height: 'auto'
+                }}
               />
             ) : (
               <img
                 src={mediaUrl}
                 alt="Media to tag"
-                className="max-w-full max-h-full object-contain"
+                className="max-w-full max-h-full w-auto h-auto object-contain"
                 draggable={false}
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: '100%',
+                  width: 'auto',
+                  height: 'auto'
+                }}
+                onLoad={(e) => {
+                  // Ensure the image is properly sized after loading
+                  const img = e.target as HTMLImageElement;
+                  const container = mediaRef.current;
+                  if (container && img) {
+                    console.log('Image loaded:', img.naturalWidth, 'x', img.naturalHeight);
+                    console.log('Container size:', container.offsetWidth, 'x', container.offsetHeight);
+                  }
+                }}
               />
             )}
 
@@ -522,10 +573,10 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
             )}
           </div>
 
-          {/* Quick User Selection Popup - Responsive */}
+          {/* Quick User Selection Popup - Fixed Mobile Positioning */}
           {showQuickUsers && pendingPosition && (
-            <div className="absolute inset-x-3 sm:inset-x-8 md:inset-x-16 lg:inset-x-24 bottom-20 bg-gray-900/98 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl max-w-4xl mx-auto">
-              <div className="p-4">
+            <div className="fixed bottom-0 left-0 right-0 z-[2147483648] bg-gray-900/98 backdrop-blur-xl border-t border-white/20 shadow-2xl sm:absolute sm:inset-x-8 sm:bottom-20 sm:rounded-3xl sm:border sm:max-w-4xl sm:mx-auto">
+              <div className="p-4 pb-safe">
                 <div className="text-white text-lg font-bold mb-4 text-center">Person auswählen</div>
                 
                 {/* Quick Users - Enhanced Desktop Scrolling */}
@@ -603,10 +654,10 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
             </div>
           )}
 
-          {/* Enhanced Location Input Modal */}
+          {/* Enhanced Location Input Modal - Fixed Mobile Positioning */}
           {showLocationInput && pendingPosition && (
-            <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-10">
-              <div className="bg-gray-900/98 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl max-w-sm w-full mx-4 max-h-[80vh] flex flex-col">
+            <div className="fixed inset-0 z-[2147483649] bg-black/80 flex items-end sm:items-center justify-center">
+              <div className="bg-gray-900/98 backdrop-blur-xl rounded-t-3xl sm:rounded-3xl border border-white/20 shadow-2xl w-full sm:max-w-sm sm:mx-4 max-h-[90vh] sm:max-h-[80vh] flex flex-col">
                 <div className="p-4 border-b border-white/10">
                   <div className="flex items-center justify-between">
                     <h3 className="text-white text-lg font-bold">Standort hinzufügen</h3>
@@ -712,10 +763,10 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
             </div>
           )}
 
-          {/* All Users Modal */}
+          {/* All Users Modal - Fixed Mobile Positioning */}
           {showAllUsers && pendingPosition && (
-            <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-10">
-              <div className="bg-gray-900/98 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl max-w-sm w-full mx-4 max-h-[80vh] flex flex-col">
+            <div className="fixed inset-0 z-[2147483649] bg-black/80 flex items-end sm:items-center justify-center">
+              <div className="bg-gray-900/98 backdrop-blur-xl rounded-t-3xl sm:rounded-3xl border border-white/20 shadow-2xl w-full sm:max-w-sm sm:mx-4 max-h-[90vh] sm:max-h-[80vh] flex flex-col">
                 <div className="p-4 border-b border-white/10">
                   <div className="flex items-center justify-between">
                     <h3 className="text-white text-lg font-bold">Alle Nutzer</h3>

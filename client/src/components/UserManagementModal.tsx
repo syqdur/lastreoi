@@ -522,44 +522,56 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         console.log(`  👤 User: "${userName}", Device: "${deviceId}"`);
         deletedCount++;
         
-        // Delete from live_users collection
+        // Delete from gallery-scoped live_users collection
         const liveUsersQuery = query(
-          collection(db, 'live_users'),
+          collection(db, 'galleries', galleryId, 'live_users'),
           where('deviceId', '==', deviceId)
         );
         const liveUsersSnapshot = await getDocs(liveUsersQuery);
         liveUsersSnapshot.docs.forEach(doc => {
-          console.log(`🗑️ Deleting live_users entry: ${doc.id}`);
+          console.log(`🗑️ Deleting gallery live_users entry: ${doc.id}`);
           batch.delete(doc.ref);
         });
         
-        // Delete from userProfiles collection
+        // Delete from gallery-scoped userProfiles collection
         const profilesQuery = query(
-          collection(db, 'userProfiles'),
+          collection(db, 'galleries', galleryId, 'userProfiles'),
           where('userName', '==', userName),
           where('deviceId', '==', deviceId)
         );
         const profilesSnapshot = await getDocs(profilesQuery);
         console.log(`🗑️ Found ${profilesSnapshot.docs.length} profile entries for ${userName}`);
         profilesSnapshot.docs.forEach(doc => {
-          console.log(`🗑️ Deleting profile entry: ${doc.id}`);
+          console.log(`🗑️ Deleting gallery profile entry: ${doc.id}`);
           batch.delete(doc.ref);
         });
         
-        // Delete all user content
-        const mediaQuery = query(collection(db, 'media'), where('deviceId', '==', deviceId));
+        // Delete all user content from gallery-scoped collections
+        const mediaQuery = query(
+          collection(db, 'galleries', galleryId, 'media'), 
+          where('deviceId', '==', deviceId)
+        );
         const mediaSnapshot = await getDocs(mediaQuery);
         mediaSnapshot.docs.forEach(doc => batch.delete(doc.ref));
         
-        const commentsQuery = query(collection(db, 'comments'), where('deviceId', '==', deviceId));
+        const commentsQuery = query(
+          collection(db, 'galleries', galleryId, 'comments'), 
+          where('deviceId', '==', deviceId)
+        );
         const commentsSnapshot = await getDocs(commentsQuery);
         commentsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
         
-        const likesQuery = query(collection(db, 'likes'), where('deviceId', '==', deviceId));
+        const likesQuery = query(
+          collection(db, 'galleries', galleryId, 'likes'), 
+          where('deviceId', '==', deviceId)
+        );
         const likesSnapshot = await getDocs(likesQuery);
         likesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
         
-        const storiesQuery = query(collection(db, 'stories'), where('deviceId', '==', deviceId));
+        const storiesQuery = query(
+          collection(db, 'galleries', galleryId, 'stories'), 
+          where('deviceId', '==', deviceId)
+        );
         const storiesSnapshot = await getDocs(storiesQuery);
         storiesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
       }
