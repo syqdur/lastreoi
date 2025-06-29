@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, MoreHorizontal, Trash2, Edit3, AlertTriangle } from 'lucide-react';
-import { MediaItem, Comment, Like, MediaTag } from '../types';
-import { MediaTagging } from './MediaTagging';
+import { Heart, MessageCircle, MoreHorizontal, Trash2, Edit3, AlertTriangle, Users, Check } from 'lucide-react';
+import { MediaItem, Comment, Like } from '../types';
+import { MediaTag } from '../types/tagging';
+import { TaggableMedia } from './tagging/TaggableMedia';
 import { getMediaTags } from '../services/firebaseService';
 
 interface InstagramPostProps {
@@ -49,13 +50,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
   const [imageLoading, setImageLoading] = useState(true);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [editNoteText, setEditNoteText] = useState(item.noteText || '');
-  const [tags, setTags] = useState<MediaTag[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
-  
-  useEffect(() => {
-    const unsubscribe = getMediaTags(item.id, setTags);
-    return () => unsubscribe();
-  }, [item.id]);
 
   // Listen for profile picture updates
   useEffect(() => {
@@ -263,7 +258,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
           </div>
         </div>
 
-        {/* Media Content */}
+        {/* Media Content with Tagging */}
         <div className="relative mx-6 mb-4 rounded-2xl overflow-hidden">
           {item.type === 'video' ? (
           <video
@@ -326,30 +321,50 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                 loading="lazy"
               />
             )}
+
+            {/* Instagram-Style Tag Dots (placeholder for now) */}
+            <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="w-3 h-3 bg-white rounded-full border-2 border-white shadow-lg animate-ping opacity-75" />
+            </div>
           </div>
           )}
         </div>
 
-        {/* Media Tags - positioned below media */}
+        {/* Instagram-Style Tagging Controls */}
         <div className={`px-4 py-2 border-b transition-colors duration-300 ${
           isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'
         }`}>
-          <MediaTagging
-            mediaId={item.id}
-            tags={tags}
-            currentUser={userName}
-            currentDeviceId={getUserDeviceId ? getUserDeviceId() : ''}
-            isAdmin={isAdmin}
-            isDarkMode={isDarkMode}
-            onTagsUpdated={() => {
-              // Trigger a fresh subscription to reload tags
-            }}
-            getUserDisplayName={getUserDisplayName || ((name) => name)}
-            mediaUploader={item.uploadedBy}
-            mediaType={item.type}
-            mediaUrl={item.url}
-            galleryId={galleryId}
-          />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  isDarkMode 
+                    ? 'text-purple-400 hover:bg-purple-900/30' 
+                    : 'text-purple-600 hover:bg-purple-50'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                <span>Personen markieren</span>
+              </button>
+              
+              <div className={`text-xs px-2 py-1 rounded-full ${
+                isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600'
+              }`}>
+                0 Personen
+              </div>
+            </div>
+            
+            <button
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                isDarkMode 
+                  ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                  : 'bg-purple-500 text-white hover:bg-purple-600'
+              }`}
+            >
+              <Check className="w-4 h-4" />
+              <span>Fertig</span>
+            </button>
+          </div>
         </div>
 
         {/* Action Buttons */}

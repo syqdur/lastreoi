@@ -26,6 +26,7 @@ import { BackToTopButton } from './components/BackToTopButton';
 import { NotificationCenter } from './components/NotificationCenter';
 import { GalleryTutorial } from './components/GalleryTutorial';
 import { AdminTutorial } from './components/AdminTutorial';
+import { MediaTaggingModal } from './components/MediaTaggingModal';
 import { useUser } from './hooks/useUser';
 import { MediaItem, Comment, Like } from './types';
 import { Gallery, galleryService } from './services/galleryService';
@@ -129,6 +130,9 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   const [activeTab, setActiveTab] = useState<'gallery' | 'music' | 'timeline'>('gallery');
   const [showTutorial, setShowTutorial] = useState(false);
   const [showAdminTutorial, setShowAdminTutorial] = useState(false);
+  const [showTaggingModal, setShowTaggingModal] = useState(false);
+  const [pendingUploadFiles, setPendingUploadFiles] = useState<FileList | null>(null);
+  const [pendingUploadUrl, setPendingUploadUrl] = useState<string>('');
   
   // Reset state when gallery changes to fix data isolation
   useEffect(() => {
@@ -278,14 +282,28 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   }, [isAdmin, gallery.slug]);
 
   const handleUpload = async (files: FileList) => {
-    if (!userName) return;
+    if (!userName || !files || files.length === 0) return;
+
+    // Create preview URL for the first file to show in tagging modal
+    const firstFile = files[0];
+    const previewUrl = URL.createObjectURL(firstFile);
+    
+    setPendingUploadFiles(files);
+    setPendingUploadUrl(previewUrl);
+    setShowTaggingModal(true);
+  }
+
+  const handleTaggingConfirm = async (tags: any[]) => {
+    if (!pendingUploadFiles || !userName) return;
 
     setIsUploading(true);
     setUploadProgress(0);
     setStatus('⏳ Lädt hoch...');
+    setShowTaggingModal(false);
 
     try {
-      await uploadGalleryFiles(files, userName, deviceId, gallery.id, setUploadProgress);
+      // TODO: Pass tags to upload function when backend supports it
+      await uploadGalleryFiles(pendingUploadFiles, userName, deviceId, gallery.id, setUploadProgress);
       
       await createOrUpdateGalleryUserProfile(userName, deviceId, {}, gallery.id);
       
@@ -298,6 +316,22 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
+      setPendingUploadFiles(null);
+      setPendingUploadUrl('');
+      // Clean up the preview URL
+      if (pendingUploadUrl) {
+        URL.revokeObjectURL(pendingUploadUrl);
+      }
+    }
+  }
+
+  const handleTaggingCancel = () => {
+    setShowTaggingModal(false);
+    setPendingUploadFiles(null);
+    // Clean up the preview URL
+    if (pendingUploadUrl) {
+      URL.revokeObjectURL(pendingUploadUrl);
+      setPendingUploadUrl('');
     }
   };
 
@@ -1517,6 +1551,23 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         isDarkMode={isDarkMode}
         galleryTheme={gallery.theme || 'hochzeit'}
       />
+
+      {/* Media Tagging Modal */}
+      {showTaggingModal && pendingUploadUrl && (
+        <MediaTaggingModal
+          isOpen={showTaggingModal}
+          onClose={handleTaggingCancel}
+          onConfirm={handleTaggingConfirm}
+          mediaUrl={pendingUploadUrl}
+          mediaType={pendingUploadFiles?.[0]?.type.startsWith('video') ? 'video' : 'image'}
+          isDarkMode={isDarkMode}
+          galleryUsers={userProfiles.map(profile => ({
+            userName: profile.userName,
+            deviceId: profile.deviceId,
+            displayName: profile.displayName
+          }))}
+        />
+      )}
     </div>
   );
 };
