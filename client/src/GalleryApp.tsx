@@ -118,6 +118,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
   const [galleryProfileData, setGalleryProfileData] = useState<any>(null);
+  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const [galleryUsers, setGalleryUsers] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -832,18 +833,9 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
 
   // Load gallery profile data from Firebase for current gallery
   useEffect(() => {
-    // Set immediate default profile to prevent loading state flash
-    const immediateDefaultProfile = {
-      name: gallery.eventName,
-      bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-      countdownDate: null, // Disabled by default
-      countdownEndMessage: 'Der große Tag ist da! 🎉',
-      countdownMessageDismissed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    setGalleryProfileData(immediateDefaultProfile);
-
+    // Reset loading state when gallery changes
+    setProfileDataLoaded(false);
+    
     const loadGalleryProfile = async () => {
       try {
         console.log('🔄 Loading gallery profile for:', gallery.id);
@@ -855,19 +847,47 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         if (profileDoc.exists()) {
           const firebaseData = profileDoc.data();
           console.log('✅ Gallery profile loaded from Firebase:', firebaseData);
-          console.log('🔄 Applying Firebase profile data immediately');
+          console.log('🔍 Current gallery name:', gallery.eventName);
+          console.log('🔍 Firebase profile name:', firebaseData.name);
+          
+          // Always apply Firebase data if it exists - this contains customized gallery settings
+          // The Firebase data represents the actual configured profile from admin panel
+          console.log('🔄 Applying customized Firebase profile data from Gallery Settings');
           setGalleryProfileData(firebaseData);
+          setProfileDataLoaded(true);
         } else {
-          console.log('📝 No Firebase profile found, keeping default gallery profile');
-          // Keep the default profile we already set
+          console.log('📝 No Firebase profile found, creating default gallery profile');
+          // Create default profile if none exists
+          const defaultProfile = {
+            name: gallery.eventName,
+            bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+            countdownDate: null, // Disabled by default
+            countdownEndMessage: 'Der große Tag ist da! 🎉',
+            countdownMessageDismissed: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          setGalleryProfileData(defaultProfile);
+          setProfileDataLoaded(true);
         }
       } catch (error) {
         console.error('❌ Error loading gallery profile:', error);
-        // Keep the default profile we already set on error
+        // Set default profile on error
+        const defaultProfile = {
+          name: gallery.eventName,
+          bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+          countdownDate: null,
+          countdownEndMessage: 'Der große Tag ist da! 🎉',
+          countdownMessageDismissed: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setGalleryProfileData(defaultProfile);
+        setProfileDataLoaded(true);
       }
     };
 
-    // Load Firebase profile after setting default
+    // Load Firebase profile immediately without setting default first
     loadGalleryProfile();
   }, [gallery.id, gallery.eventName, gallery.eventDate]);
 
@@ -1199,20 +1219,22 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
       </div>
 
       <div className="max-w-md mx-auto px-2 sm:px-0">
-        {/* Profile Header */}
-        <ProfileHeader
-          isDarkMode={isDarkMode}
-          isAdmin={isAdmin}
-          userName={userName || undefined}
-          mediaItems={mediaItems}
-          onToggleAdmin={setIsAdmin}
-          currentUserProfile={currentUserProfile}
-          onOpenUserProfile={() => setShowUserProfileModal(true)}
-          showTopBarControls={false}
-          galleryProfileData={galleryProfileData}
-          onEditGalleryProfile={() => setShowProfileEditModal(true)}
-          gallery={gallery}
-        />
+        {/* Profile Header - Only show when profile data is loaded */}
+        {profileDataLoaded && (
+          <ProfileHeader
+            isDarkMode={isDarkMode}
+            isAdmin={isAdmin}
+            userName={userName || undefined}
+            mediaItems={mediaItems}
+            onToggleAdmin={setIsAdmin}
+            currentUserProfile={currentUserProfile}
+            onOpenUserProfile={() => setShowUserProfileModal(true)}
+            showTopBarControls={false}
+            galleryProfileData={galleryProfileData}
+            onEditGalleryProfile={() => setShowProfileEditModal(true)}
+            gallery={gallery}
+          />
+        )}
 
         
         {/* Stories Bar */}
@@ -1220,6 +1242,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           <StoriesBar
             stories={stories}
             currentUser={userName || ''}
+            deviceId={deviceId}
             onAddStory={() => setShowStoryUpload(true)}
             onViewStory={handleViewStory}
             isDarkMode={isDarkMode}

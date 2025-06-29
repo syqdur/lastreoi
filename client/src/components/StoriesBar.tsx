@@ -5,6 +5,7 @@ import { Story } from '../services/liveService';
 interface StoriesBarProps {
   stories: Story[];
   currentUser: string;
+  deviceId: string;
   onAddStory: () => void;
   onViewStory: (storyIndex: number) => void;
   isDarkMode: boolean;
@@ -14,6 +15,7 @@ interface StoriesBarProps {
 export const StoriesBar: React.FC<StoriesBarProps> = ({
   stories,
   currentUser,
+  deviceId,
   onAddStory,
   onViewStory,
   isDarkMode,
@@ -24,17 +26,8 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({
   if (!storiesEnabled) {
     return null;
   }
-  console.log(`📱 === STORIES BAR RENDER ===`);
-  console.log(`📊 Total stories: ${stories.length}`);
-  console.log(`👤 Current user: ${currentUser}`);
-  
-  // 🔧 FIX: Add more detailed debugging
-  if (stories.length > 0) {
-    console.log(`📋 Stories details:`);
-    stories.forEach((story, index) => {
-      console.log(`  ${index + 1}. ID: ${story.id}, User: ${story.userName}, Type: ${story.mediaType}, Created: ${story.createdAt}`);
-    });
-  }
+  // Removed excessive logging for cleaner console output
+  // Stories processing (logging removed for cleaner console)
   
   // Group stories by user
   const groupedStories = stories.reduce((acc, story) => {
@@ -45,15 +38,13 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({
     return acc;
   }, {} as Record<string, Story[]>);
 
-  console.log(`👥 Grouped stories:`, Object.keys(groupedStories).map(user => `${user}: ${groupedStories[user].length}`));
-
   // Get unique users with their latest story
   const userStories = Object.entries(groupedStories).map(([userName, userStoriesArray]) => ({
     userName,
     stories: userStoriesArray,
     latestStory: userStoriesArray[userStoriesArray.length - 1],
-    // 🎯 NEW: Check if user has viewed ALL stories from this user
-    hasUnviewed: userStoriesArray.some(story => !story.views.includes(currentUser))
+    // ✅ FIXED: Check if user has viewed ALL stories from this user using deviceId
+    hasUnviewed: userStoriesArray.some(story => !story.views.includes(deviceId))
   }));
 
   // Sort: current user first, then by latest story time
@@ -62,8 +53,6 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({
     if (b.userName === currentUser) return 1;
     return new Date(b.latestStory.createdAt).getTime() - new Date(a.latestStory.createdAt).getTime();
   });
-
-  console.log(`📋 User stories sorted:`, userStories.map(us => `${us.userName} (${us.stories.length} stories, unviewed: ${us.hasUnviewed})`));
 
   const getAvatarUrl = (username: string) => {
     const weddingAvatars = [
