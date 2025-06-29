@@ -23,7 +23,7 @@ interface GalleryUser {
   profilePicture?: string;
 }
 
-interface MediaTaggingModalProps {
+interface InstagramTaggingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (tags: MediaTag[]) => void;
@@ -173,7 +173,7 @@ const SearchPopup: React.FC<SearchPopupProps> = ({
   );
 };
 
-export const MediaTaggingModal: React.FC<MediaTaggingModalProps> = ({
+export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
@@ -233,8 +233,8 @@ export const MediaTaggingModal: React.FC<MediaTaggingModalProps> = ({
   const personTags = tags.filter(tag => tag.type === 'person') as PersonTag[];
 
   return (
-    <div className="fixed inset-0 z-[2147483646] bg-black/90 flex items-center justify-center p-4">
-      <div className="relative w-full h-full max-w-4xl max-h-[90vh] mx-auto flex flex-col bg-black rounded-lg overflow-hidden">
+    <div className="fixed inset-0 z-[2147483646] bg-black/90 flex items-center justify-center">
+      <div className="relative w-full h-full max-w-md mx-auto flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 text-white">
           <button
@@ -253,14 +253,13 @@ export const MediaTaggingModal: React.FC<MediaTaggingModalProps> = ({
         </div>
 
         {/* Media Container */}
-        <div className="flex-1 flex items-center justify-center p-4 min-h-0">
+        <div className="flex-1 flex items-center justify-center p-4">
           <div
             ref={mediaRef}
             className={`relative max-w-full max-h-full rounded-lg overflow-hidden ${
               isTagMode ? 'cursor-crosshair' : 'cursor-default'
             }`}
             onClick={handleMediaClick}
-            style={{ maxHeight: '60vh' }}
           >
             {mediaType === 'image' ? (
               <img
@@ -268,7 +267,6 @@ export const MediaTaggingModal: React.FC<MediaTaggingModalProps> = ({
                 alt="Media zum Markieren"
                 className="max-w-full max-h-full object-contain select-none"
                 draggable={false}
-                style={{ maxHeight: '60vh' }}
               />
             ) : (
               <video
@@ -277,7 +275,6 @@ export const MediaTaggingModal: React.FC<MediaTaggingModalProps> = ({
                 controls={!isTagMode}
                 playsInline
                 muted
-                style={{ maxHeight: '60vh' }}
               />
             )}
 
@@ -326,43 +323,36 @@ export const MediaTaggingModal: React.FC<MediaTaggingModalProps> = ({
         </div>
 
         {/* Bottom Controls */}
-        <div className="flex-shrink-0 p-3 space-y-2 bg-black/80 border-t border-white/10">
+        <div className="p-4 space-y-3">
           {/* Tag Mode Toggle */}
           <button
             onClick={() => setIsTagMode(!isTagMode)}
-            className={`w-full flex items-center justify-center space-x-2 py-2.5 rounded-lg font-medium transition-colors ${
+            className={`w-full flex items-center justify-center space-x-2 py-3 rounded-xl font-medium transition-colors ${
               isTagMode
                 ? 'bg-blue-600 text-white'
                 : 'bg-white/10 text-white hover:bg-white/20'
             }`}
           >
-            <Users className="w-4 h-4" />
-            <span className="text-sm">{isTagMode ? 'Tagging aktiv' : 'Personen markieren'}</span>
+            <Users className="w-5 h-5" />
+            <span>{isTagMode ? 'Tagging-Modus aktiv' : 'Personen markieren'}</span>
           </button>
 
-          {/* Tag Info Row */}
-          <div className="flex items-center justify-between">
-            {/* Tag Counter */}
-            {personTags.length > 0 ? (
-              <div className="text-white/80 text-xs">
-                {personTags.length} {personTags.length === 1 ? 'Person' : 'Personen'} markiert
-              </div>
-            ) : (
-              <div className="text-white/60 text-xs">
-                {isTagMode ? 'Foto antippen zum Markieren' : 'Keine Markierungen'}
-              </div>
-            )}
+          {/* Tag Counter */}
+          {personTags.length > 0 && (
+            <div className="text-center text-white/80 text-sm">
+              {personTags.length} {personTags.length === 1 ? 'Person' : 'Personen'} markiert
+            </div>
+          )}
 
-            {/* Clear All Tags */}
-            {tags.length > 0 && (
-              <button
-                onClick={() => setTags([])}
-                className="text-white/60 hover:text-white text-xs transition-colors"
-              >
-                Alle entfernen
-              </button>
-            )}
-          </div>
+          {/* Clear All Tags */}
+          {tags.length > 0 && (
+            <button
+              onClick={() => setTags([])}
+              className="w-full py-2 text-white/60 hover:text-white text-sm transition-colors"
+            >
+              Alle Markierungen entfernen
+            </button>
+          )}
         </div>
       </div>
     </div>

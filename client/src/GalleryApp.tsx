@@ -82,7 +82,8 @@ import {
   subscribeAllGalleryStories,
   markGalleryStoryAsViewed,
   deleteGalleryStory,
-  cleanupExpiredGalleryStories
+  cleanupExpiredGalleryStories,
+  getGalleryUsers
 } from './services/galleryFirebaseService';
 
 interface GalleryAppProps {
@@ -118,6 +119,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
   const [galleryProfileData, setGalleryProfileData] = useState<any>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
+  const [galleryUsers, setGalleryUsers] = useState<any[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [status, setStatus] = useState('');
@@ -253,6 +255,18 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     const unsubscribeLikes = loadGalleryLikes(gallery.id, setLikes);
     const unsubscribeUserProfiles = loadGalleryUserProfiles(gallery.id, setUserProfiles);
 
+    // Load gallery users for tagging
+    const loadUsers = async () => {
+      try {
+        const users = await getGalleryUsers(gallery.id);
+        setGalleryUsers(users);
+      } catch (error) {
+        console.error('Error loading gallery users:', error);
+      }
+    };
+
+    loadUsers();
+
     return () => {
       unsubscribeGallery();
       unsubscribeComments();
@@ -302,8 +316,8 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     setShowTaggingModal(false);
 
     try {
-      // TODO: Pass tags to upload function when backend supports it
-      await uploadGalleryFiles(pendingUploadFiles, userName, deviceId, gallery.id, setUploadProgress);
+      // Pass tags to upload function
+      await uploadGalleryFiles(pendingUploadFiles, userName, deviceId, gallery.id, setUploadProgress, tags);
       
       await createOrUpdateGalleryUserProfile(userName, deviceId, {}, gallery.id);
       
@@ -1561,11 +1575,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
           mediaUrl={pendingUploadUrl}
           mediaType={pendingUploadFiles?.[0]?.type.startsWith('video') ? 'video' : 'image'}
           isDarkMode={isDarkMode}
-          galleryUsers={userProfiles.map(profile => ({
-            userName: profile.userName,
-            deviceId: profile.deviceId,
-            displayName: profile.displayName
-          }))}
+          galleryUsers={galleryUsers}
         />
       )}
     </div>

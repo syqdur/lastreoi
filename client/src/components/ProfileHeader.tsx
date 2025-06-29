@@ -43,18 +43,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   } | null>(null);
   const [countdownEnded, setCountdownEnded] = useState(false);
 
-  // Prevent showing old data by only using profileData when it's actually loaded
-  const profileData = galleryProfileData && gallery ? galleryProfileData : null;
-  
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-  // Always show content - use gallery data as fallback if profileData is loading
-  const displayData = profileData || {
-    name: gallery?.eventName || 'Gallery',
-    bio: gallery?.description || '',
+  // Use galleryProfileData directly since it's preloaded with current data in GalleryApp
+  // No fallback to old gallery creation data to prevent data flashing
+  const displayData = galleryProfileData || {
+    name: 'Galerie wird geladen...',
+    bio: 'Lade aktuelle Daten...',
     profilePicture: null,
-    countdownDate: gallery?.eventDate || null
+    countdownDate: null
   };
 
   // Countdown timer effect with memoized calculation
@@ -388,7 +386,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           )}
 
           {/* Countdown End Message */}
-          {countdownEnded && profileData?.countdownEndMessage && !profileData?.countdownMessageDismissed && (
+          {countdownEnded && displayData?.countdownEndMessage && !displayData?.countdownMessageDismissed && (
             <div className={`mt-4 p-4 rounded-xl border-2 transition-colors duration-300 animate-pulse relative ${
               isDarkMode ? 'bg-pink-900/30 border-pink-500/50' : 'bg-pink-50 border-pink-300'
             }`}>
@@ -397,7 +395,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <p className={`text-lg font-semibold transition-colors duration-300 ${
                   isDarkMode ? 'text-pink-300' : 'text-pink-700'
                 }`}>
-                  {profileData.countdownEndMessage}
+                  {displayData.countdownEndMessage}
                 </p>
               </div>
             </div>

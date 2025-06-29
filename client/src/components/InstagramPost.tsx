@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, MoreHorizontal, Trash2, Edit3, AlertTriangle, Users, Check } from 'lucide-react';
-import { MediaItem, Comment, Like } from '../types';
-import { MediaTag } from '../types/tagging';
-import { TaggableMedia } from './tagging/TaggableMedia';
-import { getMediaTags } from '../services/firebaseService';
+import { MediaItem, Comment, Like, PersonTag } from '../types';
 
 interface InstagramPostProps {
   item: MediaItem;
@@ -322,10 +319,27 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
               />
             )}
 
-            {/* Instagram-Style Tag Dots (placeholder for now) */}
-            <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="w-3 h-3 bg-white rounded-full border-2 border-white shadow-lg animate-ping opacity-75" />
-            </div>
+            {/* Instagram-Style Tag Dots */}
+            {item.tags && item.tags.length > 0 && item.tags.map((tag) => (
+              <div
+                key={tag.id}
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
+                style={{
+                  left: `${tag.position?.x || 50}%`,
+                  top: `${tag.position?.y || 50}%`
+                }}
+              >
+                {/* Tag Dot */}
+                <div className="w-6 h-6 bg-white rounded-full border-2 border-white shadow-lg animate-pulse" />
+                
+                {/* Tag Label */}
+                <div className={`absolute mt-2 px-3 py-1 bg-black/80 text-white text-xs rounded-full whitespace-nowrap transform -translate-x-1/2 ${
+                  (tag.position?.y || 50) > 80 ? 'bottom-8' : 'top-8'
+                }`}>
+                  {getUserDisplayName ? getUserDisplayName(tag.userName, tag.deviceId) : tag.userName}
+                </div>
+              </div>
+            ))}
           </div>
           )}
         </div>
@@ -350,7 +364,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
               <div className={`text-xs px-2 py-1 rounded-full ${
                 isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600'
               }`}>
-                0 Personen
+                {item.tags?.length || 0} {(item.tags?.length || 0) === 1 ? 'Person' : 'Personen'}
               </div>
             </div>
             

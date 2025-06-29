@@ -77,6 +77,7 @@ export const loadGalleryMedia = (
         type: data.type,
         noteText: data.noteText,
         note: data.note,
+        tags: data.tags || [], // Include tags field
         isUnavailable: !url && data.type !== 'note'
       };
       
@@ -93,7 +94,8 @@ export const uploadGalleryFiles = async (
   userName: string, 
   deviceId: string,
   galleryId: string,
-  onProgress: (progress: number) => void
+  onProgress: (progress: number) => void,
+  tags?: any[]
 ): Promise<void> => {
   let uploaded = 0;
   
@@ -181,6 +183,7 @@ export const uploadGalleryFiles = async (
       mediaUrl: mediaUrl,
       size: file.size,
       mimeType: file.type,
+      tags: tags || [], // Add tags field
       ...(storageFileName && { fileName: storageFileName }) // Store Firebase Storage path for videos
     });
     

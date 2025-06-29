@@ -9,8 +9,21 @@ export interface MediaItem {
   noteText?: string;
   note?: string; // Legacy support
   isUnavailable?: boolean;
-  tags?: MediaTag[]; // Tagged users in this media
+  tags?: PersonTag[]; // Tagged users in this media (Instagram-style tags)
   location?: LocationTag; // Geographic location where media was taken
+}
+
+// Instagram-style person tag with position
+export interface PersonTag {
+  id: string;
+  type: 'person';
+  position?: {
+    x: number; // percentage 0-100
+    y: number; // percentage 0-100
+  };
+  userName: string;
+  deviceId?: string;
+  displayName?: string;
 }
 
 export interface LocationTag {
