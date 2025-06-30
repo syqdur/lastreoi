@@ -87,9 +87,9 @@ This is a comprehensive wedding gallery application with the following architect
 
 ## Recent Changes
 
-### June 30, 2025 (Replit Migration Complete & User Registration Fixed - FINAL)
+### June 30, 2025 (Replit Migration Complete & Gallery Creator Flow Fixed - FINAL)
 - **Replit Agent Migration Successfully Completed**: Successfully migrated complete wedding gallery platform from Replit Agent to Replit environment with all core functionality preserved and enhanced
-- **User Registration Flow Fixed**: Fixed critical issue where new visitors weren't being properly registered in gallery-scoped Firebase collections - enhanced UserNamePrompt onSubmit handler to immediately register users in both userProfiles and live_users collections for proper gallery isolation
+- **Gallery Creator Flow Fixed**: Fixed gallery creation workflow so creators first complete visitor registration (profile picture and name setup) as normal users, then are prompted for admin credentials setup - ensures proper user registration flow while maintaining gallery ownership
 - **Gallery Isolation Enhanced**: Ensured complete data isolation between galleries by implementing robust gallery-scoped user registration that creates entries in galleries/{galleryId}/userProfiles and galleries/{galleryId}/live_users collections immediately upon visitor registration
 - **Profile Picture Registration Fixed**: Fixed profile picture upload and registration during initial user setup - profile pictures now properly save and sync across gallery components during first-time visitor registration
 - **Real-time User Synchronization**: Enhanced user profile synchronization to immediately update userProfiles state and gallery users list after new visitor registration, ensuring new users appear instantly in tagging systems and user management

@@ -585,6 +585,69 @@ export const createOrUpdateGalleryUserProfile = async (
     const cleanedProfileData = Object.fromEntries(
       Object.entries(profileData).filter(([_, value]) => value !== undefined)
     );
+
+    // Compress profile picture if it exists and is too large
+    if (cleanedProfileData.profilePicture && typeof cleanedProfileData.profilePicture === 'string') {
+      const sizeKB = Math.round(cleanedProfileData.profilePicture.length / 1024);
+      console.log(`📸 Profile picture size: ${sizeKB}KB`);
+      
+      // Firebase has a 1MB limit per field, target 700KB to be safe
+      if (cleanedProfileData.profilePicture.length > 700000) {
+        console.log('🗜️ Profile picture too large, compressing...');
+        try {
+          // Convert base64 to blob for compression
+          const response = await fetch(cleanedProfileData.profilePicture);
+          const blob = await response.blob();
+          
+          // Create a simple compression function
+          const compressedBase64 = await new Promise<string>((resolve, reject) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+              // Calculate new dimensions (max 300px)
+              const maxSize = 300;
+              const { width, height } = img;
+              const ratio = Math.min(maxSize / width, maxSize / height);
+              const newWidth = width * ratio;
+              const newHeight = height * ratio;
+              
+              canvas.width = newWidth;
+              canvas.height = newHeight;
+              ctx?.drawImage(img, 0, 0, newWidth, newHeight);
+              
+              // Progressive compression
+              let quality = 0.5;
+              const tryCompress = () => {
+                const compressed = canvas.toDataURL('image/jpeg', quality);
+                const compressedSizeKB = Math.round(compressed.length / 1024);
+                console.log(`🗜️ Compressed to ${compressedSizeKB}KB (quality: ${quality.toFixed(2)})`);
+                
+                if (compressed.length <= 700000 || quality <= 0.1) {
+                  resolve(compressed);
+                } else {
+                  quality *= 0.7;
+                  tryCompress();
+                }
+              };
+              tryCompress();
+            };
+            
+            img.onerror = () => reject(new Error('Compression failed'));
+            img.src = cleanedProfileData.profilePicture;
+          });
+          
+          cleanedProfileData.profilePicture = compressedBase64;
+          const finalSizeKB = Math.round(compressedBase64.length / 1024);
+          console.log(`✅ Profile picture compressed to ${finalSizeKB}KB`);
+        } catch (error) {
+          console.error('❌ Profile picture compression failed:', error);
+          // Remove the profile picture if compression fails to prevent Firebase errors
+          delete cleanedProfileData.profilePicture;
+        }
+      }
+    }
     
     const updatedData = {
       userName,

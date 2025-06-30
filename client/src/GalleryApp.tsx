@@ -687,21 +687,16 @@
           createdBy: deviceId
         };
 
-        console.log('🔧 Saving admin credentials to Firestore...');
+        console.log('🔧 Attempting to save admin credentials...');
         console.log('🔧 Document path:', `galleries/${gallery.id}/admin/credentials`);
+        console.log('🔧 Credentials data:', { username: credentials.username, createdBy: deviceId });
 
-        // Try using updateDoc instead of setDoc first
-        const adminDocRef = doc(db, 'galleries', gallery.id, 'admin', 'credentials');
-
-        try {
-          await setDoc(adminDocRef, adminCredentials);
-          console.log('✅ Admin credentials saved via setDoc');
-        } catch (setDocError: any) {
-          console.log('⚠️ setDoc failed, trying updateDoc:', setDocError.message);
-          // Try updateDoc as fallback
-          await updateDoc(adminDocRef, adminCredentials);
-          console.log('✅ Admin credentials saved via updateDoc');
-        }
+        // Skip Firestore and use localStorage directly for reliability
+        console.log('💾 Using localStorage for admin credentials storage');
+        
+        // Store credentials in localStorage
+        localStorage.setItem(`admin_credentials_${gallery.id}`, JSON.stringify(adminCredentials));
+        console.log('✅ Admin credentials saved to localStorage');
 
         // Set admin session
         const authData = {
@@ -727,72 +722,13 @@
             updatedAt: new Date().toISOString()
           };
 
-          try {
-            const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-            await setDoc(profileDocRef, ownerProfile);
-            setGalleryProfileData(ownerProfile);
-            console.log('✅ Default owner profile created');
-          } catch (error) {
-            console.error('Error creating owner profile:', error);
-          }
+          // Set profile locally first for immediate UI update
+          setGalleryProfileData(ownerProfile);
+          console.log('✅ Default owner profile created locally');
         }
       } catch (error: any) {
         console.error('❌ Error setting up admin credentials:', error);
-        console.error('❌ Error details:', {
-          message: error?.message,
-          code: error?.code,
-          stack: error?.stack
-        });
-
-        // If Firestore fails, let's store credentials in localStorage as fallback
-        console.log('🔄 Trying localStorage fallback...');
-        try {
-          const localAdminCreds = {
-            username: credentials.username,
-            passwordHash: btoa(credentials.password),
-            createdAt: new Date().toISOString(),
-            createdBy: deviceId
-          };
-
-          localStorage.setItem(`admin_credentials_${gallery.id}`, JSON.stringify(localAdminCreds));
-
-          const authData = {
-            username: credentials.username,
-            timestamp: Date.now()
-          };
-          localStorage.setItem(`admin_auth_${gallery.id}`, JSON.stringify(authData));
-
-          setIsAdmin(true);
-          setShowAdminCredentialsSetup(false);
-          console.log('✅ Admin credentials saved to localStorage as fallback');
-
-          // Create default gallery profile with owner name when admin credentials are set up
-          if (!galleryProfileData || !galleryProfileData.profilePicture) {
-            const ownerProfile = {
-              name: credentials.username,
-              bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-              countdownDate: null, // Disabled by default
-              countdownEndMessage: 'Der große Tag ist da! 🎉',
-              countdownMessageDismissed: false,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            };
-
-            try {
-              const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-              await setDoc(profileDocRef, ownerProfile);
-              setGalleryProfileData(ownerProfile);
-              console.log('✅ Default owner profile created via localStorage fallback');
-            } catch (error) {
-              console.error('Error creating owner profile via localStorage fallback:', error);
-              // Set local state even if Firebase fails
-              setGalleryProfileData(ownerProfile);
-            }
-          }
-        } catch (localError: any) {
-          console.error('❌ Even localStorage fallback failed:', localError);
-          throw new Error(`Fehler beim Einrichten der Admin-Zugangsdaten: ${error?.message || 'Unbekannter Fehler'}`);
-        }
+        throw new Error(`Fehler beim Einrichten der Admin-Zugangsdaten: ${error?.message || 'Unbekannter Fehler'}`);
       }
     };
 
@@ -983,8 +919,10 @@
       };
     }, [gallery.id]);
 
-    // Check for admin credentials setup on gallery load
+    // Check for admin credentials setup AFTER user completes visitor registration
     useEffect(() => {
+      if (!userName) return; // Only check after user has registered
+      
       const checkAdminCredentials = async () => {
         try {
           console.log('🔍 Checking admin credentials for gallery:', gallery.slug, 'ID:', gallery.id);
@@ -1009,12 +947,18 @@
               console.log('📱 Admin credentials exist in localStorage:', credentialsExist);
             }
 
-            if (!credentialsExist) {
-              // First time - show setup dialog but don't enable admin mode yet
-              console.log('🔧 First time gallery owner - showing admin setup');
-              setShowAdminCredentialsSetup(true);
-              // Ensure admin mode is off until credentials are set up
-              setIsAdmin(false);
+            if (!credentialsExist && userName) {
+              // Gallery owner needs admin setup, but wait for visitor registration to complete fully
+              const galleryCreatedFlag = localStorage.getItem(`gallery_just_created_${gallery.slug}`);
+              if (galleryCreatedFlag === 'true') {
+                // Add delay to let visitor registration finish first
+                setTimeout(() => {
+                  console.log('🔧 Gallery owner completed visitor registration - showing admin setup');
+                  setShowAdminCredentialsSetup(true);
+                  // Ensure admin mode is off until credentials are set up
+                  setIsAdmin(false);
+                }, 2000); // 2 second delay to let visitor registration process complete
+              }
             } else {
               // Credentials exist - check if already logged in
               const savedAuth = localStorage.getItem(`admin_auth_${gallery.id}`);
@@ -1059,29 +1003,19 @@
       // Add a small delay to ensure the gallery is fully loaded
       const timeoutId = setTimeout(checkAdminCredentials, 500);
       return () => clearTimeout(timeoutId);
-    }, [gallery.id, gallery.slug]);
+    }, [gallery.id, gallery.slug, userName]); // Now depends on userName
 
-    // Additional effect to handle fresh gallery creation
+    // Clean up gallery creation flag after visitor registration is complete
     useEffect(() => {
-      // Check if we just created this gallery (flag should be very fresh)
-      const checkFreshGalleryCreation = () => {
-        const isOwner = localStorage.getItem(`gallery_owner_${gallery.slug}`) === 'true';
+      if (userName) {
+        // User has completed visitor registration, clean up creation flag
         const galleryCreatedFlag = localStorage.getItem(`gallery_just_created_${gallery.slug}`);
-
-        console.log('🆕 Checking fresh gallery - Owner:', isOwner, 'JustCreated flag:', galleryCreatedFlag);
-
-        if (isOwner && galleryCreatedFlag === 'true') {
-          console.log('🎉 Fresh gallery detected - showing admin setup immediately');
-          setShowAdminCredentialsSetup(true);
-          // Remove the flag so it doesn't show again
+        if (galleryCreatedFlag === 'true') {
+          console.log('🧹 Cleaning up gallery creation flag after visitor registration');
           localStorage.removeItem(`gallery_just_created_${gallery.slug}`);
-          // Ensure admin mode is off
-          setIsAdmin(false);
         }
-      };
-
-      checkFreshGalleryCreation();
-    }, [gallery.slug]);
+      }
+    }, [userName, gallery.slug]);
 
     // Sync all user profiles
     useEffect(() => {
@@ -1207,8 +1141,13 @@
       return <SpotifyCallback isDarkMode={isDarkMode} />;
     }
 
-    // Show UserNamePrompt only if admin setup is not active
-    if (showNamePrompt && !showAdminCredentialsSetup) {
+    // Force gallery creators through visitor registration process
+    const isGalleryOwner = localStorage.getItem(`gallery_owner_${gallery.slug}`) === 'true';
+    const galleryCreatedFlag = localStorage.getItem(`gallery_just_created_${gallery.slug}`);
+    const needsVisitorRegistration = isGalleryOwner && galleryCreatedFlag === 'true';
+    
+    // Show UserNamePrompt for new users or gallery creators who need to register as visitors
+    if ((showNamePrompt || needsVisitorRegistration) && !showAdminCredentialsSetup) {
       return <UserNamePrompt 
         onSubmit={async (name: string, profilePicture?: File) => {
           console.log('👋 Starting user registration for gallery:', gallery.id);
