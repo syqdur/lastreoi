@@ -1207,10 +1207,71 @@
       return <SpotifyCallback isDarkMode={isDarkMode} />;
     }
 
-    if (showNamePrompt) {
+    // Show UserNamePrompt only if admin setup is not active
+    if (showNamePrompt && !showAdminCredentialsSetup) {
       return <UserNamePrompt 
-        onSubmit={(name: string, profilePicture?: File) => {
+        onSubmit={async (name: string, profilePicture?: File) => {
+          console.log('👋 Starting user registration for gallery:', gallery.id);
+          
+          // Set user name first (this triggers the useUser hook)
           setUserName(name, profilePicture);
+          
+          // Immediately register user in gallery-scoped collections
+          try {
+            const currentDeviceId = getDeviceId();
+            console.log('📝 Registering user in gallery collections:', { name, deviceId: currentDeviceId, galleryId: gallery.id });
+            
+            // Create user profile in gallery-specific collection
+            let newProfile;
+            if (profilePicture && profilePicture instanceof File) {
+              console.log('🖼️ Uploading profile picture for new user');
+              const profilePictureUrl = await uploadGalleryUserProfilePicture(profilePicture, name, currentDeviceId, gallery.id);
+              newProfile = await createOrUpdateGalleryUserProfile(name, currentDeviceId, {
+                displayName: name,
+                profilePicture: profilePictureUrl
+              }, gallery.id);
+            } else {
+              newProfile = await createOrUpdateGalleryUserProfile(name, currentDeviceId, {
+                displayName: name
+              }, gallery.id);
+            }
+            
+            // Register in live_users collection for gallery
+            const userDocRef = doc(db, 'galleries', gallery.id, 'live_users', currentDeviceId);
+            await setDoc(userDocRef, {
+              userName: name,
+              deviceId: currentDeviceId,
+              lastSeen: new Date().toISOString(),
+              isActive: true,
+              connectedAt: new Date().toISOString()
+            });
+            
+            console.log('✅ User successfully registered in gallery:', gallery.id);
+            
+            // Trigger user profiles refresh
+            setCurrentUserProfile(newProfile);
+            setUserProfiles(prev => {
+              const index = prev.findIndex(p => p.userName === name && p.deviceId === currentDeviceId);
+              if (index >= 0) {
+                const updated = [...prev];
+                updated[index] = newProfile;
+                return updated;
+              } else {
+                return [...prev, newProfile];
+              }
+            });
+            
+            // Refresh gallery users for tagging
+            try {
+              const users = await getGalleryUsers(gallery.id);
+              setGalleryUsers(users);
+            } catch (error) {
+              console.error('Error refreshing gallery users:', error);
+            }
+            
+          } catch (error) {
+            console.error('❌ Error during user registration:', error);
+          }
         }} 
         isDarkMode={isDarkMode} 
         galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}

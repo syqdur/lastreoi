@@ -88,6 +88,15 @@ This is a comprehensive wedding gallery application with the following architect
 ## Recent Changes
 
 ### June 30, 2025 (Replit Migration Complete & User Registration Fixed - FINAL)
+- **Replit Agent Migration Successfully Completed**: Successfully migrated complete wedding gallery platform from Replit Agent to Replit environment with all core functionality preserved and enhanced
+- **User Registration Flow Fixed**: Fixed critical issue where new visitors weren't being properly registered in gallery-scoped Firebase collections - enhanced UserNamePrompt onSubmit handler to immediately register users in both userProfiles and live_users collections for proper gallery isolation
+- **Gallery Isolation Enhanced**: Ensured complete data isolation between galleries by implementing robust gallery-scoped user registration that creates entries in galleries/{galleryId}/userProfiles and galleries/{galleryId}/live_users collections immediately upon visitor registration
+- **Profile Picture Registration Fixed**: Fixed profile picture upload and registration during initial user setup - profile pictures now properly save and sync across gallery components during first-time visitor registration
+- **Real-time User Synchronization**: Enhanced user profile synchronization to immediately update userProfiles state and gallery users list after new visitor registration, ensuring new users appear instantly in tagging systems and user management
+- **Migration Verification Complete**: Confirmed all features working correctly including gallery creation, profile management, admin controls, real-time users, Firebase integration, user registration flow, and complete gallery isolation system
+- **Landing Page Cleanup**: Removed "Galerie erstellen" and "Anmelden" buttons from landing page per user request for cleaner interface
+- **New Logo Integration**: Added updated Telya logo with pink heart camera icon to landing page hero section, positioned prominently above main messaging
+- **Pricing Section Redesign**: Updated pricing plans to match landing page glassmorphism style with transparent backgrounds, backdrop blur effects, white text with drop shadows, and consistent Apple SF Pro typography
 - **Migration from Replit Agent Complete**: Successfully completed final migration from Replit Agent to Replit environment with all core functionality preserved
 - **QueryClient Provider Fixed**: Resolved React Query "No QueryClient set" error by properly configuring QueryClientProvider in App.tsx with imported queryClient instance
 - **Pricing Logic Implementation**: Fixed gallery creation pricing workflow to properly validate plan selection (Free/Basic/Pro) before allowing gallery creation

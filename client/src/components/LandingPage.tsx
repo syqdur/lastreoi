@@ -421,16 +421,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRoo
           {/* Logo */}
           <div className="mb-12">
             <img 
-              src="/attached_assets/ChatGPT Image 29. Juni 2025, 11_02_34_1751211059760.png" 
-              alt="EventPix Logo" 
-              className="mx-auto h-24 w-auto opacity-90 drop-shadow-lg"
+              src="/telya-logo.png" 
+              alt="Telya Logo" 
+              className="mx-auto h-20 w-auto opacity-90 drop-shadow-lg"
             />
           </div>
-
-          {/* Apple-style Headline - Mobile Optimized */}
-          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-light tracking-tight mb-6 sm:mb-8 drop-shadow-sm text-white" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
-            Telya
-          </h1>
 
           {/* Apple-style Subheadline */}
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-light mb-8 max-w-4xl mx-auto leading-relaxed drop-shadow-sm text-white" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
@@ -442,24 +437,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRoo
             Die moderne Event-Galerie für eure besonderen Momente. Instagram-Style, Echtzeit, Privat.
           </p>
 
-          {/* Apple-style CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button
-              onClick={() => setShowForm(true)}
-              className="px-8 py-4 text-lg font-medium rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg bg-white/90 text-black hover:bg-white"
-              style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
-            >
-              Galerie erstellen
-            </button>
-            
-            <button
-              onClick={() => setShowLogin(true)}
-              className="px-8 py-4 text-lg font-medium rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg border-2 bg-transparent text-white border-white/60 hover:bg-white/10 hover:border-white/80"
-              style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
-            >
-              Anmelden
-            </button>
-          </div>
+          {/* Buttons removed per user request */}
         </div>
 
         {/* Apple-style Features Grid */}

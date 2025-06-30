@@ -93,14 +93,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
   ];
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className={`text-4xl font-bold mb-4 'text-gray-900'`}>
+          <h2 className="text-4xl font-bold mb-4 text-white drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
             Wähle deinen perfekten Plan
           </h2>
-          <p className={`text-xl 'text-gray-600' max-w-3xl mx-auto`}>
+          <p className="text-xl text-white/90 max-w-3xl mx-auto drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
             Von kostenlosen Galerien bis hin zu professionellen Event-Lösungen - 
             finde den Plan, der zu deiner Feier passt.
           </p>
@@ -112,19 +112,19 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
             <div
               key={tier.id}
               className={`
-                relative rounded-2xl p-8 transition-all duration-300 hover:scale-105
+                relative rounded-2xl p-8 transition-all duration-300 hover:scale-105 backdrop-blur-sm border border-white/20
                 ${selectedPlan === tier.id
-                  ? `ring-4 ring-green-500 bg-green-50 shadow-2xl transform scale-105`
+                  ? `ring-4 ring-green-500 bg-green-500/20 shadow-2xl transform scale-105`
                   : tier.highlighted 
-                    ? `ring-2 ring-pink-500 'bg-white' shadow-2xl` 
-                    : `'bg-white' shadow-lg hover:shadow-xl`
+                    ? `ring-2 ring-pink-500 bg-white/20 shadow-2xl` 
+                    : `bg-white/10 shadow-lg hover:shadow-xl hover:bg-white/20`
                 }
               `}
             >
               {/* Popular Badge */}
               {tier.highlighted && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold">
+                  <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-sm">
                     Beliebteste Wahl
                   </div>
                 </div>
@@ -132,25 +132,25 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
 
               {/* Icon & Header */}
               <div className="text-center mb-8">
-                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 ${
+                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 backdrop-blur-sm ${
                   tier.highlighted 
                     ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' 
-                    : 'bg-gray-100 text-gray-600'
+                    : 'bg-white/20 text-white'
                 }`}>
                   {tier.icon}
                 </div>
-                <h3 className={`text-2xl font-bold mb-2 'text-gray-900'`}>
+                <h3 className="text-2xl font-bold mb-2 text-white drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
                   {tier.name}
                 </h3>
                 <div className="mb-2">
-                  <span className={`text-4xl font-bold ${tier.highlighted ? 'text-pink-500' : 'text-gray-900'}`}>
+                  <span className={`text-4xl font-bold drop-shadow-sm ${tier.highlighted ? 'text-pink-300' : 'text-white'}`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
                     {tier.price}
                   </span>
-                  <span className={`text-lg 'text-gray-500' ml-2`}>
+                  <span className="text-lg text-white/80 ml-2 drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                     {tier.period}
                   </span>
                 </div>
-                <p className={`'text-gray-600'`}>
+                <p className="text-white/90 drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                   {tier.description}
                 </p>
               </div>
@@ -160,9 +160,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
                 {tier.features.map((feature, index) => (
                   <li key={index} className="flex items-start">
                     <Check className={`w-5 h-5 mt-0.5 mr-3 flex-shrink-0 ${
-                      tier.highlighted ? 'text-pink-500' : 'text-green-500'
+                      tier.highlighted ? 'text-pink-300' : 'text-green-300'
                     }`} />
-                    <span className={`'text-gray-700'`}>
+                    <span className="text-white/90 drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                       {feature}
                     </span>
                   </li>
@@ -173,9 +173,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
               <button
                 onClick={() => onSelectPlan(tier.id)}
                 className={`
-                  w-full py-4 px-6 rounded-xl font-semibold text-lg
-                  ${selectedPlan === tier.id ? 'bg-green-600 text-white border-2 border-green-600' : tier.buttonStyle}
+                  w-full py-4 px-6 rounded-xl font-semibold text-lg backdrop-blur-sm transition-all duration-200
+                  ${selectedPlan === tier.id 
+                    ? 'bg-green-500/90 text-white border-2 border-green-400 shadow-lg' 
+                    : tier.highlighted
+                      ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white border-2 border-transparent hover:shadow-lg hover:scale-105'
+                      : 'border-2 border-white/60 text-white hover:bg-white/10 hover:border-white/80'
+                  }
                 `}
+                style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
               >
                 {selectedPlan === tier.id ? '✓ Ausgewählt' : tier.buttonText}
               </button>
@@ -185,40 +191,40 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
 
         {/* FAQ Section */}
         <div className="mt-20 text-center">
-          <h3 className={`text-2xl font-bold mb-8 'text-gray-900'`}>
+          <h3 className="text-2xl font-bold mb-8 text-white drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
             Häufig gestellte Fragen
           </h3>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className={`p-6 rounded-xl 'bg-white' shadow-lg`}>
-              <h4 className={`font-semibold mb-3 'text-gray-900'`}>
+            <div className="p-6 rounded-xl backdrop-blur-sm bg-white/10 border border-white/20 shadow-lg hover:bg-white/20 transition-all duration-300">
+              <h4 className="font-semibold mb-3 text-white drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                 Wie lange sind die Galerien verfügbar?
               </h4>
-              <p className={`'text-gray-600'`}>
+              <p className="text-white/90 drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                 Basic und Pro Galerien bleiben 6 Monate nach dem Event aktiv. 
                 Kostenlose Galerien 3 Monate.
               </p>
             </div>
-            <div className={`p-6 rounded-xl 'bg-white' shadow-lg`}>
-              <h4 className={`font-semibold mb-3 'text-gray-900'`}>
+            <div className="p-6 rounded-xl backdrop-blur-sm bg-white/10 border border-white/20 shadow-lg hover:bg-white/20 transition-all duration-300">
+              <h4 className="font-semibold mb-3 text-white drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                 Können Gäste ohne App teilnehmen?
               </h4>
-              <p className={`'text-gray-600'`}>
+              <p className="text-white/90 drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                 Ja! Alle Galerien funktionieren direkt im Browser ohne App-Download.
               </p>
             </div>
-            <div className={`p-6 rounded-xl 'bg-white' shadow-lg`}>
-              <h4 className={`font-semibold mb-3 'text-gray-900'`}>
+            <div className="p-6 rounded-xl backdrop-blur-sm bg-white/10 border border-white/20 shadow-lg hover:bg-white/20 transition-all duration-300">
+              <h4 className="font-semibold mb-3 text-white drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                 Gibt es versteckte Kosten?
               </h4>
-              <p className={`'text-gray-600'`}>
+              <p className="text-white/90 drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                 Nein! Alle Preise sind transparent. Keine Setup-Gebühren oder versteckten Kosten.
               </p>
             </div>
-            <div className={`p-6 rounded-xl 'bg-white' shadow-lg`}>
-              <h4 className={`font-semibold mb-3 'text-gray-900'`}>
+            <div className="p-6 rounded-xl backdrop-blur-sm bg-white/10 border border-white/20 shadow-lg hover:bg-white/20 transition-all duration-300">
+              <h4 className="font-semibold mb-3 text-white drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                 Kann ich zwischen Plänen wechseln?
               </h4>
-              <p className={`'text-gray-600'`}>
+              <p className="text-white/90 drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                 Ja! Du kannst jederzeit von kostenlos auf Basic/Pro upgraden.
               </p>
             </div>
