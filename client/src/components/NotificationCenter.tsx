@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X } from 'lucide-react';
 import { subscribeToNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/notificationService';
+import { notificationService } from '../services/notificationService';
 
 interface Notification {
   id: string;
@@ -38,14 +39,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!userName || !deviceId) return;
+    if (!userName || !deviceId || !galleryId) return;
 
-    console.log('🔔 Setting up notification subscription for:', userName, `(${deviceId})`);
+    console.log('🔔 Setting up gallery notification subscription for:', userName, `(${deviceId})`, 'in gallery:', galleryId);
     
-    const unsubscribe = subscribeToNotifications(userName, deviceId, (newNotifications) => {
-      console.log('📬 Loaded notifications:', newNotifications.length);
-      console.log('📬 Notifications for user:', userName, `(${deviceId})`);
-      console.log('📬 Received notifications:', newNotifications);
+    const unsubscribe = notificationService.subscribeToGalleryNotifications(galleryId, userName, deviceId, (newNotifications) => {
+      console.log('📬 Loaded gallery notifications:', newNotifications.length);
+      console.log('📬 Gallery notifications for user:', userName, `(${deviceId})`);
+      console.log('📬 Received gallery notifications:', newNotifications);
       setNotifications(newNotifications);
       
       const unread = newNotifications.filter(n => !n.read).length;
@@ -54,7 +55,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     });
 
     return unsubscribe;
-  }, [userName, deviceId]);
+  }, [userName, deviceId, galleryId]);
 
   const handleNotificationClick = (notification: Notification) => {
     console.log('🔔 Notification clicked:', notification);

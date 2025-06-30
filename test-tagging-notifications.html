@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Tagging Notifications</title>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDpsX1dLPfwCNjxA4Ep7nW-XAM_mTCO6KE",
+            authDomain: "kmpixgallery.firebaseapp.com",
+            projectId: "kmpixgallery",
+            storageBucket: "kmpixgallery.appspot.com",
+            messagingSenderId: "794940452616",
+            appId: "1:794940452616:web:5c89e8f2b325b85d6b3171",
+            measurementId: "G-2QYEG86G3L"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const galleryId = 'L9IAQJFNZ6rgbmyTKEvZ';
+        const userName = 'e';
+        const deviceId = '06d1a6ba-334e-4f6d-a0d9-18a5a08078fd';
+        
+        window.createTestNotification = async function() {
+            try {
+                console.log('🧪 Creating test self-tagging notification...');
+                
+                const notificationData = {
+                    type: 'tag',
+                    title: 'Du hast dich markiert!',
+                    message: 'Du hast dich selbst in einem Foto markiert',
+                    targetUser: userName,
+                    targetDeviceId: deviceId,
+                    fromUser: userName,
+                    fromDeviceId: deviceId,
+                    mediaId: 'test-media-' + Date.now(),
+                    mediaType: 'image',
+                    mediaUrl: 'test-url',
+                    read: false,
+                    createdAt: new Date().toISOString()
+                };
+                
+                console.log('📨 Creating notification:', notificationData);
+                
+                const docRef = await addDoc(collection(db, `galleries/${galleryId}/notifications`), notificationData);
+                console.log('✅ Test notification created with ID:', docRef.id);
+                
+                alert(`Test self-tagging notification created!\nID: ${docRef.id}\n\nCheck the bell icon in the app.`);
+                
+            } catch (error) {
+                console.error('❌ Error creating test notification:', error);
+                alert('Error: ' + error.message);
+            }
+        };
+        
+        window.listAllNotifications = function() {
+            console.log('🔍 Listing all notifications in gallery...');
+            
+            const allQuery = query(
+                collection(db, `galleries/${galleryId}/notifications`),
+                limit(20)
+            );
+            
+            onSnapshot(allQuery, (snapshot) => {
+                console.log(`📊 Total notifications in gallery: ${snapshot.size}`);
+                const notifications = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    notifications.push({ id: doc.id, ...data });
+                    console.log(`📨 Notification ${doc.id}:`, data);
+                });
+                
+                alert(`Found ${notifications.length} notifications total. Check console for details.`);
+            });
+        };
+        
+        window.testUserQuery = function() {
+            console.log('🔍 Testing user-specific query...');
+            console.log('Target user:', userName, 'Device ID:', deviceId);
+            
+            const userQuery = query(
+                collection(db, `galleries/${galleryId}/notifications`),
+                where('targetUser', '==', userName),
+                where('targetDeviceId', '==', deviceId),
+                limit(10)
+            );
+            
+            onSnapshot(userQuery, (snapshot) => {
+                console.log(`📬 User notifications found: ${snapshot.size}`);
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    console.log(`📨 User notification ${doc.id}:`, data);
+                });
+                
+                alert(`Found ${snapshot.size} notifications for user "${userName}". Check console.`);
+            });
+        };
+    </script>
+</head>
+<body>
+    <h1>Test Tagging Notifications</h1>
+    
+    <p><strong>Gallery ID:</strong> L9IAQJFNZ6rgbmyTKEvZ</p>
+    <p><strong>User:</strong> e</p>
+    <p><strong>Device ID:</strong> 06d1a6ba-334e-4f6d-a0d9-18a5a08078fd</p>
+    
+    <button onclick="createTestNotification()">Create Test Self-Tagging Notification</button>
+    <button onclick="listAllNotifications()">List All Notifications</button>
+    <button onclick="testUserQuery()">Test User-Specific Query</button>
+    
+    <p>Use these buttons to test if notifications are being created and queried correctly.</p>
+</body>
+</html>

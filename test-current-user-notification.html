@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Current User Notification</title>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDpsX1dLPfwCNjxA4Ep7nW-XAM_mTCO6KE",
+            authDomain: "kmpixgallery.firebaseapp.com",
+            projectId: "kmpixgallery",
+            storageBucket: "kmpixgallery.appspot.com",
+            messagingSenderId: "794940452616",
+            appId: "1:794940452616:web:5c89e8f2b325b85d6b3171",
+            measurementId: "G-2QYEG86G3L"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        window.createNotificationForCurrentUser = async function() {
+            try {
+                console.log('🧪 Creating test notification for current user "e"...');
+                
+                const galleryId = 'L9IAQJFNZ6rgbmyTKEvZ';
+                const currentUserDeviceId = '06d1a6ba-334e-4f6d-a0d9-18a5a08078fd';
+                
+                const notificationData = {
+                    type: 'tag',
+                    title: 'Du wurdest markiert!',
+                    message: 'Test hat dich in einem Foto markiert',
+                    targetUser: 'e',
+                    targetDeviceId: currentUserDeviceId,
+                    fromUser: 'Test',
+                    fromDeviceId: 'test-device-123',
+                    mediaId: 'test-media-456',
+                    mediaType: 'image',
+                    mediaUrl: 'test-url',
+                    read: false,
+                    createdAt: new Date().toISOString()
+                };
+                
+                console.log('📨 Creating notification:', notificationData);
+                
+                // Add to gallery notifications collection
+                const docRef = await addDoc(collection(db, `galleries/${galleryId}/notifications`), notificationData);
+                console.log('✅ Notification created with ID:', docRef.id);
+                
+                alert(`Test notification created for user "e"!\nNotification ID: ${docRef.id}\n\nCheck the bell icon to see if it appears.`);
+                
+            } catch (error) {
+                console.error('❌ Error creating notification:', error);
+                alert('Error: ' + error.message);
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>Test Current User Notification</h1>
+    <button onclick="createNotificationForCurrentUser()">Create Test Notification for User "e"</button>
+    
+    <p>This will create a notification specifically for the current user "e" to test if the notification system is working.</p>
+</body>
+</html>

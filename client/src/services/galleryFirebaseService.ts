@@ -10,7 +10,8 @@ import {
   doc, 
   where,
   getDocs,
-  updateDoc
+  updateDoc,
+  getDoc
 } from 'firebase/firestore';
 import { 
   ref, 
@@ -174,7 +175,7 @@ export const uploadGalleryFiles = async (
     
     // Add metadata to gallery-specific collection
     const mediaCollection = `galleries/${galleryId}/media`;
-    await addDoc(collection(db, mediaCollection), {
+    const docRef = await addDoc(collection(db, mediaCollection), {
       name: `${Date.now()}-${file.name}`,
       uploadedBy: userName,
       deviceId: deviceId,
@@ -186,6 +187,69 @@ export const uploadGalleryFiles = async (
       tags: tags || [], // Add tags field
       ...(storageFileName && { fileName: storageFileName }) // Store Firebase Storage path for videos
     });
+
+    console.log(`📝 Media uploaded successfully with ID: ${docRef.id}`);
+    console.log(`📝 Tags to process: ${tags?.length || 0}`);
+    
+    // Process notifications after upload is complete
+    if (tags && tags.length > 0) {
+      // Use setTimeout to process notifications after upload completion
+      setTimeout(async () => {
+        console.log(`📨 Processing notifications for ${tags.length} tagged users after upload completion`);
+        
+        for (const tag of tags) {
+          if (tag.type === 'user') {
+            try {
+              // Create notification for tagged user (including self-tagging)
+              const isSelfTag = tag.userName === userName && tag.deviceId === deviceId;
+              const notificationData = {
+                type: 'tag',
+                title: isSelfTag ? 'Du hast dich markiert!' : 'Du wurdest markiert!',
+                message: isSelfTag 
+                  ? `Du hast dich selbst in einem ${isVideo ? 'Video' : 'Foto'} markiert`
+                  : `${userName} hat dich in einem ${isVideo ? 'Video' : 'Foto'} markiert`,
+                targetUser: tag.userName,
+                targetDeviceId: tag.deviceId,
+                fromUser: userName,
+                fromDeviceId: deviceId,
+                mediaId: docRef.id,
+                mediaType: isVideo ? 'video' : 'image',
+                mediaUrl: mediaUrl,
+                read: false,
+                createdAt: new Date().toISOString()
+              };
+
+              console.log(`🎯 Creating notification for user: ${tag.userName} (${tag.deviceId})`);
+              console.log(`📋 Gallery ID: ${galleryId}`);
+              console.log(`📝 Is self-tag: ${isSelfTag}`);
+
+              // Add to notifications collection (gallery-scoped)
+              const notificationRef = await addDoc(collection(db, `galleries/${galleryId}/notifications`), notificationData);
+              
+              console.log(`✅ Tag notification created for ${tag.userName} with ID: ${notificationRef.id}`);
+
+              // Send browser notification if permission granted
+              if (Notification.permission === 'granted') {
+                new Notification(notificationData.title, {
+                  body: notificationData.message,
+                  icon: '/icon-192x192.png',
+                  badge: '/icon-72x72.png',
+                  tag: `tag-${docRef.id}`,
+                  data: {
+                    mediaId: docRef.id,
+                    type: 'tag'
+                  }
+                });
+              }
+
+            } catch (notificationError) {
+              console.error(`❌ Failed to create notification for ${tag.userName}:`, notificationError);
+              // Don't block upload if notification fails
+            }
+          }
+        }
+      }, 1000); // Process notifications 1 second after upload completion
+    }
     
     uploaded++;
     onProgress((uploaded / files.length) * 100);
