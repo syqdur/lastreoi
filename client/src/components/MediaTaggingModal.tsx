@@ -11,6 +11,7 @@ interface PersonTag {
   type: 'person';
   position: TagPosition;
   userName: string;
+  deviceId: string;
   displayName?: string;
 }
 
@@ -212,6 +213,7 @@ export const MediaTaggingModal: React.FC<MediaTaggingModalProps> = ({
       type: 'person',
       position: pendingTag.position,
       userName: user.userName,
+      deviceId: user.deviceId,
       displayName: user.displayName
     };
 

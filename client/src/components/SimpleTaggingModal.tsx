@@ -11,6 +11,7 @@ interface PersonTag {
   type: 'person';
   position: TagPosition;
   userName: string;
+  deviceId: string;
   displayName?: string;
 }
 
@@ -156,6 +157,7 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
       type: 'person',
       position: pendingPosition,
       userName: user.userName,
+      deviceId: user.deviceId,
       displayName: user.displayName
     };
 

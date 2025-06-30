@@ -13,7 +13,7 @@ interface PersonTag {
   type: 'person';
   position: TagPosition;
   userName: string;
-  deviceId?: string;
+  deviceId: string;
   displayName?: string;
 }
 

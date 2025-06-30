@@ -87,6 +87,15 @@ This is a comprehensive wedding gallery application with the following architect
 
 ## Recent Changes
 
+### June 30, 2025 (Migration Complete & Tagging Notification Fix - COMPLETED)
+- **Replit Agent Migration Complete**: Successfully migrated project from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
+- **Tagging Notification System Fixed**: Resolved critical issue where tagged users weren't receiving notifications due to missing deviceId in PersonTag interface across all tagging components (SimpleTaggingModal, InstagramTaggingModal, UploadTaggingModal, MediaTaggingModal)
+- **PersonTag Interface Updates**: Updated PersonTag interfaces in all 4 tagging modals to require deviceId field and modified all PersonTag creation functions to include user.deviceId for proper notification targeting
+- **Firebase Notification Error Fix**: Fixed "invalid-argument" Firebase errors by ensuring PersonTag objects include all required fields (deviceId) and added validation to skip notifications for tags without deviceId
+- **Tag Type Compatibility**: Updated notification creation logic to handle both "person" and "user" tag types ensuring notifications work regardless of tagging interface used
+- **Real-time Notification System**: Gallery-scoped notifications now work properly with Instagram-style tagging workflow including self-tagging notifications - verified working with successful notification creation and delivery
+- **Complete Fix Verification**: Confirmed notifications now successfully create and display with proper German messaging ("Du hast dich markiert!") and click-to-navigate functionality
+
 ### June 30, 2025 (User Management Optimizations & Enhanced Tagging)
 - **Optimized Delete Functions**: Implemented high-performance delete functions in UserManagementModal with parallel processing instead of sequential operations for faster user deletion
 - **Self-Delete Enhancement**: Added immediate logout detection for users deleting themselves with instant kick signals and background cleanup to prevent UI freezes

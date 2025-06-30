@@ -11,6 +11,7 @@ interface PersonTag {
   type: 'person';
   position: TagPosition;
   userName: string;
+  deviceId: string;
   displayName?: string;
 }
 
@@ -460,6 +461,7 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
       type: 'person',
       position: pendingTag.position,
       userName: user.userName,
+      deviceId: user.deviceId,
       displayName: user.displayName
     };
 

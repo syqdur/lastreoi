@@ -198,7 +198,17 @@ export const uploadGalleryFiles = async (
         console.log(`📨 Processing notifications for ${tags.length} tagged users after upload completion`);
         
         for (const tag of tags) {
-          if (tag.type === 'user') {
+          console.log(`🔍 Processing tag:`, tag);
+          console.log(`🔍 Tag type: ${tag.type}`);
+          if (tag.type === 'person' || tag.type === 'user') {
+            console.log(`✅ Tag is user type, creating notification`);
+            
+            // Skip notification if tagged user has no deviceId (invalid tag)
+            if (!tag.deviceId) {
+              console.log(`⚠️ Skipping notification for ${tag.userName} - no deviceId found`);
+              continue;
+            }
+            
             try {
               // Create notification for tagged user (including self-tagging)
               const isSelfTag = tag.userName === userName && tag.deviceId === deviceId;
@@ -222,6 +232,7 @@ export const uploadGalleryFiles = async (
               console.log(`🎯 Creating notification for user: ${tag.userName} (${tag.deviceId})`);
               console.log(`📋 Gallery ID: ${galleryId}`);
               console.log(`📝 Is self-tag: ${isSelfTag}`);
+              console.log(`📨 Notification data:`, notificationData);
 
               // Add to notifications collection (gallery-scoped)
               const notificationRef = await addDoc(collection(db, `galleries/${galleryId}/notifications`), notificationData);
