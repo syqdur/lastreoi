@@ -295,10 +295,7 @@
         const hasMediaData = mediaItems !== undefined;
         const hasSiteStatus = siteStatus !== null;
 
-        console.log('📊 Data check:', { hasProfile, hasMediaData, hasSiteStatus });
-
         if (hasProfile && hasMediaData && hasSiteStatus) {
-          console.log('✅ All essential data loaded, showing gallery');
           setGalleryDataLoaded(true);
           setIsInitialLoading(false);
         }
@@ -307,16 +304,15 @@
       // Check immediately
       checkDataLoaded();
 
-      // Periodically check (every 500ms)
-      const interval = setInterval(checkDataLoaded, 500);
+      // Check less frequently for better performance
+      const interval = setInterval(checkDataLoaded, 1000);
 
-      // Timeout after 8 seconds (then show gallery anyway)
+      // Timeout after 3 seconds for faster loading
       const timeout = setTimeout(() => {
-        console.log('⏰ Loading timeout, showing gallery anyway');
         setGalleryDataLoaded(true);
         setIsInitialLoading(false);
         clearInterval(interval);
-      }, 8000);
+      }, 3000);
 
       return () => {
         clearInterval(interval);

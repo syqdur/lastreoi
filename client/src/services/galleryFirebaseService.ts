@@ -11,7 +11,8 @@ import {
   where,
   getDocs,
   updateDoc,
-  getDoc
+  getDoc,
+  limit
 } from 'firebase/firestore';
 import { 
   ref, 
@@ -37,38 +38,49 @@ export interface Story {
   isStory?: boolean;
 }
 
+// Utility function to check if a user has been deleted
+export const isUserDeleted = async (galleryId: string, deviceId: string): Promise<boolean> => {
+  try {
+    const kickSignalDoc = await getDoc(doc(db, `galleries/${galleryId}/kick_signals`, deviceId));
+    if (kickSignalDoc.exists()) {
+      const data = kickSignalDoc.data();
+      return data.reason === 'deleted_by_admin' || data.reason === 'self_deleted' || 
+             data.reason === 'bulk_deleted_by_admin' || data.reason === 'bulk_self_deleted';
+    }
+    return false;
+  } catch (error) {
+    console.warn('Error checking if user is deleted:', error);
+    return false; // If we can't check, assume user is not deleted
+  }
+};
+
 // Gallery-specific media loading
 export const loadGalleryMedia = (
   galleryId: string,
   setMediaItems: (items: MediaItem[]) => void
 ): (() => void) => {
   const mediaCollection = `galleries/${galleryId}/media`;
-  const q = query(collection(db, mediaCollection), orderBy('uploadedAt', 'desc'));
+  // Start with smaller limit for faster initial load
+  const q = query(collection(db, mediaCollection), orderBy('uploadedAt', 'desc'), limit(10));
   
-  return onSnapshot(q, async (snapshot) => {
+  return onSnapshot(q, (snapshot) => {
     const mediaList: MediaItem[] = [];
     
-    for (const docSnap of snapshot.docs) {
+    // Process synchronously for faster rendering
+    snapshot.docs.forEach((docSnap) => {
       const data = docSnap.data();
       let url = '';
       
       if (data.type !== 'note') {
-        // Handle hybrid system: Firebase Storage URLs for videos, base64 for images
+        // Prioritize Firebase Storage URLs for faster loading
         if (data.mediaUrl) {
-          // Firebase Storage URL (for videos)
           url = data.mediaUrl;
-          console.log(`✅ Using Firebase Storage URL for ${data.name}`);
         } else if (data.base64Data) {
-          // Base64 data (for images and small videos)
           url = data.base64Data;
-          console.log(`✅ Using base64 data for ${data.name}`);
-        } else {
-          console.warn(`⚠️ No media URL or base64 data found for ${data.name}`);
-          url = '';
         }
       }
       
-      const mediaItem: MediaItem = {
+      mediaList.push({
         id: docSnap.id,
         name: data.name,
         url: url,
@@ -78,12 +90,10 @@ export const loadGalleryMedia = (
         type: data.type,
         noteText: data.noteText,
         note: data.note,
-        tags: data.tags || [], // Include tags field
+        tags: data.tags || [],
         isUnavailable: !url && data.type !== 'note'
-      };
-      
-      mediaList.push(mediaItem);
-    }
+      });
+    });
     
     setMediaItems(mediaList);
   });
@@ -1013,10 +1023,27 @@ export const getGalleryUsers = async (galleryId: string): Promise<any[]> => {
       }
     });
     
-    const users = Array.from(userMap.values());
-    console.log(`📋 Returning ${users.length} gallery-specific users for tagging`);
+    // 4. Filter out deleted users by checking kick_signals
+    const kickSignalsQuery = query(collection(db, `galleries/${galleryId}/kick_signals`));
+    const kickSignalsSnapshot = await getDocs(kickSignalsQuery);
+    const deletedDeviceIds = new Set<string>();
     
-    return users;
+    kickSignalsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.deviceId && (data.reason === 'deleted_by_admin' || data.reason === 'self_deleted' || data.reason === 'bulk_deleted_by_admin' || data.reason === 'bulk_self_deleted')) {
+        deletedDeviceIds.add(data.deviceId);
+      }
+    });
+    
+    console.log(`🚫 Found ${deletedDeviceIds.size} deleted users to filter out`);
+    
+    // Filter out deleted users
+    const allUsers = Array.from(userMap.values());
+    const filteredUsers = allUsers.filter(user => !deletedDeviceIds.has(user.deviceId));
+    
+    console.log(`📋 Returning ${filteredUsers.length} active users for tagging (filtered out ${allUsers.length - filteredUsers.length} deleted users)`);
+    
+    return filteredUsers;
   } catch (error) {
     console.error('❌ Error fetching gallery users:', error);
     return [];

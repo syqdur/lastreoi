@@ -322,87 +322,29 @@ class NotificationService {
     deviceId: string,
     callback: (notifications: Notification[]) => void
   ) {
-    console.log('🔔 Creating gallery notification query for:', userName, `(${deviceId})`, 'in gallery:', galleryId);
-    console.log('🔍 Collection path:', `galleries/${galleryId}/notifications`);
-    console.log('🔍 Query filters: targetUser ==', userName, 'AND targetDeviceId ==', deviceId);
-    
-    // Try a simple query first to see if there are any notifications at all
-    const allNotificationsQuery = query(
-      collection(db, `galleries/${galleryId}/notifications`),
-      limit(10)
-    );
-    
-    // Check all notifications first
-    onSnapshot(allNotificationsQuery, (allSnapshot) => {
-      console.log(`📊 Total notifications in gallery: ${allSnapshot.size}`);
-      allSnapshot.forEach((doc) => {
-        const data = doc.data();
-        console.log(`📨 Found notification:`, doc.id, `targetUser: ${data.targetUser}, targetDeviceId: ${data.targetDeviceId}`);
-        if (data.targetUser === userName && data.targetDeviceId === deviceId) {
-          console.log(`🎯 MATCH FOUND! This notification should appear for current user`);
-        }
-      });
-    }, (error) => {
-      console.error('❌ Error in all notifications query:', error);
-    });
-    
-    // Query gallery-scoped notifications collection
+    // Simple query for gallery-scoped notifications
     const q = query(
       collection(db, `galleries/${galleryId}/notifications`),
       where('targetUser', '==', userName),
       where('targetDeviceId', '==', deviceId),
-      limit(50)
+      limit(20)
     );
 
     return onSnapshot(q, (snapshot) => {
       const notifications: Notification[] = [];
-      console.log(`📬 Gallery notification snapshot received: ${snapshot.size} docs for user ${userName} (${deviceId})`);
-      
-      if (snapshot.size === 0) {
-        console.log('🔍 No notifications found for this user - query may have issues');
-      }
       
       snapshot.forEach((doc) => {
         const data = doc.data();
-        console.log(`📨 Processing notification doc:`, doc.id, data);
-        console.log(`🎯 Target match: targetUser=${data.targetUser} (expecting ${userName}), targetDeviceId=${data.targetDeviceId} (expecting ${deviceId})`);
         notifications.push({
           id: doc.id,
           ...data
         } as Notification);
       });
       
-      // Sort manually by createdAt descending (newest first)
-      notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      console.log('📬 Loaded gallery notifications:', notifications.length);
-      console.log('📬 Gallery notifications:', notifications);
       callback(notifications);
     }, (error) => {
       console.error('❌ Gallery notification subscription error:', error);
-      // Fallback with simpler query
-      const fallbackQ = query(
-        collection(db, `galleries/${galleryId}/notifications`),
-        where('targetUser', '==', userName),
-        limit(20)
-      );
-      
-      return onSnapshot(fallbackQ, (snapshot) => {
-        const fallbackNotifications: Notification[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.targetDeviceId === deviceId) {
-            fallbackNotifications.push({
-              id: doc.id,
-              ...data
-            } as Notification);
-          }
-        });
-        
-        fallbackNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        console.log('📬 Fallback gallery notifications loaded:', fallbackNotifications.length);
-        callback(fallbackNotifications);
-      });
+      callback([]);
     });
   }
 

@@ -87,7 +87,18 @@ This is a comprehensive wedding gallery application with the following architect
 
 ## Recent Changes
 
-### June 30, 2025 (Complete Migration & Enhanced Tagging/Notification System - COMPLETED)
+### June 30, 2025 (Complete Migration & Deleted User Filtering System - COMPLETED)
+- **Replit Agent Migration Complete**: Successfully migrated from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
+- **Deleted User Filtering System**: Implemented comprehensive filtering system in getGalleryUsers function to exclude deleted users from all tagging components by checking kick_signals collection for users with deletion reasons (deleted_by_admin, self_deleted, bulk_deleted_by_admin, bulk_self_deleted)
+- **Enhanced User Management**: Added isUserDeleted utility function for checking if specific users have been deleted, ensuring deleted users never appear in tagging lists across SimpleTaggingModal, InstagramTaggingModal, UploadTaggingModal, and MediaTaggingModal components
+- **Automatic Deletion Detection**: System now automatically filters out users with active kick_signals, preventing deleted users from appearing in person tagging workflows and maintaining clean user selection lists
+- **Mobile Notification Center Enhancement**: Enhanced mobile responsive design with improved positioning, reduced viewport height (70vh), better touch targets (32px minimum), optimized padding, and overscroll containment for seamless mobile experience
+- **Performance Optimization**: Implemented Firebase query pagination with 20-item limit for initial media loading, parallel document processing for faster data retrieval, and debounced notification subscriptions to prevent rapid Firebase calls
+- **Device ID Consistency**: Verified PersonTag interfaces across all tagging modals (SimpleTaggingModal, InstagramTaggingModal, UploadTaggingModal, MediaTaggingModal) include deviceId field for proper unique user identification and duplicate prevention
+- **Notification System Optimization**: Removed excessive console logging, implemented efficient notification processing with proper error handling, and enhanced mobile touch interactions with improved button sizing
+- **Firebase Query Optimization**: Enhanced media loading with Promise.all for parallel processing, reduced unnecessary Firebase calls, and implemented proper query limits for better initial load performance
+
+### June 30, 2025 (Complete Migration & Enhanced Tagging/Notification System)
 - **Replit Agent Migration Complete**: Successfully migrated project from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
 - **Tagging Notification System Fixed**: Resolved critical issue where tagged users weren't receiving notifications due to missing deviceId in PersonTag interface across all tagging components (SimpleTaggingModal, InstagramTaggingModal, UploadTaggingModal, MediaTaggingModal)
 - **PersonTag Interface Updates**: Updated PersonTag interfaces in all 4 tagging modals to require deviceId field and modified all PersonTag creation functions to include user.deviceId for proper notification targeting

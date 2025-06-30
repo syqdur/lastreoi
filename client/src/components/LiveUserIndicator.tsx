@@ -165,7 +165,7 @@ export const LiveUserIndicator: React.FC<LiveUserIndicatorProps> = ({
         clearInterval(presenceInterval);
         return;
       }
-      console.log(`💓 Heartbeat for ${currentUser}`);
+      // Silent heartbeat for performance
       updatePresence();
     }, 30000); // Every 30 seconds
 
@@ -183,39 +183,29 @@ export const LiveUserIndicator: React.FC<LiveUserIndicatorProps> = ({
       );
       
       unsubscribe = onSnapshot(simpleQuery, (snapshot) => {
-        console.log(`👥 === LIVE USERS UPDATE (SIMPLE QUERY) ===`);
-        console.log(`📊 Raw docs from Firebase: ${snapshot.docs.length}`);
-        
         const users: LiveUser[] = [];
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-        const seenUsers = new Set<string>(); // 🔧 FIX: Track seen usernames to prevent duplicates
+        const seenUsers = new Set<string>();
         
-        snapshot.docs.forEach((doc, index) => {
+        snapshot.docs.forEach((doc) => {
           const data = doc.data();
           const lastSeen = new Date(data.lastSeen);
           const isRecent = lastSeen > fiveMinutesAgo;
           
-          console.log(`  ${index + 1}. ${data.userName} (${data.deviceId}) - Last seen: ${lastSeen.toLocaleTimeString()} - Recent: ${isRecent}`);
-          
-          // 🔧 FIX: Only include users who were active in the last 5 minutes AND not already seen
+          // Only include users who were active in the last 5 minutes AND not already seen
           if (isRecent && !seenUsers.has(data.userName)) {
             seenUsers.add(data.userName);
             users.push({
               id: doc.id,
               ...data
             } as LiveUser);
-          } else if (seenUsers.has(data.userName)) {
-            console.log(`    ⚠️ Duplicate user ${data.userName} ignored`);
           }
         });
         
         // Sort in memory by lastSeen (newest first)
         users.sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime());
         
-        console.log(`👥 Active users (last 5 min, sorted, deduplicated): ${users.length}`);
-        users.forEach((user, index) => {
-          console.log(`  ${index + 1}. ${user.userName} ${user.userName === currentUser ? '(YOU)' : ''}`);
-        });
+        // Performance optimization: reduced logging
         
         setLiveUsers(users);
         setHasError(false);
@@ -272,12 +262,7 @@ export const LiveUserIndicator: React.FC<LiveUserIndicatorProps> = ({
   const isOnline = onlineCount > 0;
   const currentUserOnline = liveUsers.some(user => user.userName === currentUser);
 
-  console.log(`📊 === LIVE USER INDICATOR RENDER ===`);
-  console.log(`👤 Current user: ${currentUser}`);
-  console.log(`📊 Total online: ${onlineCount}`);
-  console.log(`👤 Current user online: ${currentUserOnline}`);
-  console.log(`👥 Other users: ${otherUsers.length}`);
-  console.log(`❌ Has error: ${hasError}`);
+  // Performance optimization - removed excessive logging
 
   const getStatusColor = () => {
     if (hasError) return 'bg-orange-500';

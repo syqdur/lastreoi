@@ -69,8 +69,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
           {/* Modern Upload Button */}
           <div className={`w-16 h-16 border-2 border-dashed rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-300 group hover:scale-105 ${
             isDarkMode 
-              ? `border-${themeStyles?.primaryColor || 'pink-500'}/50 bg-gray-700/30 hover:bg-${themeStyles?.primaryColor || 'pink-500'}/20 hover:border-${themeStyles?.secondaryColor || 'pink-400'}` 
-              : `border-${themeStyles?.secondaryColor || 'pink-400'}/50 bg-${themeStyles?.primaryColor || 'pink-500'}/10 hover:bg-${themeStyles?.primaryColor || 'pink-500'}/20 hover:border-${themeStyles?.primaryColor || 'pink-500'}`
+              ? 'border-pink-500/50 bg-gray-700/30 hover:bg-pink-500/20 hover:border-pink-400' 
+              : 'border-pink-400/50 bg-pink-500/10 hover:bg-pink-500/20 hover:border-pink-500'
           }`}>
             <button
               onClick={() => setShowUploadOptions(true)}
@@ -161,7 +161,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
             {/* Header */}
             <div className="text-center mb-6">
               <div className={`w-16 h-16 mx-auto mb-4 p-4 rounded-2xl ${
-                isDarkMode ? `bg-${themeStyles?.primaryColor || 'pink-500'}/20` : `bg-${themeStyles?.primaryColor || 'pink-500'}/10`
+                isDarkMode ? 'bg-pink-500/20' : 'bg-pink-500/10'
               }`}>
                 <Plus className={`w-full h-full ${
                   isDarkMode ? `text-${themeStyles?.secondaryColor || 'pink-400'}` : `text-${themeStyles?.accentColor || 'pink-600'}`
