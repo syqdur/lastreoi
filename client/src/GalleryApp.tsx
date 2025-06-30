@@ -1099,51 +1099,84 @@
       const handleUserConnected = async (event: CustomEvent) => {
         const { userName, deviceId, profilePicture } = event.detail;
 
-        if (profilePicture && profilePicture instanceof File) {
-          try {
+        try {
+          console.log('👋 New visitor registering:', userName, deviceId);
+
+          // Always create/update user profile (even without profile picture)
+          let newProfile;
+          
+          if (profilePicture && profilePicture instanceof File) {
             console.log('🖼️ Processing profile picture for new user:', userName);
             const profilePictureUrl = await uploadGalleryUserProfilePicture(profilePicture, userName, deviceId, gallery.id);
 
-            const newProfile = await createOrUpdateGalleryUserProfile(userName, deviceId, {
+            newProfile = await createOrUpdateGalleryUserProfile(userName, deviceId, {
               displayName: userName,
               profilePicture: profilePictureUrl
             }, gallery.id);
-
-            // Immediately update current user profile if this is the current user
-            const currentStoredName = getUserName();
-            const currentStoredDeviceId = getDeviceId();
-            if (userName === currentStoredName && deviceId === currentStoredDeviceId) {
-              console.log('✅ Updating current user profile immediately');
-              setCurrentUserProfile(newProfile);
-            }
-
-            // Immediately update user profiles list
-            setUserProfiles(prev => {
-              const index = prev.findIndex(p => p.userName === userName && p.deviceId === deviceId);
-              if (index >= 0) {
-                const updated = [...prev];
-                updated[index] = newProfile;
-                return updated;
-              } else {
-                return [...prev, newProfile];
-              }
-            });
-
-            // Trigger a custom event to notify all components of profile update
-            window.dispatchEvent(new CustomEvent('profilePictureUpdated', { 
-              detail: { userName, deviceId, profile: newProfile } 
-            }));
-
-            console.log('✅ Profile picture saved and synced immediately');
-          } catch (error) {
-            console.error('❌ Error saving profile picture:', error);
+          } else {
+            // Create profile without picture
+            newProfile = await createOrUpdateGalleryUserProfile(userName, deviceId, {
+              displayName: userName
+            }, gallery.id);
           }
+
+          console.log('✅ User profile created/updated:', newProfile);
+
+          // Register user in live_users collection for proper user tracking
+          try {
+            const userDocRef = doc(db, 'galleries', gallery.id, 'live_users', deviceId);
+            await setDoc(userDocRef, {
+              userName: userName,
+              deviceId: deviceId,
+              lastSeen: new Date().toISOString(),
+              isActive: true,
+              connectedAt: new Date().toISOString()
+            });
+            console.log('✅ User registered in live_users collection');
+          } catch (error) {
+            console.error('❌ Error registering user in live_users:', error);
+          }
+
+          // Immediately update current user profile if this is the current user
+          const currentStoredName = getUserName();
+          const currentStoredDeviceId = getDeviceId();
+          if (userName === currentStoredName && deviceId === currentStoredDeviceId) {
+            console.log('✅ Updating current user profile immediately');
+            setCurrentUserProfile(newProfile);
+          }
+
+          // Immediately update user profiles list
+          setUserProfiles(prev => {
+            const index = prev.findIndex(p => p.userName === userName && p.deviceId === deviceId);
+            if (index >= 0) {
+              const updated = [...prev];
+              updated[index] = newProfile;
+              return updated;
+            } else {
+              return [...prev, newProfile];
+            }
+          });
+
+          // Trigger a custom event to notify all components of profile update
+          window.dispatchEvent(new CustomEvent('profilePictureUpdated', { 
+            detail: { userName, deviceId, profile: newProfile } 
+          }));
+
+          console.log('✅ New visitor fully registered as user without page reload');
+        } catch (error) {
+          console.error('❌ Error registering new visitor:', error);
         }
 
-        // Still sync all profiles after a short delay as backup
-        setTimeout(() => {
-          syncAllUserProfiles();
-        }, 500);
+        // Refresh gallery users for tagging
+        setTimeout(async () => {
+          try {
+            const users = await getGalleryUsers(gallery.id);
+            setGalleryUsers(users);
+            syncAllUserProfiles();
+          } catch (error) {
+            console.error('Error refreshing gallery users:', error);
+          }
+        }, 1000);
       };
 
       window.addEventListener('userConnected', handleUserConnected as any);
@@ -1589,11 +1622,15 @@
                 const updatedGalleryProfile: any = {
                   name: profileData.name,
                   bio: profileData.bio,
-                  profilePicture: profilePictureUrl,
                   countdownEndMessage: profileData.countdownEndMessage,
                   countdownMessageDismissed: profileData.countdownMessageDismissed,
                   updatedAt: new Date().toISOString()
                 };
+
+                // Only include profilePicture if it has a value (not undefined)
+                if (profilePictureUrl) {
+                  updatedGalleryProfile.profilePicture = profilePictureUrl;
+                }
 
                 // Handle countdownDate explicitly - include it if it has a value, otherwise explicitly set to null to remove it
                 if (profileData.countdownDate && profileData.countdownDate.trim() !== '') {

@@ -16,9 +16,10 @@ interface PricingTier {
 
 interface PricingSectionProps {
   onSelectPlan: (planId: string) => void;
+  selectedPlan?: string;
 }
 
-export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan }) => {
+export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, selectedPlan }) => {
   const pricingTiers: PricingTier[] = [
     {
       id: 'free',
@@ -112,9 +113,11 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan }) 
               key={tier.id}
               className={`
                 relative rounded-2xl p-8 transition-all duration-300 hover:scale-105
-                ${tier.highlighted 
-                  ? `ring-2 ring-pink-500 'bg-white' shadow-2xl` 
-                  : `'bg-white' shadow-lg hover:shadow-xl`
+                ${selectedPlan === tier.id
+                  ? `ring-4 ring-green-500 bg-green-50 shadow-2xl transform scale-105`
+                  : tier.highlighted 
+                    ? `ring-2 ring-pink-500 'bg-white' shadow-2xl` 
+                    : `'bg-white' shadow-lg hover:shadow-xl`
                 }
               `}
             >
@@ -171,10 +174,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan }) 
                 onClick={() => onSelectPlan(tier.id)}
                 className={`
                   w-full py-4 px-6 rounded-xl font-semibold text-lg
-                  ${tier.buttonStyle}
+                  ${selectedPlan === tier.id ? 'bg-green-600 text-white border-2 border-green-600' : tier.buttonStyle}
                 `}
               >
-                {tier.buttonText}
+                {selectedPlan === tier.id ? '✓ Ausgewählt' : tier.buttonText}
               </button>
             </div>
           ))}

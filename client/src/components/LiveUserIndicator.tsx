@@ -76,9 +76,9 @@ export const LiveUserIndicator: React.FC<LiveUserIndicatorProps> = ({
       try {
         console.log(`🧹 Cleaning up duplicate entries for ${currentUser}...`);
         
-        // Find all entries for this user (by userName, not deviceId)
+        // Find all entries for this user (by userName, not deviceId) in gallery-scoped collection
         const duplicateQuery = query(
-          collection(db, 'live_users'),
+          collection(db, 'galleries', galleryId, 'live_users'),
           where('userName', '==', currentUser)
         );
         
@@ -110,8 +110,8 @@ export const LiveUserIndicator: React.FC<LiveUserIndicatorProps> = ({
         
         console.log(`📡 Updating presence for ${currentUser}...`);
         
-        // 🔧 FIX: Use deviceId as document ID to ensure uniqueness
-        const userRef = doc(db, 'live_users', deviceId);
+        // 🔧 FIX: Use deviceId as document ID to ensure uniqueness - GALLERY SCOPED
+        const userRef = doc(db, 'galleries', galleryId, 'live_users', deviceId);
         await setDoc(userRef, {
           userName: currentUser,
           deviceId,
@@ -133,7 +133,7 @@ export const LiveUserIndicator: React.FC<LiveUserIndicatorProps> = ({
     const setOffline = async () => {
       try {
         console.log(`📡 Setting ${currentUser} offline...`);
-        const userRef = doc(db, 'live_users', deviceId);
+        const userRef = doc(db, 'galleries', galleryId, 'live_users', deviceId);
         await setDoc(userRef, {
           isActive: false,
           lastSeen: new Date().toISOString()
@@ -175,9 +175,9 @@ export const LiveUserIndicator: React.FC<LiveUserIndicatorProps> = ({
     let unsubscribe: (() => void) | null = null;
     
     try {
-      // Use simple query without orderBy to avoid index requirements
+      // Use simple query without orderBy to avoid index requirements - GALLERY SCOPED
       const simpleQuery = query(
-        collection(db, 'live_users'),
+        collection(db, 'galleries', galleryId, 'live_users'),
         where('isActive', '==', true),
         limit(50)
       );

@@ -34,12 +34,8 @@ export const useUser = () => {
       detail: { userName: name, deviceId: getDeviceId(), profilePicture } 
     }));
 
-    // Reload page when new visitor sets profile picture and name
-    // This ensures all components sync properly with the new visitor data
-    setTimeout(() => {
-      console.log('🔄 Reloading page for new visitor profile sync');
-      window.location.reload();
-    }, 500); // Small delay to ensure data is saved first
+    // No automatic page reload - let components sync naturally through events
+    console.log('✅ New visitor profile set without page reload');
   };
 
   return {

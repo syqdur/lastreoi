@@ -96,7 +96,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRoo
     ownerEmail: '',
     userEmail: '',
     userPassword: '',
-    selectedPlan: 'free'
+    selectedPlan: undefined
   });
 
   const [showForm, setShowForm] = useState(false);
@@ -181,34 +181,50 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRoo
       return;
     }
 
+    // Validate selected plan
+    if (!formData.selectedPlan) {
+      alert('Bitte wählen Sie einen Tarif aus.');
+      return;
+    }
+
     setIsCreating(true);
     try {
-      // First, create or authenticate the user with Firebase Auth
-      let userCredential;
-      let isNewUser = false;
-      try {
-        // Try to create new user
-        userCredential = await createUserWithEmailAndPassword(auth, formData.userEmail, formData.userPassword);
-        isNewUser = true;
+      // Validate password strength first
+      if (formData.userPassword.length < 6) {
+        alert('Das Passwort muss mindestens 6 Zeichen lang sein.');
+        setIsCreating(false);
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.userEmail)) {
+        alert('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
+        setIsCreating(false);
+        return;
+      }
+
+      // Check if payment is required for paid plans
+      if (formData.selectedPlan !== 'free') {
+        const confirmed = confirm(
+          `Sie haben den ${formData.selectedPlan === 'basic' ? 'Basic (9€)' : 'Pro (19€)'} Tarif gewählt. ` +
+          'Nach der Galerie-Erstellung werden Sie zur Zahlung weitergeleitet. Möchten Sie fortfahren?'
+        );
         
-        // Send email verification for new users
-        await sendEmailVerification(userCredential.user);
-        alert('Registrierung erfolgreich! Bitte prüfen Sie Ihre E-Mails und klicken Sie auf den Bestätigungslink.');
-      } catch (error: any) {
-        if (error.code === 'auth/email-already-in-use') {
-          // User exists, try to sign in
-          userCredential = await signInWithEmailAndPassword(auth, formData.userEmail, formData.userPassword);
-        } else {
-          throw error;
+        if (!confirmed) {
+          setIsCreating(false);
+          return;
         }
       }
 
-      // Set the ownerEmail to the authenticated user's email
+      // Create gallery data with proper plan validation
       const galleryData = {
         ...formData,
-        ownerEmail: userCredential.user.email || formData.userEmail
+        ownerEmail: formData.userEmail,
+        selectedPlan: formData.selectedPlan
       };
 
+      console.log('Creating gallery with plan:', formData.selectedPlan, galleryData);
       await onCreateGallery(galleryData);
     } catch (error: any) {
       console.error('Error creating gallery:', error);
@@ -218,8 +234,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRoo
         alert('Ungültige E-Mail-Adresse. Bitte überprüfen Sie Ihre Eingabe.');
       } else if (error.code === 'auth/wrong-password') {
         alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
+      } else if (error.code === 'auth/invalid-credential') {
+        alert('Ungültige Anmeldedaten. Bitte überprüfen Sie E-Mail und Passwort.');
+      } else if (error.code === 'auth/user-not-found') {
+        alert('Benutzer nicht gefunden. Bitte überprüfen Sie Ihre E-Mail-Adresse.');
+      } else if (error.code === 'auth/network-request-failed') {
+        alert('Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung.');
       } else {
-        alert('Fehler beim Erstellen der Galerie. Bitte versuchen Sie es erneut.');
+        alert(`Fehler beim Erstellen der Galerie: ${error.message || 'Unbekannter Fehler'}. Bitte versuchen Sie es erneut.`);
       }
     } finally {
       setIsCreating(false);
@@ -466,6 +488,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRoo
         <div className="mt-32">
           <PricingSection 
             onSelectPlan={handlePlanSelect}
+            selectedPlan={formData.selectedPlan}
           />
         </div>
       </div>
@@ -478,6 +501,38 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRoo
               <h3 className="text-xl sm:text-2xl font-light mb-6 sm:mb-8 text-center text-black" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
                 Eure Event-Galerie erstellen
               </h3>
+
+              {/* Plan Selection Status */}
+              {!formData.selectedPlan && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center">
+                      <span className="text-orange-600 text-sm font-semibold">!</span>
+                    </div>
+                    <div>
+                      <p className="text-orange-800 font-medium">Tarif wählen erforderlich</p>
+                      <p className="text-orange-700 text-sm">Bitte wählen Sie zuerst einen Tarif aus der Preisliste unten aus.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {formData.selectedPlan && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                      <span className="text-green-600 text-sm">✓</span>
+                    </div>
+                    <div>
+                      <p className="text-green-800 font-medium">
+                        {formData.selectedPlan === 'free' ? 'Kostenlos' : 
+                         formData.selectedPlan === 'basic' ? 'Basic (9€)' : 'Pro (19€)'} Tarif ausgewählt
+                      </p>
+                      <p className="text-green-700 text-sm">Sie können jetzt Ihre Galerie erstellen.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
                 {/* Apple-style Theme Selection */}
