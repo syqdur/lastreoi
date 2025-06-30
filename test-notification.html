@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Notification System</title>
+</head>
+<body>
+    <h1>Test Tagging Notification</h1>
+    <button onclick="createTestTagNotification()">Create Tag Notification for User 'h'</button>
+    
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getFirestore, collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDNjqBxr9jLgOmFjVdGE_Cq67P4GQ1fC7E",
+            authDomain: "weddingpix-gallery.firebaseapp.com",
+            projectId: "weddingpix-gallery",
+            storageBucket: "weddingpix-gallery.appspot.com",
+            messagingSenderId: "1015726139505",
+            appId: "1:1015726139505:web:7caade5b7eb9b24c85f4e3",
+            measurementId: "G-FGGQP65P8Y"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.createTestTagNotification = async function() {
+            try {
+                const notificationData = {
+                    type: 'tag',
+                    title: 'Du wurdest markiert!',
+                    message: 'Test hat dich in einem Foto markiert',
+                    targetUser: 'h',
+                    targetDeviceId: '55014a71-f6d5-4838-8481-731dd28303a7',
+                    fromUser: 'Test',
+                    fromDeviceId: 'test-device',
+                    mediaId: 'test-media-123',
+                    mediaUrl: 'test-url',
+                    read: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                console.log('Creating notification:', notificationData);
+                
+                const docRef = await addDoc(collection(db, 'notifications'), notificationData);
+                console.log('✅ Notification created with ID:', docRef.id);
+                alert('Tag notification created successfully!');
+                
+            } catch (error) {
+                console.error('❌ Error creating notification:', error);
+                alert('Error: ' + error.message);
+            }
+        };
+    </script>
+</body>
+</html>

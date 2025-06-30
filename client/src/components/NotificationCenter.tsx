@@ -4,7 +4,7 @@ import { subscribeToNotifications, markNotificationAsRead, markAllNotificationsA
 
 interface Notification {
   id: string;
-  type: 'comment' | 'like' | 'tag' | 'mention' | 'test';
+  type: 'comment' | 'like' | 'tag' | 'tagged' | 'mention' | 'test';
   fromUser: string;
   fromDeviceId: string;
   targetUser: string;
@@ -95,7 +95,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     switch (type) {
       case 'comment': return '💬';
       case 'like': return '❤️';
-      case 'tag': return '🏷️';
+      case 'tag':
+      case 'tagged': return '🏷️';
       default: return '🔔';
     }
   };

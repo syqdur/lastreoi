@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Heart, MessageCircle } from 'lucide-react';
 import { MediaItem, Comment, Like } from '../types';
+import { MediaTagging } from './MediaTagging';
 
 interface MediaModalProps {
   isOpen: boolean;
@@ -19,6 +20,9 @@ interface MediaModalProps {
   isDarkMode: boolean;
   getUserAvatar?: (userName: string, deviceId?: string) => string | null;
   getUserDisplayName?: (userName: string, deviceId?: string) => string;
+  deviceId: string;
+  galleryId: string;
+  onMediaUpdate?: () => void;
 }
 
 export const MediaModal: React.FC<MediaModalProps> = ({
@@ -37,7 +41,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   isAdmin,
   isDarkMode,
   getUserAvatar,
-  getUserDisplayName
+  getUserDisplayName,
+  deviceId,
+  galleryId,
+  onMediaUpdate
 }) => {
   const [commentText, setCommentText] = useState('');
   const [imageError, setImageError] = useState(false);
@@ -272,15 +279,35 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <img
-                    src={currentItem.url}
-                    alt="Hochzeitsfoto"
-                    className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
-                      imageLoading ? 'opacity-0' : 'opacity-100'
-                    }`}
-                    onLoad={handleImageLoad}
-                    onError={handleImageError}
-                  />
+                  <>
+                    <img
+                      src={currentItem.url}
+                      alt="Hochzeitsfoto"
+                      className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
+                        imageLoading ? 'opacity-0' : 'opacity-100'
+                      }`}
+                      onLoad={handleImageLoad}
+                      onError={handleImageError}
+                    />
+                    
+                    {/* Media Tagging Component */}
+                    {currentItem.type === 'image' && !imageLoading && !imageError && (
+                      <MediaTagging
+                        mediaId={currentItem.id}
+                        tags={currentItem.tags || []}
+                        currentUser={userName}
+                        currentDeviceId={deviceId}
+                        isAdmin={isAdmin}
+                        isDarkMode={isDarkMode}
+                        onTagsUpdated={() => onMediaUpdate?.()}
+                        getUserDisplayName={getUserDisplayName || (() => '')}
+                        mediaUploader={currentItem.uploadedBy}
+                        mediaType={currentItem.type}
+                        mediaUrl={currentItem.url}
+                        galleryId={galleryId}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             )}

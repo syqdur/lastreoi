@@ -162,11 +162,14 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
       {
         try {
           console.log(`📨 Sending tag notification to ${user.userName} (${user.deviceId})`);
+          console.log(`🔍 Current user: ${currentUser} (${currentDeviceId})`);
           
           // Enhanced notification with proper fromUser information
           const isSelfTag = user.userName === currentUser && user.deviceId === currentDeviceId;
+          console.log(`🏷️ Is self-tag:`, isSelfTag);
+          
           const notificationData = {
-            type: 'tagged' as const,
+            type: 'tag' as const,
             title: isSelfTag ? 'Du hast dich selbst markiert!' : 'Du wurdest markiert!',
             message: isSelfTag 
               ? `Du hast dich selbst in einem ${mediaType === 'video' ? 'Video' : 'Foto'} markiert`
@@ -187,10 +190,12 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
           await addNotification(
             user.userName,
             user.deviceId,
-            'tagged',
+            'tag',
             notificationData.message,
             mediaId,
-            mediaUrl
+            mediaUrl,
+            currentUser,
+            currentDeviceId
           );
           console.log('✅ Enhanced tag notification sent successfully');
           
@@ -455,6 +460,10 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
 
               {/* User List - Mobile Optimized */}
               <div className="max-h-48 overflow-y-auto space-y-2">
+                {(() => {
+                  console.log('🔍 DEBUG: Available users for tagging:', filteredUsers.length, filteredUsers);
+                  return null;
+                })()}
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((user) => {
                     const displayName = getUserDisplayName(user.userName, user.deviceId);
@@ -462,7 +471,10 @@ export const MediaTagging: React.FC<MediaTaggingProps> = ({
                     return (
                       <button
                         key={`${user.userName}_${user.deviceId}`}
-                        onClick={() => handleAddTag(user)}
+                        onClick={() => {
+                          console.log('🔥 USER BUTTON CLICKED! User:', user.userName, 'DeviceId:', user.deviceId);
+                          handleAddTag(user);
+                        }}
                         disabled={isLoading}
                         className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 touch-manipulation ${
                           isLoading ? 'opacity-50 cursor-not-allowed' : ''

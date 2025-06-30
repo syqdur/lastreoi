@@ -1274,10 +1274,12 @@ export const searchLocations = async (query: string): Promise<Array<{
 export const addNotification = async (
   targetUser: string,
   targetDeviceId: string,
-  type: 'tagged' | 'comment' | 'like',
+  type: 'tag' | 'comment' | 'like',
   message: string,
   mediaId?: string,
-  mediaUrl?: string
+  mediaUrl?: string,
+  fromUser?: string,
+  fromDeviceId?: string
 ): Promise<void> => {
   try {
     console.log(`📨 Creating ${type} notification for ${targetUser}`);
@@ -1285,13 +1287,13 @@ export const addNotification = async (
     // Create base notification object
     const notificationData: any = {
       type,
-      title: type === 'tagged' ? 'Du wurdest markiert!' : 
+      title: type === 'tag' ? 'Du wurdest markiert!' : 
              type === 'comment' ? 'Neuer Kommentar' : 'Neues Like',
       message,
       targetUser,
       targetDeviceId,
-      fromUser: 'System', // Will be overridden by caller if needed
-      fromDeviceId: 'system',
+      fromUser: fromUser || 'System',
+      fromDeviceId: fromDeviceId || 'system',
       read: false,
       createdAt: new Date().toISOString()
     };

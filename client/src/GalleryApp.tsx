@@ -51,7 +51,8 @@ import {
   createOrUpdateUserProfile,
   uploadUserProfilePicture,
   UserProfile,
-  createTestNotification
+  createTestNotification,
+  addNotification
 } from './services/firebaseService';
 import { subscribeSiteStatus, SiteStatus } from './services/siteStatusService';
 import { getUserName, getDeviceId } from './utils/deviceId';
@@ -1129,6 +1130,27 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
       : targetUserName;
   };
 
+  const createTestTagNotification = async () => {
+    try {
+      console.log('🧪 Creating test tag notification...');
+      await addNotification(
+        userName || '',
+        deviceId,
+        'tag',
+        `Du wurdest in einem Foto markiert! (Test um ${new Date().toLocaleTimeString()})`,
+        'test-media-123',
+        'test-url',
+        userName,
+        deviceId
+      );
+      console.log('✅ Test tag notification created!');
+      alert('Test tag notification created!');
+    } catch (error) {
+      console.error('❌ Error creating test notification:', error);
+      alert('Error: ' + (error as any).message);
+    }
+  };
+
   // Show Spotify callback handler if on callback page
   if (isSpotifyCallback()) {
     return <SpotifyCallback isDarkMode={isDarkMode} />;
@@ -1225,6 +1247,15 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
                   galleryId={gallery.id}
                 />
               )}
+              
+              {/* Test Tag Button */}
+              <button
+                onClick={createTestTagNotification}
+                className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-all duration-300"
+                title="Test Tag Notification"
+              >
+                TAG
+              </button>
               
               {/* Profile Button */}
               <button
@@ -1403,6 +1434,11 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         isDarkMode={isDarkMode}
         getUserAvatar={getUserAvatar}
         getUserDisplayName={getUserDisplayName}
+        deviceId={deviceId}
+        galleryId={gallery.id}
+        onMediaUpdate={() => {
+          loadGalleryMedia(gallery.id, setMediaItems);
+        }}
       />
 
       <StoriesViewer

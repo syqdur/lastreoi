@@ -3,7 +3,7 @@ import { db } from '../config/firebase';
 
 export interface Notification {
   id: string;
-  type: 'tag' | 'comment' | 'like' | 'mention';
+  type: 'tag' | 'tagged' | 'comment' | 'like' | 'mention';
   title: string;
   message: string;
   targetUser: string;
