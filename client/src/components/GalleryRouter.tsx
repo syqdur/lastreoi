@@ -4,6 +4,7 @@ import { LandingPage, GalleryCreationData } from './LandingPage';
 import { GalleryPasswordPrompt } from './GalleryPasswordPrompt';
 import { SimpleRootAdmin } from './SimpleRootAdmin';
 import { SpotifyCallback } from './SpotifyCallback';
+import { EventLoadingSpinner } from './EventLoadingSpinner';
 import { galleryService, Gallery } from '../services/galleryService';
 import { getUserName, getDeviceId } from '../utils/deviceId';
 
@@ -193,16 +194,12 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
         isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
       }`}>
         <div className="text-center">
-          <div className={`inline-flex p-4 rounded-full mb-4 ${
-            isDarkMode ? 'bg-pink-600' : 'bg-pink-500'
-          }`}>
-            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-          </div>
-          <p className={`text-lg ${
-            isDarkMode ? 'text-gray-300' : 'text-gray-600'
-          }`}>
-            Galerie wird geladen...
-          </p>
+          <EventLoadingSpinner 
+            theme={currentGallery?.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes' || 'hochzeit'} 
+            isDarkMode={isDarkMode} 
+            size="large"
+            text="Galerie wird geladen..."
+          />
         </div>
       </div>
     );

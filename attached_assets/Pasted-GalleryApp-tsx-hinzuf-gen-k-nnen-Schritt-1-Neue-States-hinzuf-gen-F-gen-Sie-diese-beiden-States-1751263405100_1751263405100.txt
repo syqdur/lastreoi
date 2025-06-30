@@ -1,0 +1,114 @@
+GalleryApp.tsx hinzufügen können:
+🔧 Schritt 1: Neue States hinzufügen
+Fügen Sie diese beiden States zu Ihren bestehenden States hinzu (ganz oben in der Komponente):
+typescript// Zu Ihren bestehenden States hinzufügen:
+const [isInitialLoading, setIsInitialLoading] = useState(true);
+const [galleryDataLoaded, setGalleryDataLoaded] = useState(false);
+🔧 Schritt 2: Bestehenden Gallery-Reset erweitern
+Finden Sie Ihren bestehenden useEffect mit [gallery.id, userName] und erweitern Sie ihn:
+typescript// Ihren bestehenden useEffect erweitern:
+useEffect(() => {
+  console.log('🔄 Gallery changed - complete state reset for:', gallery.id, gallery.eventName);
+  
+  // NEUE ZEILEN HINZUFÜGEN:
+  setIsInitialLoading(true);
+  setGalleryDataLoaded(false);
+  
+  // Ihre bestehenden Resets (BEHALTEN):
+  setGalleryProfileData(null);
+  setMediaItems([]);
+  setComments([]);
+  setLikes([]);
+  setStories([]);
+  setUserProfiles([]);
+  setCurrentUserProfile(null);
+  setSiteStatus(null);
+  setIsAdmin(false);
+  setModalOpen(false);
+  setActiveTab('gallery');
+  
+  // Rest Ihres bestehenden Codes...
+}, [gallery.id, userName]);
+🔧 Schritt 3: Neuen Data-Check useEffect hinzufügen
+Fügen Sie diesen neuen useEffect nach Ihren bestehenden useEffects hinzu:
+typescript// NEUER useEffect - nach Ihren bestehenden useEffects hinzufügen:
+useEffect(() => {
+  if (!userName || !gallery.id) return;
+  
+  console.log('🔍 Checking if all data is loaded...');
+  
+  const checkDataLoaded = () => {
+    const hasProfile = profileDataLoaded; // Nutzen Sie Ihren bestehenden State
+    const hasMediaData = mediaItems !== undefined;
+    const hasSiteStatus = siteStatus !== null;
+    
+    console.log('📊 Data check:', { hasProfile, hasMediaData, hasSiteStatus });
+    
+    if (hasProfile && hasMediaData && hasSiteStatus) {
+      console.log('✅ All essential data loaded, showing gallery');
+      setGalleryDataLoaded(true);
+      setIsInitialLoading(false);
+    }
+  };
+  
+  // Sofort prüfen
+  checkDataLoaded();
+  
+  // Periodisch prüfen (alle 500ms)
+  const interval = setInterval(checkDataLoaded, 500);
+  
+  // Timeout nach 8 Sekunden (dann trotzdem anzeigen)
+  const timeout = setTimeout(() => {
+    console.log('⏰ Loading timeout, showing gallery anyway');
+    setGalleryDataLoaded(true);
+    setIsInitialLoading(false);
+    clearInterval(interval);
+  }, 8000);
+  
+  return () => {
+    clearInterval(interval);
+    clearTimeout(timeout);
+  };
+}, [userName, gallery.id, profileDataLoaded, mediaItems, siteStatus]);
+🔧 Schritt 4: Loading Screen hinzufügen
+Fügen Sie direkt VOR Ihrem bestehenden return Statement hinzu:
+typescript// VOR Ihrem bestehenden return Statement hinzufügen:
+if (isInitialLoading && !galleryDataLoaded) {
+  return (
+    <div className={`min-h-screen flex items-center justify-center transition-all duration-500 ${
+      isDarkMode 
+        ? 'bg-gray-900' 
+        : gallery.theme === 'hochzeit'
+        ? 'bg-gradient-to-br from-gray-50 via-pink-50/30 to-rose-50/20'
+        : gallery.theme === 'geburtstag'
+        ? 'bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50/20'
+        : gallery.theme === 'urlaub'
+        ? 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/20'
+        : 'bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20'
+    }`}>
+      <div className="text-center space-y-6 px-4">
+        <EventLoadingSpinner 
+          theme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'} 
+          isDarkMode={isDarkMode} 
+          size="large"
+          text="Galerie wird geladen..."
+        />
+        
+        <div className="space-y-2">
+          <h1 className={`text-2xl font-bold ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            {gallery.eventName}
+          </h1>
+          <p className={`text-sm ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Deine Momente werden vorbereitet...
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Hier beginnt Ihr bestehender return mit der Galerie...

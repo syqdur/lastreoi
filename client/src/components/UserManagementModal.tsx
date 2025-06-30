@@ -141,6 +141,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   // Load user data when modal opens
   useEffect(() => {
     if (isOpen) {
+      // Automatische Cleanup von stale presence data beim Öffnen
+      cleanupStalePresence();
       loadUserData();
       loadUserProfilePictures();
     }
@@ -508,116 +510,76 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     setShowBulkConfirm(false);
 
     try {
-      console.log(`🗑️ Bulk deleting ${selectedUsers.size} users...`);
+      console.log(`🗑️ Optimized bulk deleting ${selectedUsers.size} users...`);
       
-      const batch = writeBatch(db);
-      let deletedCount = 0;
-
-      for (const userKey of Array.from(selectedUsers)) {
-        console.log(`🗑️ Processing: ${userKey}`);
-        
-        // Extract userName and deviceId from userKey
+      const userList = Array.from(selectedUsers);
+      const currentUserName = localStorage.getItem('userName');
+      const currentDeviceId = localStorage.getItem('deviceId');
+      
+      // SOFORTIGE PRÜFUNG: Ist der aktuelle Nutzer in der Liste?
+      let selfDeleteDetected = false;
+      for (const userKey of userList) {
         const deviceId = userKey.slice(-36);
         const userName = userKey.slice(0, -37);
         
-        console.log(`  👤 User: "${userName}", Device: "${deviceId}"`);
-        deletedCount++;
-        
-        // Delete from gallery-scoped live_users collection
-        const liveUsersQuery = query(
-          collection(db, 'galleries', galleryId, 'live_users'),
-          where('deviceId', '==', deviceId)
-        );
-        const liveUsersSnapshot = await getDocs(liveUsersQuery);
-        liveUsersSnapshot.docs.forEach(doc => {
-          console.log(`🗑️ Deleting gallery live_users entry: ${doc.id}`);
-          batch.delete(doc.ref);
-        });
-        
-        // Delete from gallery-scoped userProfiles collection
-        const profilesQuery = query(
-          collection(db, 'galleries', galleryId, 'userProfiles'),
-          where('userName', '==', userName),
-          where('deviceId', '==', deviceId)
-        );
-        const profilesSnapshot = await getDocs(profilesQuery);
-        console.log(`🗑️ Found ${profilesSnapshot.docs.length} profile entries for ${userName}`);
-        profilesSnapshot.docs.forEach(doc => {
-          console.log(`🗑️ Deleting gallery profile entry: ${doc.id}`);
-          batch.delete(doc.ref);
-        });
-        
-        // Add real-time kick-out signal for bulk deleted user
-        try {
+        if (currentUserName === userName && currentDeviceId === deviceId) {
+          selfDeleteDetected = true;
+          console.log(`🚨 BULK SELF-DELETE DETECTED - Immediate logout sequence`);
+          
+          // Sofort kick signal für sich selbst setzen
           await setDoc(doc(db, 'galleries', galleryId, 'kick_signals', deviceId), {
             userName: userName,
             deviceId: deviceId,
             kickedAt: new Date().toISOString(),
-            reason: 'bulk_deleted_by_admin'
+            reason: 'bulk_self_deleted'
           });
-          console.log(`🚨 Bulk kick signal sent for user: ${userName} (${deviceId})`);
-        } catch (kickError) {
-          console.warn('Failed to send bulk kick signal:', kickError);
-        }
-
-        // Delete all user content from gallery-scoped collections
-        const mediaQuery = query(
-          collection(db, 'galleries', galleryId, 'media'), 
-          where('deviceId', '==', deviceId)
-        );
-        const mediaSnapshot = await getDocs(mediaQuery);
-        mediaSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-        
-        const commentsQuery = query(
-          collection(db, 'galleries', galleryId, 'comments'), 
-          where('deviceId', '==', deviceId)
-        );
-        const commentsSnapshot = await getDocs(commentsQuery);
-        commentsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-        
-        const likesQuery = query(
-          collection(db, 'galleries', galleryId, 'likes'), 
-          where('deviceId', '==', deviceId)
-        );
-        const likesSnapshot = await getDocs(likesQuery);
-        likesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-        
-        const storiesQuery = query(
-          collection(db, 'galleries', galleryId, 'stories'), 
-          where('deviceId', '==', deviceId)
-        );
-        const storiesSnapshot = await getDocs(storiesQuery);
-        storiesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-      }
-
-      if (deletedCount > 0) {
-        console.log(`🗑️ Committing bulk deletion of ${deletedCount} users...`);
-        await batch.commit();
-        console.log(`✅ Successfully bulk deleted ${deletedCount} users`);
-        
-        // Check if current user was deleted
-        const currentUserName = localStorage.getItem('userName');
-        const currentDeviceId = localStorage.getItem('deviceId');
-        
-        for (const userKey of Array.from(selectedUsers)) {
-          const deviceId = userKey.slice(-36);
-          const userName = userKey.slice(0, -37);
           
-          if (currentUserName === userName && currentDeviceId === deviceId) {
-            console.log(`🧹 Current user was bulk deleted - reloading`);
-            localStorage.setItem('userDeleted', 'true');
-            setTimeout(() => {
-              localStorage.clear();
-              window.location.href = window.location.href;
-            }, 200);
-            return;
-          }
+          // Sofortiger Logout ohne auf Firebase zu warten
+          localStorage.setItem('userDeleted', 'true');
+          localStorage.setItem('kickReason', 'bulk_self_deleted');
+          
+          // Modal sofort schließen und Redirect
+          onClose();
+          setTimeout(() => {
+            localStorage.clear();
+            window.location.href = '/';
+          }, 100);
+          
+          // Background cleanup für alle Nutzer (nicht warten)
+          bulkCleanupInBackground(userList);
+          return;
         }
       }
       
-      // Clear selection and reload data
+      // Für normale Bulk-Löschung (ohne Self-Delete): Optimierte parallele Verarbeitung
+      console.log(`🗑️ Processing ${userList.length} users in parallel...`);
+      
+      // Kick Signals für alle Nutzer sofort senden (parallel)
+      const kickPromises = userList.map(userKey => {
+        const deviceId = userKey.slice(-36);
+        const userName = userKey.slice(0, -37);
+        
+        return setDoc(doc(db, 'galleries', galleryId, 'kick_signals', deviceId), {
+          userName: userName,
+          deviceId: deviceId,
+          kickedAt: new Date().toISOString(),
+          reason: 'bulk_deleted_by_admin'
+        }).catch(error => {
+          console.warn(`Failed to send kick signal for ${userName}:`, error);
+        });
+      });
+      
+      await Promise.all(kickPromises);
+      console.log(`🚨 All kick signals sent`);
+      
+      // Background cleanup für alle Nutzer
+      bulkCleanupInBackground(userList);
+      
+      // UI sofort aktualisieren
       setSelectedUsers(new Set());
       await loadUserData();
+      
+      console.log(`✅ Bulk deletion initiated for ${userList.length} users`);
       
     } catch (error) {
       console.error('❌ Error in bulk delete:', error);
@@ -626,6 +588,80 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       setBulkDeleting(false);
     }
   };
+
+// Neue Hintergrund-Bulk-Cleanup-Funktion
+const bulkCleanupInBackground = async (userList: string[]) => {
+  try {
+    console.log(`🧹 Background bulk cleanup for ${userList.length} users...`);
+    
+    const deletePromises: Promise<void>[] = [];
+    
+    for (const userKey of userList) {
+      const deviceId = userKey.slice(-36);
+      const userName = userKey.slice(0, -37);
+      
+      // Für jeden Nutzer alle Collections parallel abarbeiten
+      deletePromises.push(
+        // Gallery Live Users
+        getDocs(query(collection(db, 'galleries', galleryId, 'live_users'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        // Global Live Users (wichtig für Presence-Anzeige!)
+        getDocs(query(collection(db, 'live_users'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        getDocs(query(collection(db, 'galleries', galleryId, 'userProfiles'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        getDocs(query(collection(db, 'galleries', galleryId, 'media'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        getDocs(query(collection(db, 'galleries', galleryId, 'comments'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        getDocs(query(collection(db, 'galleries', galleryId, 'likes'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        getDocs(query(collection(db, 'galleries', galleryId, 'stories'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          })
+      );
+    }
+    
+    await Promise.all(deletePromises);
+    console.log(`✅ Background bulk cleanup completed`);
+    
+  } catch (error) {
+    console.warn('⚠️ Background bulk cleanup failed (but users were already logged out):', error);
+  }
+};
 
   const toggleUserSelection = (userName: string, deviceId: string) => {
     const userKey = `${userName}-${deviceId}`;
@@ -661,107 +697,146 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     setDeleteConfirm(null);
 
     try {
-      console.log(`🗑️ Deleting user: ${userName} (${deviceId})`);
+      console.log(`🗑️ Optimized delete for user: ${userName} (${deviceId})`);
       
-      const batch = writeBatch(db);
+      // SOFORTIGE PRÜFUNG: Ist das der aktuelle Nutzer?
+      const currentUserName = localStorage.getItem('userName');
+      const currentDeviceId = localStorage.getItem('deviceId');
+      const isDeletingSelf = (currentUserName === userName && currentDeviceId === deviceId);
       
-      // Delete ALL entries from gallery live_users collection for this deviceId
-      const liveUsersQuery = query(
-        collection(db, 'galleries', galleryId, 'live_users'),
-        where('deviceId', '==', deviceId)
-      );
-      const liveUsersSnapshot = await getDocs(liveUsersQuery);
-      console.log(`🗑️ Found ${liveUsersSnapshot.docs.length} gallery live_users entries to delete`);
-      liveUsersSnapshot.docs.forEach(doc => {
-        console.log(`🗑️ Deleting gallery live_users entry: ${doc.id}`);
-        batch.delete(doc.ref);
-      });
-      
-      // Delete all media uploaded by this user in this gallery
-      const mediaQuery = query(
-        collection(db, 'galleries', galleryId, 'media'),
-        where('deviceId', '==', deviceId)
-      );
-      const mediaSnapshot = await getDocs(mediaQuery);
-      mediaSnapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      
-      // Delete all comments by this user in this gallery
-      const commentsQuery = query(
-        collection(db, 'galleries', galleryId, 'comments'),
-        where('deviceId', '==', deviceId)
-      );
-      const commentsSnapshot = await getDocs(commentsQuery);
-      commentsSnapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      
-      // Delete all likes by this user in this gallery
-      const likesQuery = query(
-        collection(db, 'galleries', galleryId, 'likes'),
-        where('deviceId', '==', deviceId)
-      );
-      const likesSnapshot = await getDocs(likesQuery);
-      likesSnapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      
-      // Delete all stories by this user in this gallery
-      const storiesQuery = query(
-        collection(db, 'galleries', galleryId, 'stories'),
-        where('deviceId', '==', deviceId)
-      );
-      const storiesSnapshot = await getDocs(storiesQuery);
-      storiesSnapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      
-      // Delete user profile from gallery userProfiles collection
-      const profilesQuery = query(
-        collection(db, 'galleries', galleryId, 'userProfiles'),
-        where('userName', '==', userName),
-        where('deviceId', '==', deviceId)
-      );
-      const profilesSnapshot = await getDocs(profilesQuery);
-      console.log(`🗑️ Found ${profilesSnapshot.docs.length} profile entries to delete for ${userName}`);
-      
-      profilesSnapshot.docs.forEach(doc => {
-        console.log(`🗑️ Deleting profile entry: ${doc.id}`);
-        batch.delete(doc.ref);
-      });
-      
-      await batch.commit();
-      
-      // Add real-time kick-out signal for the deleted user
-      try {
+      if (isDeletingSelf) {
+        console.log(`🚨 SELF-DELETE DETECTED - Immediate logout sequence`);
+        
+        // Sofort kick signal setzen
         await setDoc(doc(db, 'galleries', galleryId, 'kick_signals', deviceId), {
           userName: userName,
           deviceId: deviceId,
           kickedAt: new Date().toISOString(),
-          reason: 'deleted_by_admin'
+          reason: 'self_deleted'
         });
-        console.log(`🚨 Kick signal sent for user: ${userName} (${deviceId})`);
-      } catch (kickError) {
-        console.warn('Failed to send kick signal:', kickError);
-      }
-      
-      // Clear localStorage if the deleted user is the current user
-      const currentUserName = localStorage.getItem('userName');
-      const currentDeviceId = localStorage.getItem('deviceId');
-      
-      if (currentUserName === userName && currentDeviceId === deviceId) {
-        console.log(`🧹 Current user deleted themselves - stopping all processes and reloading`);
-        // Stop all presence updates immediately
+        
+        // SOFORTIGE GLOBAL PRESENCE CLEANUP (wichtig!)
+        try {
+          console.log(`🧹 Immediate global presence cleanup for ${userName}`);
+          const globalPresenceQuery = query(collection(db, 'live_users'), where('deviceId', '==', deviceId));
+          const globalSnapshot = await getDocs(globalPresenceQuery);
+          const batch = writeBatch(db);
+          globalSnapshot.docs.forEach(doc => {
+            console.log(`🗑️ Removing global presence: ${doc.id}`);
+            batch.delete(doc.ref);
+          });
+          await batch.commit();
+          console.log(`✅ Global presence cleaned immediately`);
+        } catch (presenceError) {
+          console.warn('Failed to clean global presence immediately:', presenceError);
+        }
+        
+        // Sofortiger Logout ohne auf Firebase zu warten
         localStorage.setItem('userDeleted', 'true');
-        // Clear user data completely and reload page
+        localStorage.setItem('kickReason', 'self_deleted');
+        
+        // Modal sofort schließen
+        onClose();
+        
+        // Sofortiger Redirect nach sehr kurzer Verzögerung
         setTimeout(() => {
           localStorage.clear();
-          // Force full page refresh to restart with clean state
-          window.location.href = window.location.href;
-        }, 200);
-        return; // Exit early
+          window.location.href = '/';
+        }, 100);
+        
+        // Firebase cleanup im Hintergrund (ohne darauf zu warten)
+        deleteUserDataInBackground(userName, deviceId);
+        return;
       }
+      
+      // Für andere Nutzer: Optimierte parallele Löschung
+      console.log(`🗑️ Deleting other user: ${userName}`);
+      
+      // Alle Löschvorgänge parallel starten (nicht sequenziell)
+      const deletePromises = [];
+      
+      // 1. Gallery Live Users Query
+      deletePromises.push(
+        getDocs(query(collection(db, 'galleries', galleryId, 'live_users'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          })
+      );
+      
+      // 2. Global Live Users Query (WICHTIG: Auch global löschen!)
+      deletePromises.push(
+        getDocs(query(collection(db, 'live_users'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          })
+      );
+      
+      // 2. User Profiles Query  
+      deletePromises.push(
+        getDocs(query(collection(db, 'galleries', galleryId, 'userProfiles'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          })
+      );
+      
+      // 3. Media Query
+      deletePromises.push(
+        getDocs(query(collection(db, 'galleries', galleryId, 'media'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          })
+      );
+      
+      // 4. Comments Query
+      deletePromises.push(
+        getDocs(query(collection(db, 'galleries', galleryId, 'comments'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          })
+      );
+      
+      // 5. Likes Query
+      deletePromises.push(
+        getDocs(query(collection(db, 'galleries', galleryId, 'likes'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          })
+      );
+      
+      // 6. Stories Query
+      deletePromises.push(
+        getDocs(query(collection(db, 'galleries', galleryId, 'stories'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          })
+      );
+      
+      // 7. Kick Signal
+      deletePromises.push(
+        setDoc(doc(db, 'galleries', galleryId, 'kick_signals', deviceId), {
+          userName: userName,
+          deviceId: deviceId,
+          kickedAt: new Date().toISOString(),
+          reason: 'deleted_by_admin'
+        })
+      );
+      
+      // Alle Löschvorgänge parallel ausführen
+      await Promise.all(deletePromises);
       
       console.log(`✅ Successfully deleted user: ${userName}`);
       
@@ -773,6 +848,77 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       setError('Fehler beim Löschen des Benutzers');
     } finally {
       setDeletingUser(null);
+    }
+  };
+
+  // Neue Hintergrund-Löschfunktion für Self-Delete
+  const deleteUserDataInBackground = async (userName: string, deviceId: string) => {
+    try {
+      console.log(`🧹 Background cleanup for self-deleted user: ${userName}`);
+      
+      const deletePromises = [
+        // Gallery Live Users
+        getDocs(query(collection(db, 'galleries', galleryId, 'live_users'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        // Global Live Users (wichtig für Presence-Anzeige!)
+        getDocs(query(collection(db, 'live_users'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        // User Profiles
+        getDocs(query(collection(db, 'galleries', galleryId, 'userProfiles'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        // Media
+        getDocs(query(collection(db, 'galleries', galleryId, 'media'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        // Comments
+        getDocs(query(collection(db, 'galleries', galleryId, 'comments'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        // Likes
+        getDocs(query(collection(db, 'galleries', galleryId, 'likes'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          }),
+        
+        // Stories
+        getDocs(query(collection(db, 'galleries', galleryId, 'stories'), where('deviceId', '==', deviceId)))
+          .then(snapshot => {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            return batch.commit();
+          })
+      ];
+      
+      await Promise.all(deletePromises);
+      console.log(`✅ Background cleanup completed for: ${userName}`);
+      
+    } catch (error) {
+      console.warn('⚠️ Background cleanup failed (but user was already logged out):', error);
     }
   };
 
@@ -793,6 +939,38 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     } catch (error) {
       console.warn('Error formatting time:', error);
       return 'unbekannt';
+    }
+  };
+
+  // Manual cleanup function für den aktuellen Fall
+  const cleanupStalePresence = async () => {
+    try {
+      const currentUserName = localStorage.getItem('userName');
+      const currentDeviceId = localStorage.getItem('deviceId');
+      
+      if (!currentUserName || !currentDeviceId) return;
+      
+      console.log(`🧹 Manual cleanup of stale presence for ${currentUserName} (${currentDeviceId})`);
+      
+      // Clean global presence
+      const globalQuery = query(collection(db, 'live_users'), where('deviceId', '==', currentDeviceId));
+      const globalSnapshot = await getDocs(globalQuery);
+      
+      const batch = writeBatch(db);
+      globalSnapshot.docs.forEach(doc => {
+        console.log(`🗑️ Removing stale global presence: ${doc.id}`);
+        batch.delete(doc.ref);
+      });
+      
+      if (globalSnapshot.docs.length > 0) {
+        await batch.commit();
+        console.log(`✅ Cleaned up ${globalSnapshot.docs.length} stale presence entries`);
+      } else {
+        console.log(`ℹ️ No stale presence found to clean`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error cleaning stale presence:', error);
     }
   };
 

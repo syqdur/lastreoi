@@ -27,6 +27,7 @@
   import { GalleryTutorial } from './components/GalleryTutorial';
   import { AdminTutorial } from './components/AdminTutorial';
   import { SimpleTaggingModal } from './components/SimpleTaggingModal';
+  import { EventLoadingSpinner } from './components/EventLoadingSpinner';
   import { useUser } from './hooks/useUser';
   import { MediaItem, Comment, Like } from './types';
   import { Gallery, galleryService } from './services/galleryService';
@@ -135,10 +136,18 @@
     const [showTaggingModal, setShowTaggingModal] = useState(false);
     const [pendingUploadFiles, setPendingUploadFiles] = useState<FileList | null>(null);
     const [pendingUploadUrl, setPendingUploadUrl] = useState<string>('');
+    
+    // New loading states to fix pink loading ring
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [galleryDataLoaded, setGalleryDataLoaded] = useState(false);
 
     // Reset state when gallery changes to fix data isolation
     useEffect(() => {
       console.log('🔄 Gallery changed - resetting all state for:', gallery.id, gallery.eventName);
+
+      // New loading states
+      setIsInitialLoading(true);
+      setGalleryDataLoaded(false);
 
       // Clear old data immediately
       setGalleryProfileData(null);
@@ -274,6 +283,46 @@
         unsubscribeUserProfiles();
       };
     }, [userName, gallery.id]);
+
+    // New data check useEffect to handle loading completion
+    useEffect(() => {
+      if (!userName || !gallery.id) return;
+
+      console.log('🔍 Checking if all data is loaded...');
+
+      const checkDataLoaded = () => {
+        const hasProfile = profileDataLoaded; // Use existing profileDataLoaded state
+        const hasMediaData = mediaItems !== undefined;
+        const hasSiteStatus = siteStatus !== null;
+
+        console.log('📊 Data check:', { hasProfile, hasMediaData, hasSiteStatus });
+
+        if (hasProfile && hasMediaData && hasSiteStatus) {
+          console.log('✅ All essential data loaded, showing gallery');
+          setGalleryDataLoaded(true);
+          setIsInitialLoading(false);
+        }
+      };
+
+      // Check immediately
+      checkDataLoaded();
+
+      // Periodically check (every 500ms)
+      const interval = setInterval(checkDataLoaded, 500);
+
+      // Timeout after 8 seconds (then show gallery anyway)
+      const timeout = setTimeout(() => {
+        console.log('⏰ Loading timeout, showing gallery anyway');
+        setGalleryDataLoaded(true);
+        setIsInitialLoading(false);
+        clearInterval(interval);
+      }, 8000);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }, [userName, gallery.id, profileDataLoaded, mediaItems, siteStatus]);
 
     // Auto-logout when window/tab is closed
     useEffect(() => {
@@ -1108,6 +1157,45 @@
         isDarkMode={isDarkMode} 
         galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
       />;
+    }
+
+    // Loading Screen - Show while initial data is loading
+    if (isInitialLoading && !galleryDataLoaded) {
+      return (
+        <div className={`min-h-screen flex items-center justify-center transition-all duration-500 ${
+          isDarkMode 
+            ? 'bg-gray-900' 
+            : gallery.theme === 'hochzeit'
+            ? 'bg-gradient-to-br from-gray-50 via-pink-50/30 to-rose-50/20'
+            : gallery.theme === 'geburtstag'
+            ? 'bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50/20'
+            : gallery.theme === 'urlaub'
+            ? 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/20'
+            : 'bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20'
+        }`}>
+          <div className="text-center space-y-6 px-4">
+            <EventLoadingSpinner 
+              theme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'} 
+              isDarkMode={isDarkMode} 
+              size="large"
+              text="Galerie wird geladen..."
+            />
+            
+            <div className="space-y-2">
+              <h1 className={`text-2xl font-bold ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                {gallery.eventName}
+              </h1>
+              <p className={`text-sm ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Deine Momente werden vorbereitet...
+              </p>
+            </div>
+          </div>
+        </div>
+      );
     }
 
     return (
