@@ -1,0 +1,196 @@
+Prompt: Upload-integriertes Tagging-System implementieren
+🎯 Aufgabe
+Implementiere ein neues Tagging-System, das direkt in den Upload-Prozess integriert ist. Aktuell müssen Nutzer erst Bilder hochladen, dann öffnen und dann über separate Buttons (+Mensch & GPS) taggen. Das neue System soll das Tagging bereits beim Upload ermöglichen.
+📋 Anforderungen
+Funktionale Anforderungen
+
+Upload-Workflow: Nach Dateiauswahl öffnet sich ein Tagging-Modal vor dem eigentlichen Upload
+Personen-Tagging: Nutzer aus der Gallery-Teilnehmerliste auswählen und markieren
+Standort-Tagging: GPS-Position automatisch erfassen oder manuell eingeben
+Multi-File Support: Mehrere Dateien gleichzeitig mit individuellen Tags hochladen
+Vorschau: Ausgewählte Bilder/Videos vor Upload anzeigen
+Rückwärtskompatibilität: Bestehende Tagging-Funktionalität beibehalten
+
+Technische Anforderungen
+
+React + TypeScript: Bestehende Codebase erweitern
+Firebase Integration: Bestehende firebaseService Funktionen nutzen
+Mobile-First: Touch-optimierte Bedienung
+Performance: Keine Verzögerung beim Upload-Prozess
+Error Handling: Robuste Fehlerbehandlung
+
+🔧 Zu modifizierende Komponenten
+1. UploadSection.tsx erweitern
+typescript// Neue States hinzufügen:
+const [showTaggingModal, setShowTaggingModal] = useState(false);
+const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+const [galleryUsers, setGalleryUsers] = useState<GalleryUser[]>([]);
+
+// handleFileChange modifizieren:
+// - Statt direktem Upload → Tagging-Modal öffnen
+// - Vorschau-URLs für gewählte Dateien erstellen
+// - Gallery-Users laden
+2. Neue Komponente: UploadTaggingModal.tsx erstellen
+typescriptinterface UploadTaggingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (files: FileList, fileTags: Record<string, MediaTag[]>) => Promise<void>;
+  files: FileList | null;
+  previewUrls: string[];
+  galleryUsers: GalleryUser[];
+  currentUser: string;
+  currentDeviceId: string;
+  isDarkMode: boolean;
+  galleryId: string;
+}
+
+// Features implementieren:
+// - Datei-Carousel für Multi-File Support
+// - Personen-Auswahl mit Search-Funktion
+// - GPS-Button für automatische Standorterkennung
+// - Manuelle Standorteingabe mit Autocomplete
+// - Tag-Preview für jede Datei
+// - Bulk-Tagging Optionen
+3. Upload-Handler erweitern
+typescript// Neue Funktion für Upload mit Tags:
+const onUploadWithTags = async (files: FileList, fileTags: Record<string, MediaTag[]>) => {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const tags = fileTags[file.name] || [];
+    
+    // Upload-Prozess mit integrierten Tags
+    await uploadFileWithTags(file, tags);
+  }
+};
+🎨 UI/UX Spezifikationen
+Modal-Layout
+┌─────────────────────────────────────┐
+│ [←] Dateien markieren [2/3]      [✓]│
+├─────────────────────────────────────┤
+│                                     │
+│     [Bild/Video Vorschau]           │
+│     ○ ● ○  (Carousel Indicator)     │
+│                                     │
+├─────────────────────────────────────┤
+│ 👥 Personen markieren               │
+│ [Search: "Name eingeben..."]        │
+│ [Max] [Lisa] [Tom] [+3 weitere]     │
+├─────────────────────────────────────┤
+│ 📍 Standort                         │
+│ [📍 GPS verwenden] [📝 Eingeben]    │
+│ 📍 "Restaurant Sonne, München"      │
+├─────────────────────────────────────┤
+│ [Überspringen] [Zurück] [Hochladen] │
+└─────────────────────────────────────┘
+Mobile Optimierung
+
+Touch-freundliche Buttons: Mindestens 44px Höhe
+Swipe-Navigation: Zwischen mehreren Dateien wechseln
+Bottom Sheet Design: Modal von unten einfahren lassen
+Haptic Feedback: Bei Interaktionen
+
+📱 Workflow-Spezifikation
+Upload-Prozess (neu)
+
+Datei-Auswahl: Nutzer wählt Foto/Video aus Gallery
+Tagging-Modal: Öffnet sich automatisch mit Vorschau
+Personen taggen: Aus Teilnehmerliste auswählen (optional)
+Standort hinzufügen: GPS oder manuell (optional)
+Upload: Mit allen Tags in einem Schritt
+Bestätigung: Erfolg-Feedback mit Tag-Übersicht
+
+Multi-File Handling
+
+Carousel-Navigation: Wischen zwischen Dateien
+Bulk-Actions: "Gleiche Tags für alle" Option
+Individual-Tags: Pro Datei separate Tags
+Progress-Indicator: Upload-Fortschritt für jede Datei
+
+🔗 Integration mit bestehenden Services
+Firebase Services nutzen
+typescript// Bestehende Funktionen erweitern:
+import { 
+  addMediaTag, 
+  addLocationTag, 
+  getGalleryUsers,
+  getCurrentLocation,
+  searchLocations 
+} from '../services/firebaseService';
+
+// Neue Composite-Funktion:
+const uploadWithTags = async (file: File, tags: MediaTag[]) => {
+  const mediaItem = await uploadFile(file);
+  
+  for (const tag of tags) {
+    if (tag.type === 'person') {
+      await addMediaTag(mediaItem.id, tag.userName, tag.deviceId, currentUser, currentDeviceId);
+    } else if (tag.type === 'location') {
+      await addLocationTag(mediaItem.id, tag.locationData, currentUser, currentDeviceId);
+    }
+  }
+  
+  return mediaItem;
+};
+Bestehende Komponenten beibehalten
+
+InstagramPost.tsx: Weiterhin nachträgliches Tagging möglich
+MediaModal.tsx: Tag-Anzeige und -bearbeitung
+MediaTagging.tsx: Als Fallback für nachträgliche Änderungen
+
+🧪 Testing-Anforderungen
+Unit Tests
+
+Upload-Handler mit verschiedenen Datei-Typen
+Tag-Validierung und -Speicherung
+Error-Handling bei fehlgeschlagenen Uploads
+
+Integration Tests
+
+Vollständiger Upload-Workflow
+Multi-File Tagging
+GPS-Funktionalität (mit Mock)
+
+User Acceptance Tests
+
+Mobile Bedienbarkeit
+Performance bei großen Dateien
+Tagging-Genauigkeit
+
+🚀 Implementierungsreihenfolge
+Phase 1: Core-Funktionalität
+
+UploadTaggingModal Basis-Komponente
+Single-File Upload mit Personen-Tags
+GPS-Integration
+UploadSection Integration
+
+Phase 2: Erweiterte Features
+
+Multi-File Support
+Standort-Suche mit Autocomplete
+Bulk-Tagging Optionen
+UI/UX Verfeinerungen
+
+Phase 3: Optimierung
+
+Performance-Optimierung
+Offline-Funktionalität
+Advanced Error Handling
+Analytics Integration
+
+📊 Erfolgskriterien
+
++50% Tagging-Rate: Mehr Uploads mit Tags
+-70% Zeit bis Tag: Schnellerer Tagging-Prozess
+0 Breaking Changes: Vollständige Rückwärtskompatibilität
+<2s Modal-Load: Schnelle Anzeige nach Datei-Auswahl
+Mobile-First: Perfekte Touch-Bedienung
+
+💡 Besondere Hinweise
+
+Bestehende Styles verweitern: Theme-System (hochzeit/geburtstag/urlaub/eigenes) beibehalten
+Accessibility: ARIA-Labels und Keyboard-Navigation
+Privacy: GPS-Berechtigung benutzerfreundlich abfragen
+Fallbacks: Wenn Tagging fehlschlägt, trotzdem upload
+Progressive Enhancement: Funktioniert auch ohne JavaScript

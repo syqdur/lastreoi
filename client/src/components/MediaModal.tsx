@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Heart, MessageCircle } from 'lucide-react';
 import { MediaItem, Comment, Like } from '../types';
-import { MediaTagging } from './MediaTagging';
 
 interface MediaModalProps {
   isOpen: boolean;
@@ -290,23 +289,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
                       onError={handleImageError}
                     />
                     
-                    {/* Media Tagging Component */}
-                    {currentItem.type === 'image' && !imageLoading && !imageError && (
-                      <MediaTagging
-                        mediaId={currentItem.id}
-                        tags={currentItem.tags || []}
-                        currentUser={userName}
-                        currentDeviceId={deviceId}
-                        isAdmin={isAdmin}
-                        isDarkMode={isDarkMode}
-                        onTagsUpdated={() => onMediaUpdate?.()}
-                        getUserDisplayName={getUserDisplayName || (() => '')}
-                        mediaUploader={currentItem.uploadedBy}
-                        mediaType={currentItem.type}
-                        mediaUrl={currentItem.url}
-                        galleryId={galleryId}
-                      />
-                    )}
+                    {/* Tags are now handled during upload - no post-upload tagging */}
                   </>
                 )}
               </div>

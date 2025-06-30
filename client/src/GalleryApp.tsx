@@ -26,7 +26,7 @@ import { BackToTopButton } from './components/BackToTopButton';
 import { NotificationCenter } from './components/NotificationCenter';
 import { GalleryTutorial } from './components/GalleryTutorial';
 import { AdminTutorial } from './components/AdminTutorial';
-import { SimpleTaggingModal } from './components/SimpleTaggingModal';
+import { UploadTaggingModal } from './components/UploadTaggingModal';
 import { useUser } from './hooks/useUser';
 import { MediaItem, Comment, Like } from './types';
 import { Gallery, galleryService } from './services/galleryService';
@@ -169,7 +169,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   const [showAdminTutorial, setShowAdminTutorial] = useState(false);
   const [showTaggingModal, setShowTaggingModal] = useState(false);
   const [pendingUploadFiles, setPendingUploadFiles] = useState<FileList | null>(null);
-  const [pendingUploadUrl, setPendingUploadUrl] = useState<string>('');
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   
   // Reset state when gallery changes to fix data isolation
   useEffect(() => {
@@ -333,17 +333,20 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
   const handleUpload = async (files: FileList) => {
     if (!userName || !files || files.length === 0) return;
 
-    // Create preview URL for the first file to show in tagging modal
-    const firstFile = files[0];
-    const previewUrl = URL.createObjectURL(firstFile);
+    // Create preview URLs for ALL files to show in enhanced tagging modal
+    const previewUrls: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const previewUrl = URL.createObjectURL(files[i]);
+      previewUrls.push(previewUrl);
+    }
     
     setPendingUploadFiles(files);
-    setPendingUploadUrl(previewUrl);
+    setPreviewUrls(previewUrls);
     setShowTaggingModal(true);
   }
 
-  const handleTaggingConfirm = async (tags: any[]) => {
-    if (!pendingUploadFiles || !userName) return;
+  const handleTaggingConfirm = async (files: FileList, fileTags: Record<string, any[]>) => {
+    if (!files || !userName) return;
 
     setIsUploading(true);
     setUploadProgress(0);
@@ -351,12 +354,22 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
     setShowTaggingModal(false);
 
     try {
-      // Pass tags to upload function
-      await uploadGalleryFiles(pendingUploadFiles, userName, deviceId, gallery.id, setUploadProgress, tags);
+      // Upload files with their individual tags
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileName = file.name;
+        const tags = fileTags[fileName] || [];
+        
+        // Upload single file with its tags
+        const singleFileList = new DataTransfer();
+        singleFileList.items.add(file);
+        
+        await uploadGalleryFiles(singleFileList.files, userName, deviceId, gallery.id, setUploadProgress, tags);
+      }
       
       await createOrUpdateGalleryUserProfile(userName, deviceId, {}, gallery.id);
       
-      setStatus('✅ Bilder erfolgreich hochgeladen!');
+      setStatus('✅ Dateien erfolgreich hochgeladen!');
       setTimeout(() => setStatus(''), 3000);
     } catch (error) {
       setStatus('❌ Fehler beim Hochladen. Bitte versuche es erneut.');
@@ -366,22 +379,19 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
       setIsUploading(false);
       setUploadProgress(0);
       setPendingUploadFiles(null);
-      setPendingUploadUrl('');
-      // Clean up the preview URL
-      if (pendingUploadUrl) {
-        URL.revokeObjectURL(pendingUploadUrl);
-      }
+      
+      // Clean up all preview URLs
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+      setPreviewUrls([]);
     }
   }
 
   const handleTaggingCancel = () => {
     setShowTaggingModal(false);
     setPendingUploadFiles(null);
-    // Clean up the preview URL
-    if (pendingUploadUrl) {
-      URL.revokeObjectURL(pendingUploadUrl);
-      setPendingUploadUrl('');
-    }
+    // Clean up all preview URLs
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    setPreviewUrls([]);
   };
 
   const handleVideoUpload = async (videoBlob: Blob) => {
@@ -1140,7 +1150,7 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         `Du wurdest in einem Foto markiert! (Test um ${new Date().toLocaleTimeString()})`,
         'test-media-123',
         'test-url',
-        userName,
+        userName || 'Anonymous',
         deviceId
       );
       console.log('✅ Test tag notification created!');
@@ -1679,16 +1689,19 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
         galleryTheme={gallery.theme || 'hochzeit'}
       />
 
-      {/* Simple Tagging Modal */}
-      {showTaggingModal && pendingUploadUrl && (
-        <SimpleTaggingModal
+      {/* Enhanced Upload Tagging Modal */}
+      {showTaggingModal && pendingUploadFiles && previewUrls.length > 0 && (
+        <UploadTaggingModal
           isOpen={showTaggingModal}
           onClose={handleTaggingCancel}
           onConfirm={handleTaggingConfirm}
-          mediaUrl={pendingUploadUrl}
-          mediaType={pendingUploadFiles?.[0]?.type.startsWith('video') ? 'video' : 'image'}
-          isDarkMode={isDarkMode}
+          files={pendingUploadFiles}
+          previewUrls={previewUrls}
           galleryUsers={galleryUsers}
+          currentUser={userName || 'Anonymous'}
+          currentDeviceId={deviceId}
+          isDarkMode={isDarkMode}
+          galleryId={gallery.id}
         />
       )}
     </div>

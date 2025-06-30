@@ -87,6 +87,14 @@ This is a comprehensive wedding gallery application with the following architect
 
 ## Recent Changes
 
+### June 30, 2025 (Enhanced Upload-Integrated Tagging System Connected to Notifications)
+- **Complete Upload Tagging Integration**: Enhanced UploadTaggingModal now sends notifications to all tagged users during upload process with German messaging and proper user identification
+- **Notification System Connection**: Tagged users receive real-time notifications with message format "Username hat dich in einem Bild/mehreren Bildern markiert" using existing Firebase notification infrastructure
+- **MediaModal Tagging Removal**: Removed post-upload MediaTagging component from MediaModal since tagging is now handled during upload workflow for cleaner user experience
+- **Multi-File Tagging Notifications**: System efficiently collects all tagged users across multiple files and sends notifications only once per user to prevent spam
+- **Instagram-Style Notification Flow**: Complete integration with existing notification center, service worker, and browser notification system for authentic social media experience
+- **Enhanced User Experience**: Streamlined workflow where tagging happens during upload preparation rather than after media is already shared
+
 ### January 25, 2025
 - **Profile Header Admin Controls**: Moved admin controls to profile header with profile picture and gear icon design, replacing fixed top-right admin toggle
 - **Lock/Unlock Admin Toggle**: Added lock/unlock icons in profile header for seamless admin mode switching
