@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Camera, Music, Users, Star, ArrowRight, Sparkles, Globe, Shield, Clock, Code, Terminal, Zap } from 'lucide-react';
 import { TelyaLogo } from './TelyaLogo';
+import { PricingSection } from './PricingSection';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { galleryService } from '../services/galleryService';
 
 interface LandingPageProps {
-  isDarkMode: boolean;
   onCreateGallery: (galleryData: GalleryCreationData) => void;
   onRootAdminLogin?: () => void;
 }
@@ -23,6 +23,7 @@ export interface GalleryCreationData {
   ownerEmail?: string;
   userEmail: string;
   userPassword: string;
+  selectedPlan?: 'free' | 'basic' | 'pro';
 }
 
 const THEMES = {
@@ -80,7 +81,9 @@ const THEMES = {
   }
 };
 
-export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGallery, onRootAdminLogin }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRootAdminLogin }) => {
+  // Force light mode for landing page
+  const isLight = true;
   const [formData, setFormData] = useState<GalleryCreationData>({
     eventName: '',
     slug: '',
@@ -92,7 +95,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
     ownerName: '',
     ownerEmail: '',
     userEmail: '',
-    userPassword: ''
+    userPassword: '',
+    selectedPlan: 'free'
   });
 
   const [showForm, setShowForm] = useState(false);
@@ -138,6 +142,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
       eventName: value,
       slug: generateSlug(value)
     }));
+  };
+
+  const handlePlanSelect = (planId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedPlan: planId as 'free' | 'basic' | 'pro'
+    }));
+    // After plan selection, show the gallery creation form
+    setShowForm(true);
   };
 
   const validateSlug = (slug: string) => {
@@ -294,16 +307,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
   ];
 
   return (
-    <div className={`min-h-screen relative overflow-hidden ${
-      isDarkMode 
-        ? 'bg-black' 
-        : 'bg-white'
-    }`}>
+    <div className="min-h-screen relative overflow-hidden bg-white">
       {/* Animated background with floating elements */}
       <div className="absolute inset-0 opacity-80 overflow-hidden">
         {/* Animated gradient base */}
-        <div 
-          className={`absolute inset-0 ${isDarkMode ? 'opacity-30' : 'opacity-100'}`} 
+        <div className="absolute inset-0 opacity-100" 
           style={{
             background: `
               radial-gradient(ellipse 80% 50% at 20% 40%, #ff6b6b 0%, transparent 50%),
@@ -322,9 +330,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
           {[...Array(8)].map((_, i) => (
             <div
               key={i}
-              className={`absolute rounded-full blur-sm ${
-                isDarkMode ? 'bg-white/5' : 'bg-white/15'
-              }`}
+              className="absolute rounded-full blur-sm bg-white/15"
               style={{
                 width: `${15 + i * 8}px`,
                 height: `${15 + i * 8}px`,
@@ -343,7 +349,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
           {[...Array(15)].map((_, i) => (
             <div
               key={`sparkle-${i}`}
-              className={`absolute ${isDarkMode ? 'text-white/20' : 'text-white/40'}`}
+              className={`absolute ${'text-white/40'}`}
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
@@ -361,7 +367,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
           {[...Array(6)].map((_, i) => (
             <div
               key={`heart-${i}`}
-              className={`absolute ${isDarkMode ? 'text-pink-300/20' : 'text-pink-200/40'}`}
+              className={`absolute ${'text-pink-200/40'}`}
               style={{
                 left: `${20 + Math.random() * 60}%`,
                 top: `${30 + Math.random() * 40}%`,
@@ -375,8 +381,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
         </div>
         
         {/* Flowing shapes overlay with morphing animation */}
-        <div 
-          className={`absolute inset-0 ${isDarkMode ? 'opacity-20' : 'opacity-60'}`} 
+        <div className="absolute inset-0 opacity-60" 
           style={{
             background: `
               radial-gradient(ellipse 120% 80% at 30% 60%, rgba(255, 107, 107, 0.3) 0%, transparent 60%),
@@ -401,23 +406,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
           </div>
 
           {/* Apple-style Headline - Mobile Optimized */}
-          <h1 className={`text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-light tracking-tight mb-6 sm:mb-8 drop-shadow-sm ${
-            isDarkMode ? 'text-white' : 'text-white'
-          }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-light tracking-tight mb-6 sm:mb-8 drop-shadow-sm text-white" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
             Telya
           </h1>
 
           {/* Apple-style Subheadline */}
-          <h2 className={`text-2xl md:text-3xl lg:text-4xl font-light mb-8 max-w-4xl mx-auto leading-relaxed drop-shadow-sm ${
-            isDarkMode ? 'text-gray-200' : 'text-white'
-          }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-light mb-8 max-w-4xl mx-auto leading-relaxed drop-shadow-sm text-white" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
             Eure Momente, für die Ewigkeit
           </h2>
 
           {/* Apple-style Description */}
-          <p className={`text-xl md:text-2xl font-light mb-12 max-w-3xl mx-auto leading-relaxed drop-shadow-sm ${
-            isDarkMode ? 'text-gray-300' : 'text-white/90'
-          }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
+          <p className="text-xl md:text-2xl font-light mb-12 max-w-3xl mx-auto leading-relaxed drop-shadow-sm text-white/90" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
             Die moderne Event-Galerie für eure besonderen Momente. Instagram-Style, Echtzeit, Privat.
           </p>
 
@@ -425,11 +424,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
               onClick={() => setShowForm(true)}
-              className={`px-8 py-4 text-lg font-medium rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg ${
-                isDarkMode 
-                  ? 'bg-white/90 text-black hover:bg-white' 
-                  : 'bg-white/90 text-black hover:bg-white'
-              }`}
+              className="px-8 py-4 text-lg font-medium rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg bg-white/90 text-black hover:bg-white"
               style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
             >
               Galerie erstellen
@@ -437,11 +432,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
             
             <button
               onClick={() => setShowLogin(true)}
-              className={`px-8 py-4 text-lg font-medium rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg border-2 ${
-                isDarkMode 
-                  ? 'bg-transparent text-white border-white/40 hover:bg-white/10 hover:border-white/60' 
-                  : 'bg-transparent text-white border-white/60 hover:bg-white/10 hover:border-white/80'
-              }`}
+              className="px-8 py-4 text-lg font-medium rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg border-2 bg-transparent text-white border-white/60 hover:bg-white/10 hover:border-white/80"
               style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
             >
               Anmelden
@@ -457,35 +448,34 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                 key={index}
                 className="text-center group backdrop-blur-sm bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300"
               >
-                <div className={`mb-6 ${isDarkMode ? 'text-white/80' : 'text-white/80'} group-hover:scale-105 transition-transform duration-300`}>
+                <div className="mb-6 text-white/80 group-hover:scale-105 transition-transform duration-300">
                   {feature.icon}
                 </div>
-                <h3 className={`text-xl font-light mb-3 drop-shadow-sm ${
-                  isDarkMode ? 'text-white' : 'text-white'
-                }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
+                <h3 className="text-xl font-light mb-3 drop-shadow-sm text-white" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
                   {feature.title}
                 </h3>
-                <p className={`text-base font-light leading-relaxed drop-shadow-sm ${
-                  isDarkMode ? 'text-white/80' : 'text-white/80'
-                }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
+                <p className="text-base font-light leading-relaxed drop-shadow-sm text-white/80" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                   {feature.description}
                 </p>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Pricing Section */}
+        <div className="mt-32">
+          <PricingSection 
+            onSelectPlan={handlePlanSelect}
+          />
+        </div>
       </div>
 
       {/* Apple-style Gallery Creation Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-start sm:items-center justify-center p-3 sm:p-6 z-50 overflow-y-auto">
-          <div className={`w-full max-w-xl rounded-xl sm:rounded-2xl my-4 sm:my-0 ${
-            isDarkMode ? 'bg-neutral-900/95' : 'bg-white/95'
-          } backdrop-blur-xl shadow-2xl`}>
+          <div className="w-full max-w-xl rounded-xl sm:rounded-2xl my-4 sm:my-0 bg-white/95 backdrop-blur-xl shadow-2xl">
             <div className="p-4 sm:p-8">
-              <h3 className={`text-xl sm:text-2xl font-light mb-6 sm:mb-8 text-center ${
-                isDarkMode ? 'text-white' : 'text-black'
-              }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
+              <h3 className="text-xl sm:text-2xl font-light mb-6 sm:mb-8 text-center text-black" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
                 Eure Event-Galerie erstellen
               </h3>
 
@@ -493,7 +483,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                 {/* Apple-style Theme Selection */}
                 <div>
                   <label className={`block text-sm sm:text-base font-light mb-3 sm:mb-4 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    'text-gray-700'
                   }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                     Event-Typ wählen
                   </label>
@@ -505,12 +495,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                         onClick={() => setFormData(prev => ({ ...prev, theme: key as any }))}
                         className={`p-4 sm:p-6 rounded-xl border transition-all duration-200 text-left touch-manipulation min-h-[80px] ${
                           formData.theme === key
-                            ? isDarkMode
-                              ? `bg-${theme.primaryColor}/20 border-${theme.primaryColor}/40 text-white shadow-lg shadow-${theme.primaryColor}/25`
-                              : `bg-${theme.primaryColor}/10 border-${theme.primaryColor}/30 text-black shadow-lg shadow-${theme.primaryColor}/20`
-                            : isDarkMode
-                              ? 'bg-neutral-800/50 border-neutral-700/50 text-gray-300 hover:bg-neutral-800'
-                              : 'bg-gray-50/50 border-gray-200/50 text-gray-700 hover:bg-gray-100/50'
+                            ? `bg-${theme.primaryColor}/10 border-${theme.primaryColor}/30 text-black shadow-lg shadow-${theme.primaryColor}/20`
+                            : 'bg-gray-50/50 border-gray-200/50 text-gray-700 hover:bg-gray-100/50'
                         }`}
                       >
                         <div className="flex items-center gap-2 sm:gap-3 mb-2">
@@ -521,8 +507,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                         </div>
                         <p className={`text-xs sm:text-sm font-light ${
                           formData.theme === key 
-                            ? isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                            : isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                            ? 'text-gray-600'
+                            : 'text-gray-500'
                         }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                           {theme.description}
                         </p>
@@ -534,7 +520,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                 {/* Apple-style Event Name */}
                 <div>
                   <label className={`block text-sm sm:text-base font-light mb-2 sm:mb-3 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    'text-gray-700'
                   }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                     Event-Name
                   </label>
@@ -542,11 +528,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                     type="text"
                     value={formData.eventName}
                     onChange={(e) => handleEventNameChange(e.target.value)}
-                    className={`w-full px-3 sm:px-4 py-3 sm:py-4 text-base sm:text-lg rounded-xl border-0 transition-all duration-200 focus:outline-none focus:ring-1 touch-manipulation ${
-                      isDarkMode 
-                        ? 'bg-neutral-800/70 text-white placeholder-gray-500 focus:ring-white/30' 
-                        : 'bg-white text-black placeholder-gray-400 focus:ring-black/30'
-                    }`}
+                    className="w-full px-3 sm:px-4 py-3 sm:py-4 text-base sm:text-lg rounded-xl border-0 transition-all duration-200 focus:outline-none focus:ring-1 touch-manipulation bg-white text-black placeholder-gray-400 focus:ring-black/30"
                     style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
                     placeholder="z.B. Julia & Tim, 30. Geburtstag, Rom Urlaub..."
                     required
@@ -555,17 +537,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
 
                 {/* URL Slug */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <label className={`block text-sm font-medium mb-2 ${'text-gray-700'}`}>
                     Galerie-URL
                   </label>
                   <div className={`flex items-center px-3 sm:px-4 py-3 rounded-xl border touch-manipulation ${
                     slugError 
                       ? 'border-red-500' 
-                      : isDarkMode 
-                        ? 'border-neutral-600 bg-neutral-700' 
-                        : 'border-gray-300 bg-white'
+                      : 'border-gray-300 bg-white'
                   }`}>
-                    <span className={`mr-1 sm:mr-2 text-sm sm:text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <span className={`mr-1 sm:mr-2 text-sm sm:text-base ${'text-gray-500'}`}>
                       telya.app/
                     </span>
                     <input
@@ -576,7 +556,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                         validateSlug(e.target.value);
                       }}
                       className={`flex-1 bg-transparent outline-none text-sm sm:text-base ${
-                        isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'
+                        'text-gray-900 placeholder-gray-500'
                       }`}
                       placeholder="julia-und-tim"
                       required
@@ -587,7 +567,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
 
                 {/* Email Registration */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <label className={`block text-sm font-medium mb-2 ${'text-gray-700'}`}>
                     E-Mail-Adresse (für Galerie-Verwaltung)
                   </label>
                   <input
@@ -595,7 +575,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                     value={formData.userEmail}
                     onChange={(e) => setFormData(prev => ({ ...prev, userEmail: e.target.value }))}
                     className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base rounded-xl border transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation ${
-                      isDarkMode 
+                      false
                         ? 'bg-neutral-700 border-neutral-600 text-white placeholder-gray-400' 
                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                     }`}
@@ -606,7 +586,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
 
                 {/* User Password */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <label className={`block text-sm font-medium mb-2 ${'text-gray-700'}`}>
                     Passwort (für Galerie-Verwaltung)
                   </label>
                   <input
@@ -614,7 +594,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                     value={formData.userPassword}
                     onChange={(e) => setFormData(prev => ({ ...prev, userPassword: e.target.value }))}
                     className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base rounded-xl border transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation ${
-                      isDarkMode 
+                      false
                         ? 'bg-neutral-700 border-neutral-600 text-white placeholder-gray-400' 
                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                     }`}
@@ -622,14 +602,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                     required
                     minLength={6}
                   />
-                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <p className={`text-xs mt-1 ${'text-gray-500'}`}>
                     Mit diesem Konto können Sie Ihre Galerie verwalten und Einstellungen ändern.
                   </p>
                 </div>
 
                 {/* Optional Gallery Password */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <label className={`block text-sm font-medium mb-2 ${'text-gray-700'}`}>
                     Galerie-Passwort (optional)
                   </label>
                   <input
@@ -637,13 +617,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                     value={formData.password}
                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                     className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base rounded-xl border transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation ${
-                      isDarkMode 
+                      false
                         ? 'bg-neutral-700 border-neutral-600 text-white placeholder-gray-400' 
                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                     }`}
                     placeholder="Für private Galerien"
                   />
-                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <p className={`text-xs mt-1 ${'text-gray-500'}`}>
                     Optional: Zusätzlicher Schutz für Ihre Galerie. Gäste müssen dieses Passwort eingeben.
                   </p>
                 </div>
@@ -654,7 +634,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                     type="button"
                     onClick={() => setShowForm(false)}
                     className={`w-full sm:flex-1 py-3 sm:py-4 px-4 sm:px-6 font-light text-base sm:text-lg rounded-xl transition-all duration-200 ${
-                      isDarkMode 
+                      false
                         ? 'bg-neutral-800/70 text-gray-300 hover:bg-neutral-700/70' 
                         : 'bg-gray-100/70 text-gray-700 hover:bg-gray-200/70'
                     }`}
@@ -666,7 +646,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                     type="submit"
                     disabled={isCreating}
                     className={`w-full sm:flex-1 py-3 sm:py-4 px-4 sm:px-6 font-light text-base sm:text-lg rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                      isDarkMode 
+                      false
                         ? 'bg-white text-black hover:bg-gray-100' 
                         : 'bg-black text-white hover:bg-gray-800'
                     }`}
@@ -692,11 +672,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
       {showLogin && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6 z-50 overflow-y-auto">
           <div className={`w-full max-w-md rounded-xl sm:rounded-2xl ${
-            isDarkMode ? 'bg-neutral-900/95' : 'bg-white/95'
+            'bg-white/95'
           } backdrop-blur-xl shadow-2xl`}>
             <div className="p-6 sm:p-8">
               <h3 className={`text-2xl sm:text-3xl font-light mb-6 text-center ${
-                isDarkMode ? 'text-white' : 'text-black'
+                'text-black'
               }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
                 Bei Ihrer Galerie anmelden
               </h3>
@@ -704,7 +684,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
               <form onSubmit={handleLogin} className="space-y-6">
                 {/* Email */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <label className={`block text-sm font-medium mb-2 ${'text-gray-700'}`}>
                     E-Mail-Adresse
                   </label>
                   <input
@@ -712,7 +692,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                     value={loginData.email}
                     onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
                     className={`w-full px-4 py-3 text-base rounded-xl border transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation ${
-                      isDarkMode 
+                      false
                         ? 'bg-neutral-700 border-neutral-600 text-white placeholder-gray-400' 
                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                     }`}
@@ -723,7 +703,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
 
                 {/* Password */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <label className={`block text-sm font-medium mb-2 ${'text-gray-700'}`}>
                     Passwort
                   </label>
                   <input
@@ -731,7 +711,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                     value={loginData.password}
                     onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                     className={`w-full px-4 py-3 text-base rounded-xl border transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation ${
-                      isDarkMode 
+                      false
                         ? 'bg-neutral-700 border-neutral-600 text-white placeholder-gray-400' 
                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                     }`}
@@ -749,7 +729,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                       setLoginData({ email: '', password: '' });
                     }}
                     className={`w-full sm:flex-1 py-3 px-4 font-light text-base rounded-xl transition-all duration-200 ${
-                      isDarkMode 
+                      false
                         ? 'bg-neutral-800/70 text-gray-300 hover:bg-neutral-700/70' 
                         : 'bg-gray-100/70 text-gray-700 hover:bg-gray-200/70'
                     }`}
@@ -761,7 +741,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                     type="submit"
                     disabled={isLoggingIn}
                     className={`w-full sm:flex-1 py-3 px-4 font-light text-base rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                      isDarkMode 
+                      false
                         ? 'bg-white text-black hover:bg-gray-100' 
                         : 'bg-black text-white hover:bg-gray-800'
                     }`}
@@ -779,7 +759,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                 </div>
               </form>
 
-              <div className={`mt-6 text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              <div className={`mt-6 text-center text-sm ${'text-gray-600'}`}>
                 <p>Noch kein Konto? Erstellen Sie eine neue Galerie.</p>
               </div>
             </div>
@@ -791,7 +771,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
       {showImprint && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
           <div className={`w-full max-w-lg rounded-3xl shadow-2xl ${
-            isDarkMode ? 'bg-neutral-800 border border-neutral-700' : 'bg-white/95 backdrop-blur-sm'
+            'bg-white/95 backdrop-blur-sm'
           } animate-slideInUp`}>
             <div className="p-8 text-center">
               <div className="mb-6">
@@ -801,10 +781,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
                   </div>
                   <Terminal className="w-8 h-8 text-green-500 animate-pulse" />
                 </div>
-                <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <h3 className={`text-2xl font-bold mb-2 ${'text-gray-900'}`}>
                   &lt;/&gt; Coded by Mauro
                 </h3>
-                <div className={`font-mono text-sm ${isDarkMode ? 'text-green-400' : 'text-green-600'} mb-4`}>
+                <div className={`font-mono text-sm ${'text-green-600'} mb-4`}>
                   <div className="animate-typewriter">
                     <span className="opacity-60">$</span> git commit -m "Built with ❤️"
                   </div>
@@ -818,15 +798,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
               </div>
               
               <div className={`p-4 rounded-xl mb-6 ${
-                isDarkMode ? 'bg-neutral-700/50' : 'bg-gray-50'
+                'bg-gray-50'
               }`}>
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Zap className="w-4 h-4 text-yellow-500 animate-bounce" />
-                  <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <span className={`font-medium ${'text-gray-900'}`}>
                     Full-Stack Developer
                   </span>
                 </div>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <p className={`text-sm ${'text-gray-600'}`}>
                   React • TypeScript • Node.js • Firebase
                 </p>
               </div>
@@ -846,7 +826,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ isDarkMode, onCreateGa
       <button
         onClick={() => setShowImprint(true)}
         className={`fixed bottom-4 right-4 p-3 rounded-full shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 z-40 touch-manipulation ${
-          isDarkMode 
+          false
             ? 'bg-neutral-800/80 text-white border border-neutral-700' 
             : 'bg-white/80 text-gray-900 border border-gray-200'
         }`}

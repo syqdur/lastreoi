@@ -6,6 +6,7 @@ import { SimpleRootAdmin } from './SimpleRootAdmin';
 import { SpotifyCallback } from './SpotifyCallback';
 import { EventLoadingSpinner } from './EventLoadingSpinner';
 import { galleryService, Gallery } from '../services/galleryService';
+import { subscriptionService } from '../services/subscriptionService';
 import { getUserName, getDeviceId } from '../utils/deviceId';
 
 // Import the main App component (we'll rename the current one to GalleryApp)
@@ -146,6 +147,18 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
       localStorage.setItem(`root_admin_${gallery.slug}`, 'true');
       console.log('👑 Set creator as root admin for gallery:', gallery.slug);
       
+      // Create subscription for the gallery
+      if (data.selectedPlan) {
+        console.log(`💳 Creating ${data.selectedPlan} subscription for gallery:`, gallery.slug);
+        try {
+          await subscriptionService.createSubscription(gallery.slug, data.selectedPlan);
+          console.log('✅ Subscription created successfully');
+        } catch (error) {
+          console.error('❌ Failed to create subscription:', error);
+          // Don't block gallery creation if subscription fails
+        }
+      }
+      
       // Navigate to the new gallery
       console.log('🧭 Navigating to:', `/${gallery.slug}`);
       setLocation(`/${gallery.slug}`);
@@ -272,7 +285,6 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
   if (isLandingPage) {
     return (
       <LandingPage
-        isDarkMode={isDarkMode}
         onCreateGallery={handleCreateGallery}
         onRootAdminLogin={() => {
           setShowRootAdmin(true);

@@ -29,7 +29,9 @@
   import { SimpleTaggingModal } from './components/SimpleTaggingModal';
   import { EventLoadingSpinner } from './components/EventLoadingSpinner';
   import { useUser } from './hooks/useUser';
+  import { useOptimizedGallery } from './hooks/useOptimizedGallery';
   import { MediaItem, Comment, Like } from './types';
+  import { initializePerformanceOptimizations } from './services/performanceOptimizations';
   import { Gallery, galleryService } from './services/galleryService';
   import { getThemeConfig, getThemeTexts, getThemeStyles } from './config/themes';
   import { storage, db } from './config/firebase';
@@ -140,6 +142,17 @@
     // New loading states to fix pink loading ring
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [galleryDataLoaded, setGalleryDataLoaded] = useState(false);
+    
+    // Initialize performance optimizations
+    useEffect(() => {
+      const optimizations = initializePerformanceOptimizations();
+      console.log('🚀 Performance optimizations initialized for gallery:', gallery.id);
+      
+      return () => {
+        // Cleanup optimizations on unmount
+        optimizations.memory.executeCleanup();
+      };
+    }, [gallery.id]);
 
     // Reset state when gallery changes to fix data isolation
     useEffect(() => {

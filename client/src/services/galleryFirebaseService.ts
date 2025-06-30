@@ -12,7 +12,8 @@ import {
   getDocs,
   updateDoc,
   getDoc,
-  limit
+  limit,
+  startAfter
 } from 'firebase/firestore';
 import { 
   ref, 
@@ -54,48 +55,65 @@ export const isUserDeleted = async (galleryId: string, deviceId: string): Promis
   }
 };
 
-// Gallery-specific media loading
+// Gallery-specific media loading with performance optimizations
 export const loadGalleryMedia = (
   galleryId: string,
-  setMediaItems: (items: MediaItem[]) => void
+  setMediaItems: (items: MediaItem[]) => void,
+  initialLimit: number = 20
 ): (() => void) => {
   const mediaCollection = `galleries/${galleryId}/media`;
-  // Start with smaller limit for faster initial load
-  const q = query(collection(db, mediaCollection), orderBy('uploadedAt', 'desc'), limit(10));
+  // Optimized limit for better performance
+  const q = query(collection(db, mediaCollection), orderBy('uploadedAt', 'desc'), limit(initialLimit));
   
   return onSnapshot(q, (snapshot) => {
     const mediaList: MediaItem[] = [];
     
-    // Process synchronously for faster rendering
-    snapshot.docs.forEach((docSnap) => {
-      const data = docSnap.data();
-      let url = '';
-      
-      if (data.type !== 'note') {
-        // Prioritize Firebase Storage URLs for faster loading
-        if (data.mediaUrl) {
-          url = data.mediaUrl;
-        } else if (data.base64Data) {
-          url = data.base64Data;
-        }
-      }
-      
-      mediaList.push({
-        id: docSnap.id,
-        name: data.name,
-        url: url,
-        uploadedBy: data.uploadedBy,
-        uploadedAt: data.uploadedAt,
-        deviceId: data.deviceId,
-        type: data.type,
-        noteText: data.noteText,
-        note: data.note,
-        tags: data.tags || [],
-        isUnavailable: !url && data.type !== 'note'
-      });
-    });
+    // Use batch processing for better performance
+    const batchSize = 5;
+    const batches = [];
     
-    setMediaItems(mediaList);
+    for (let i = 0; i < snapshot.docs.length; i += batchSize) {
+      batches.push(snapshot.docs.slice(i, i + batchSize));
+    }
+    
+    // Process batches in parallel
+    Promise.all(
+      batches.map(batch => 
+        Promise.all(batch.map(docSnap => {
+          const data = docSnap.data();
+          let url = '';
+          
+          if (data.type !== 'note') {
+            // Prioritize Firebase Storage URLs for faster loading
+            if (data.mediaUrl) {
+              url = data.mediaUrl;
+            } else if (data.base64Data) {
+              url = data.base64Data;
+            }
+          }
+          
+          return {
+            id: docSnap.id,
+            name: data.name,
+            url: url,
+            uploadedBy: data.uploadedBy,
+            uploadedAt: data.uploadedAt,
+            deviceId: data.deviceId,
+            type: data.type,
+            noteText: data.noteText,
+            note: data.note,
+            tags: data.tags || [],
+            isUnavailable: !url && data.type !== 'note'
+          };
+        }))
+      )
+    ).then(batchResults => {
+      const allItems = batchResults.flat();
+      setMediaItems(allItems);
+    }).catch(error => {
+      console.error('Error processing media batches:', error);
+      setMediaItems([]);
+    });
   });
 };
 
@@ -1048,4 +1066,68 @@ export const getGalleryUsers = async (galleryId: string): Promise<any[]> => {
     console.error('❌ Error fetching gallery users:', error);
     return [];
   }
+};
+
+// Load more media items for infinite scroll/pagination
+export const loadMoreGalleryMedia = async (
+  galleryId: string,
+  lastDoc: any,
+  limitCount: number = 20
+): Promise<{ items: MediaItem[]; lastDoc: any }> => {
+  const mediaCollection = `galleries/${galleryId}/media`;
+  const q = query(
+    collection(db, mediaCollection),
+    orderBy('uploadedAt', 'desc'),
+    startAfter(lastDoc),
+    limit(limitCount)
+  );
+  
+  const snapshot = await getDocs(q);
+  const items: MediaItem[] = [];
+  
+  // Batch process for performance
+  const batchSize = 5;
+  const batches = [];
+  
+  for (let i = 0; i < snapshot.docs.length; i += batchSize) {
+    batches.push(snapshot.docs.slice(i, i + batchSize));
+  }
+  
+  const batchResults = await Promise.all(
+    batches.map(batch => 
+      Promise.all(batch.map(docSnap => {
+        const data = docSnap.data();
+        let url = '';
+        
+        if (data.type !== 'note') {
+          if (data.mediaUrl) {
+            url = data.mediaUrl;
+          } else if (data.base64Data) {
+            url = data.base64Data;
+          }
+        }
+        
+        return {
+          id: docSnap.id,
+          name: data.name,
+          url: url,
+          uploadedBy: data.uploadedBy,
+          uploadedAt: data.uploadedAt,
+          deviceId: data.deviceId,
+          type: data.type,
+          noteText: data.noteText,
+          note: data.note,
+          tags: data.tags || [],
+          isUnavailable: !url && data.type !== 'note'
+        };
+      }))
+    )
+  );
+  
+  const allItems = batchResults.flat();
+  
+  return {
+    items: allItems,
+    lastDoc: snapshot.docs[snapshot.docs.length - 1]
+  };
 };
