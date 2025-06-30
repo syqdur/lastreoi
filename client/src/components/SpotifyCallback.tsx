@@ -92,19 +92,29 @@ export const SpotifyCallback: React.FC<SpotifyCallbackProps> = ({ isDarkMode }) 
       
       setMessage('Exchanging authorization code for tokens...');
       
-      // Exchange code for tokens
-      await exchangeCodeForTokens(code, state);
+      // Extract gallery ID from return path
+      const storedReturnPath = localStorage.getItem('spotify_return_path') || '/';
+      const galleryIdMatch = storedReturnPath.match(/\/gallery\/([^\/]+)/);
+      const galleryId = galleryIdMatch ? galleryIdMatch[1] : '';
+      
+      console.log('🎵 Extracted gallery ID for Spotify callback:', galleryId);
+      
+      if (!galleryId) {
+        throw new Error('Could not determine gallery ID from return path');
+      }
+      
+      // Exchange code for tokens with gallery scope
+      await exchangeCodeForTokens(code, state, galleryId);
       
       setStatus('success');
       setMessage('Spotify connected successfully! Redirecting...');
       
       // Redirect back to original gallery or home
-      const returnPath = localStorage.getItem('spotify_return_path') || '/';
-      console.log('🎵 Redirecting back to:', returnPath);
+      console.log('🎵 Redirecting back to:', storedReturnPath);
       localStorage.removeItem('spotify_return_path');
       
       setTimeout(() => {
-        window.location.href = returnPath;
+        window.location.href = storedReturnPath;
       }, 2000);
       
     } catch (error: any) {

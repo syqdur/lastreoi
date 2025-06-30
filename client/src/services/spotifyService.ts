@@ -400,9 +400,12 @@ export const getAuthorizationUrl = async (): Promise<string> => {
   return `https://accounts.spotify.com/authorize?${params.toString()}`;
 };
 
-// Exchange authorization code for tokens
-export const exchangeCodeForTokens = async (code: string, state: string): Promise<SpotifyCredentials> => {
+// Exchange authorization code for tokens (gallery-scoped)
+export const exchangeCodeForTokens = async (code: string, state: string, galleryId: string): Promise<SpotifyCredentials> => {
   try {
+    console.log('🎵 === GALLERY-SCOPED TOKEN EXCHANGE ===');
+    console.log('Gallery ID:', galleryId);
+    
     // Verify state parameter
     const storedState = localStorage.getItem(PKCE_STATE_KEY);
     if (state !== storedState) {
@@ -448,27 +451,37 @@ export const exchangeCodeForTokens = async (code: string, state: string): Promis
       createdAt: new Date().toISOString()
     };
     
-    // Store credentials in Firestore
-    const credentialsRef = await addDoc(collection(db, 'spotifyCredentials'), credentials);
+    // Delete any existing credentials for this gallery first (cleanup)
+    const existingCredentialsQuery = query(collection(db, 'galleries', galleryId, 'spotifyCredentials'));
+    const existingCredentialsSnapshot = await getDocs(existingCredentialsQuery);
+    
+    for (const docSnap of existingCredentialsSnapshot.docs) {
+      await deleteDoc(doc(db, 'galleries', galleryId, 'spotifyCredentials', docSnap.id));
+    }
+    
+    // Store credentials in gallery-scoped Firestore collection
+    const credentialsRef = await addDoc(collection(db, 'galleries', galleryId, 'spotifyCredentials'), credentials);
     
     // Clean up localStorage
     localStorage.removeItem(PKCE_CODE_VERIFIER_KEY);
     localStorage.removeItem(PKCE_STATE_KEY);
+    
+    console.log('✅ Gallery-scoped Spotify credentials saved successfully');
     
     return {
       id: credentialsRef.id,
       ...credentials
     };
   } catch (error) {
-    console.error('Token exchange error:', error);
+    console.error('Gallery-scoped token exchange error:', error);
     throw error;
   }
 };
 
-// Refresh access token using direct API call
-export const refreshAccessToken = async (credentials: SpotifyCredentials): Promise<SpotifyCredentials> => {
+// Refresh access token using direct API call (gallery-scoped)
+export const refreshAccessToken = async (credentials: SpotifyCredentials, galleryId: string): Promise<SpotifyCredentials> => {
   try {
-    console.log('🔄 Refreshing access token...');
+    console.log('🔄 Refreshing gallery-scoped access token for gallery:', galleryId);
     
     // Use direct fetch instead of SpotifyWebApi to avoid library issues
     const response = await fetch('https://accounts.spotify.com/api/token', {
@@ -507,7 +520,7 @@ export const refreshAccessToken = async (credentials: SpotifyCredentials): Promi
       updatedCredentials.refreshToken = data.refresh_token;
     }
     
-    await updateDoc(doc(db, 'spotifyCredentials', credentials.id), updatedCredentials);
+    await updateDoc(doc(db, 'galleries', galleryId, 'spotifyCredentials', credentials.id), updatedCredentials);
     
     console.log('✅ Token refreshed successfully');
     
@@ -521,14 +534,17 @@ export const refreshAccessToken = async (credentials: SpotifyCredentials): Promi
   }
 };
 
-// Get valid credentials with automatic refresh
-export const getValidCredentials = async (): Promise<SpotifyCredentials | null> => {
+// Get valid credentials with automatic refresh (gallery-scoped)
+export const getValidCredentials = async (galleryId: string): Promise<SpotifyCredentials | null> => {
   try {
-    // Query for credentials
-    const credentialsQuery = query(collection(db, 'spotifyCredentials'));
+    console.log('🎵 Getting gallery-scoped credentials for:', galleryId);
+    
+    // Query for credentials in gallery-specific collection
+    const credentialsQuery = query(collection(db, 'galleries', galleryId, 'spotifyCredentials'));
     const credentialsSnapshot = await getDocs(credentialsQuery);
     
     if (credentialsSnapshot.empty) {
+      console.log('❌ No Spotify credentials found for gallery:', galleryId);
       return null;
     }
     
@@ -545,28 +561,32 @@ export const getValidCredentials = async (): Promise<SpotifyCredentials | null> 
     if (now + tokenExpiryBuffer >= credentials.expiresAt) {
       // Token is expired or about to expire, refresh it
       console.log('🔄 Token expiring soon, refreshing...');
-      return await refreshAccessToken(credentials);
+      return await refreshAccessToken(credentials, galleryId);
     }
     
+    console.log('✅ Valid gallery-scoped credentials found');
     return credentials;
   } catch (error) {
-    console.error('Failed to get valid credentials:', error);
+    console.error('Failed to get gallery-scoped valid credentials:', error);
     return null;
   }
 };
 
-// Disconnect Spotify account
-export const disconnectSpotify = async (): Promise<void> => {
+// Disconnect Spotify account (gallery-scoped)
+export const disconnectSpotify = async (galleryId: string): Promise<void> => {
   try {
+    console.log('🎵 Disconnecting Spotify for gallery:', galleryId);
+    
     // Get credentials
-    const credentials = await getValidCredentials();
+    const credentials = await getValidCredentials(galleryId);
     
     if (!credentials) {
+      console.log('❌ No credentials found to disconnect for gallery:', galleryId);
       return;
     }
     
-    // Delete credentials from Firestore
-    await deleteDoc(doc(db, 'spotifyCredentials', credentials.id));
+    // Delete credentials from gallery-scoped Firestore collection
+    await deleteDoc(doc(db, 'galleries', galleryId, 'spotifyCredentials', credentials.id));
     
     // Clear any cached tokens
     localStorage.removeItem(PKCE_CODE_VERIFIER_KEY);
@@ -575,26 +595,28 @@ export const disconnectSpotify = async (): Promise<void> => {
     // Cleanup optimistic manager
     SnapshotOptimisticManager.getInstance().cleanup();
     
+    console.log('✅ Spotify disconnected successfully for gallery:', galleryId);
+    
   } catch (error) {
-    console.error('Failed to disconnect Spotify:', error);
+    console.error('Failed to disconnect gallery-scoped Spotify:', error);
     throw error;
   }
 };
 
-// Check if Spotify is connected
-export const isSpotifyConnected = async (): Promise<boolean> => {
+// Check if Spotify is connected (gallery-scoped)
+export const isSpotifyConnected = async (galleryId: string): Promise<boolean> => {
   try {
-    const credentials = await getValidCredentials();
+    const credentials = await getValidCredentials(galleryId);
     return !!credentials;
   } catch (error) {
-    console.error('Error checking Spotify connection:', error);
+    console.error('Error checking gallery-scoped Spotify connection:', error);
     return false;
   }
 };
 
-// Helper function to make authenticated Spotify API calls
-const makeSpotifyApiCall = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  const credentials = await getValidCredentials();
+// Helper function to make authenticated Spotify API calls (gallery-scoped)
+const makeSpotifyApiCall = async (url: string, galleryId: string, options?: RequestInit): Promise<Response> => {
+  const credentials = await getValidCredentials(galleryId);
   
   if (!credentials) {
     throw new Error('Not connected to Spotify');
@@ -730,11 +752,11 @@ export const getSelectedPlaylist = async (): Promise<SelectedPlaylist | null> =>
   }
 };
 
-// Search for tracks with error handling
-export const searchTracks = async (query: string): Promise<SpotifyTrack[]> => {
+// Search for tracks with error handling (gallery-scoped)
+export const searchTracks = async (query: string, galleryId: string): Promise<SpotifyTrack[]> => {
   try {
     const encodedQuery = encodeURIComponent(query);
-    const response = await makeSpotifyApiCall(`https://api.spotify.com/v1/search?q=${encodedQuery}&type=track&limit=20`);
+    const response = await makeSpotifyApiCall(`https://api.spotify.com/v1/search?q=${encodedQuery}&type=track&limit=20`, galleryId);
     const data = await response.json();
     
     // Map to our SpotifyTrack interface
@@ -754,8 +776,8 @@ export const searchTracks = async (query: string): Promise<SpotifyTrack[]> => {
   }
 };
 
-// 🚀 NEW: Add track with INSTANT optimistic update and snapshot tracking
-export const addTrackToPlaylist = async (trackUri: string): Promise<void> => {
+// 🚀 NEW: Add track with INSTANT optimistic update and snapshot tracking (gallery-scoped)
+export const addTrackToPlaylist = async (trackUri: string, galleryId: string): Promise<void> => {
   const updateManager = SnapshotOptimisticManager.getInstance();
   let trackToAdd: SpotifyTrack | null = null;
   
@@ -769,7 +791,7 @@ export const addTrackToPlaylist = async (trackUri: string): Promise<void> => {
     
     // Get track details for optimistic update
     try {
-      const response = await makeSpotifyApiCall(`https://api.spotify.com/v1/tracks/${trackId}`);
+      const response = await makeSpotifyApiCall(`https://api.spotify.com/v1/tracks/${trackId}`, galleryId);
       const trackData = await response.json();
       
       trackToAdd = {
@@ -797,7 +819,7 @@ export const addTrackToPlaylist = async (trackUri: string): Promise<void> => {
     }
 
     // 🎯 NEW: Add track to playlist and get new snapshot_id
-    const response = await makeSpotifyApiCall(`https://api.spotify.com/v1/playlists/${selectedPlaylist.playlistId}/tracks`, {
+    const response = await makeSpotifyApiCall(`https://api.spotify.com/v1/playlists/${selectedPlaylist.playlistId}/tracks`, galleryId, {
       method: 'POST',
       body: JSON.stringify({
         uris: [trackUri],

@@ -67,7 +67,7 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode, isAdmi
         setIsLoading(true);
         setSyncStatus('connecting');
 
-        const connected = await isSpotifyConnected();
+        const connected = await isSpotifyConnected(galleryId);
         setIsSpotifyAvailable(connected);
 
         if (connected) {
@@ -114,7 +114,7 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode, isAdmi
       setError(null);
 
       try {
-        const results = await searchTracks(searchQuery);
+        const results = await searchTracks(searchQuery, galleryId);
         setSearchResults(results);
       } catch (error) {
         console.error('Search error:', error);
@@ -195,7 +195,7 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode, isAdmi
     setSyncStatus('syncing');
 
     try {
-      await addTrackToPlaylist(track.uri);
+      await addTrackToPlaylist(track.uri, galleryId);
       await trackSongOwnership(track.id, track.uri);
 
       setShowAddSuccess(true);

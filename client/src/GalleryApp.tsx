@@ -921,7 +921,7 @@
 
     // Check for admin credentials setup AFTER user completes visitor registration
     useEffect(() => {
-      if (!userName) return; // Only check after user has registered
+      if (!userName || !deviceId) return; // Only check after user has registered completely
       
       const checkAdminCredentials = async () => {
         try {
@@ -947,18 +947,12 @@
               console.log('📱 Admin credentials exist in localStorage:', credentialsExist);
             }
 
-            if (!credentialsExist && userName) {
-              // Gallery owner needs admin setup, but wait for visitor registration to complete fully
-              const galleryCreatedFlag = localStorage.getItem(`gallery_just_created_${gallery.slug}`);
-              if (galleryCreatedFlag === 'true') {
-                // Add delay to let visitor registration finish first
-                setTimeout(() => {
-                  console.log('🔧 Gallery owner completed visitor registration - showing admin setup');
-                  setShowAdminCredentialsSetup(true);
-                  // Ensure admin mode is off until credentials are set up
-                  setIsAdmin(false);
-                }, 2000); // 2 second delay to let visitor registration process complete
-              }
+            if (!credentialsExist) {
+              // Gallery owner needs admin setup - show it immediately after visitor registration is complete
+              console.log('🔧 Gallery owner needs admin credentials setup');
+              setShowAdminCredentialsSetup(true);
+              // Ensure admin mode is off until credentials are set up
+              setIsAdmin(false);
             } else {
               // Credentials exist - check if already logged in
               const savedAuth = localStorage.getItem(`admin_auth_${gallery.id}`);
@@ -1000,10 +994,10 @@
         }
       };
 
-      // Add a small delay to ensure the gallery is fully loaded
-      const timeoutId = setTimeout(checkAdminCredentials, 500);
+      // Add a small delay to ensure visitor registration is fully complete
+      const timeoutId = setTimeout(checkAdminCredentials, 1000);
       return () => clearTimeout(timeoutId);
-    }, [gallery.id, gallery.slug, userName]); // Now depends on userName
+    }, [gallery.id, gallery.slug, userName, deviceId]); // Depends on both userName and deviceId
 
     // Clean up gallery creation flag after visitor registration is complete
     useEffect(() => {
@@ -1147,6 +1141,7 @@
     const needsVisitorRegistration = isGalleryOwner && galleryCreatedFlag === 'true';
     
     // Show UserNamePrompt for new users or gallery creators who need to register as visitors
+    // Admin setup should NEVER show during visitor registration
     if ((showNamePrompt || needsVisitorRegistration) && !showAdminCredentialsSetup) {
       return <UserNamePrompt 
         onSubmit={async (name: string, profilePicture?: File) => {

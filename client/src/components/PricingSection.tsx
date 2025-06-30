@@ -12,6 +12,7 @@ interface PricingTier {
   icon: React.ReactNode;
   buttonText: string;
   buttonStyle: string;
+  disabled?: boolean;
 }
 
 interface PricingSectionProps {
@@ -46,6 +47,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
       description: 'Ideal für Hochzeiten & Geburtstage',
       icon: <Star className="w-6 h-6" />,
       highlighted: true,
+      disabled: true,
       features: [
         'Alles aus Kostenlos',
         'Instagram Stories (24h)',
@@ -56,11 +58,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
         'Admin-Bereich',
         'WhatsApp Galerie-Sharing'
       ],
-      buttonText: 'Basic wählen',
+      buttonText: 'Bald verfügbar',
       buttonStyle: `
-        bg-gradient-to-r from-pink-500 to-purple-600 text-white 
-        transition-all duration-300 hover:scale-105 hover:shadow-lg
-        border-2 border-transparent
+        bg-gray-400 text-gray-600 cursor-not-allowed
+        border-2 border-gray-400
       `
     },
     {
@@ -70,6 +71,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
       period: 'pro Event',
       description: 'Vollständige Event-Lösung',
       icon: <Crown className="w-6 h-6" />,
+      disabled: true,
       features: [
         'Alles aus Basic',
         'Event-Timeline mit Meilensteinen',
@@ -83,11 +85,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
         'Event-Countdown Timer',
         'Prioritärer Support'
       ],
-      buttonText: 'Pro wählen',
+      buttonText: 'Bald verfügbar',
       buttonStyle: `
-        bg-gradient-to-r from-purple-600 to-indigo-700 text-white 
-        transition-all duration-300 hover:scale-105 hover:shadow-lg
-        border-2 border-transparent ring-2 ring-purple-500 ring-opacity-50
+        bg-gray-400 text-gray-600 cursor-not-allowed
+        border-2 border-gray-400
       `
     }
   ];
@@ -112,17 +113,28 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
             <div
               key={tier.id}
               className={`
-                relative rounded-2xl p-8 transition-all duration-300 hover:scale-105 backdrop-blur-sm border border-white/20
-                ${selectedPlan === tier.id
-                  ? `ring-4 ring-green-500 bg-green-500/20 shadow-2xl transform scale-105`
-                  : tier.highlighted 
-                    ? `ring-2 ring-pink-500 bg-white/20 shadow-2xl` 
-                    : `bg-white/10 shadow-lg hover:shadow-xl hover:bg-white/20`
+                relative rounded-2xl p-8 backdrop-blur-sm border border-white/20
+                ${tier.disabled 
+                  ? `opacity-50 cursor-not-allowed bg-gray-800/30 shadow-lg` 
+                  : `transition-all duration-300 hover:scale-105 ${
+                      selectedPlan === tier.id
+                        ? `ring-4 ring-green-500 bg-green-500/20 shadow-2xl transform scale-105`
+                        : tier.highlighted 
+                          ? `ring-2 ring-pink-500 bg-white/20 shadow-2xl` 
+                          : `bg-white/10 shadow-lg hover:shadow-xl hover:bg-white/20`
+                    }`
                 }
               `}
             >
-              {/* Popular Badge */}
-              {tier.highlighted && (
+              {/* Popular Badge or Disabled Badge */}
+              {tier.disabled && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <div className="bg-gray-600 text-gray-300 px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-sm">
+                    Bald verfügbar
+                  </div>
+                </div>
+              )}
+              {tier.highlighted && !tier.disabled && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-sm">
                     Beliebteste Wahl
@@ -133,24 +145,32 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
               {/* Icon & Header */}
               <div className="text-center mb-8">
                 <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 backdrop-blur-sm ${
-                  tier.highlighted 
-                    ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' 
-                    : 'bg-white/20 text-white'
+                  tier.disabled
+                    ? 'bg-gray-600/50 text-gray-400'
+                    : tier.highlighted 
+                      ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' 
+                      : 'bg-white/20 text-white'
                 }`}>
                   {tier.icon}
                 </div>
-                <h3 className="text-2xl font-bold mb-2 text-white drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
+                <h3 className={`text-2xl font-bold mb-2 drop-shadow-sm ${tier.disabled ? 'text-gray-400' : 'text-white'}`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
                   {tier.name}
                 </h3>
                 <div className="mb-2">
-                  <span className={`text-4xl font-bold drop-shadow-sm ${tier.highlighted ? 'text-pink-300' : 'text-white'}`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
+                  <span className={`text-4xl font-bold drop-shadow-sm ${
+                    tier.disabled 
+                      ? 'text-gray-400' 
+                      : tier.highlighted 
+                        ? 'text-pink-300' 
+                        : 'text-white'
+                  }`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}>
                     {tier.price}
                   </span>
-                  <span className="text-lg text-white/80 ml-2 drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
+                  <span className={`text-lg ml-2 drop-shadow-sm ${tier.disabled ? 'text-gray-500' : 'text-white/80'}`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                     {tier.period}
                   </span>
                 </div>
-                <p className="text-white/90 drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
+                <p className={`drop-shadow-sm ${tier.disabled ? 'text-gray-500' : 'text-white/90'}`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                   {tier.description}
                 </p>
               </div>
@@ -160,9 +180,13 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
                 {tier.features.map((feature, index) => (
                   <li key={index} className="flex items-start">
                     <Check className={`w-5 h-5 mt-0.5 mr-3 flex-shrink-0 ${
-                      tier.highlighted ? 'text-pink-300' : 'text-green-300'
+                      tier.disabled 
+                        ? 'text-gray-500' 
+                        : tier.highlighted 
+                          ? 'text-pink-300' 
+                          : 'text-green-300'
                     }`} />
-                    <span className="text-white/90 drop-shadow-sm" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
+                    <span className={`drop-shadow-sm ${tier.disabled ? 'text-gray-500' : 'text-white/90'}`} style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}>
                       {feature}
                     </span>
                   </li>
@@ -171,19 +195,27 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectPlan, se
 
               {/* CTA Button */}
               <button
-                onClick={() => onSelectPlan(tier.id)}
+                onClick={() => !tier.disabled && onSelectPlan(tier.id)}
+                disabled={tier.disabled}
                 className={`
                   w-full py-4 px-6 rounded-xl font-semibold text-lg backdrop-blur-sm transition-all duration-200
-                  ${selectedPlan === tier.id 
-                    ? 'bg-green-500/90 text-white border-2 border-green-400 shadow-lg' 
-                    : tier.highlighted
-                      ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white border-2 border-transparent hover:shadow-lg hover:scale-105'
-                      : 'border-2 border-white/60 text-white hover:bg-white/10 hover:border-white/80'
+                  ${tier.disabled 
+                    ? 'bg-gray-600/50 text-gray-400 cursor-not-allowed border-2 border-gray-600/50' 
+                    : selectedPlan === tier.id 
+                      ? 'bg-green-500/90 text-white border-2 border-green-400 shadow-lg' 
+                      : tier.highlighted
+                        ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white border-2 border-transparent hover:shadow-lg hover:scale-105'
+                        : 'border-2 border-white/60 text-white hover:bg-white/10 hover:border-white/80'
                   }
                 `}
                 style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif' }}
               >
-                {selectedPlan === tier.id ? '✓ Ausgewählt' : tier.buttonText}
+                {tier.disabled 
+                  ? tier.buttonText 
+                  : selectedPlan === tier.id 
+                    ? '✓ Ausgewählt' 
+                    : tier.buttonText
+                }
               </button>
             </div>
           ))}
