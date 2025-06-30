@@ -433,33 +433,45 @@ export const subscribeToNotifications = (
   return notificationService.subscribeToNotifications(userName, deviceId, callback);
 };
 
-export const markNotificationAsRead = async (notificationId: string) => {
+export const markNotificationAsRead = async (notificationId: string, galleryId?: string) => {
   try {
     const { doc, updateDoc } = await import('firebase/firestore');
-    await updateDoc(doc(db, 'notifications', notificationId), {
+    
+    // Use gallery-scoped notifications if galleryId is provided
+    const collectionPath = galleryId ? `galleries/${galleryId}/notifications` : 'notifications';
+    
+    await updateDoc(doc(db, collectionPath, notificationId), {
       read: true
     });
+    console.log('✅ Notification marked as read:', notificationId);
   } catch (error) {
     console.error('❌ Failed to mark notification as read:', error);
   }
 };
 
-export const markAllNotificationsAsRead = async (userName: string, deviceId: string) => {
+export const markAllNotificationsAsRead = async (userName: string, deviceId: string, galleryId?: string) => {
   try {
     const { query, where, getDocs, doc, updateDoc } = await import('firebase/firestore');
+    
+    // Use gallery-scoped notifications if galleryId is provided
+    const collectionPath = galleryId ? `galleries/${galleryId}/notifications` : 'notifications';
+    
     const q = query(
-      collection(db, 'notifications'),
+      collection(db, collectionPath),
       where('targetUser', '==', userName),
       where('targetDeviceId', '==', deviceId),
       where('read', '==', false)
     );
     
     const snapshot = await getDocs(q);
+    console.log(`📬 Marking ${snapshot.size} notifications as read`);
+    
     const updatePromises = snapshot.docs.map(docSnapshot => 
-      updateDoc(doc(db, 'notifications', docSnapshot.id), { read: true })
+      updateDoc(doc(db, collectionPath, docSnapshot.id), { read: true })
     );
     
     await Promise.all(updatePromises);
+    console.log('✅ All notifications marked as read');
   } catch (error) {
     console.error('❌ Failed to mark all notifications as read:', error);
   }

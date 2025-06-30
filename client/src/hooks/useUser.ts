@@ -33,6 +33,13 @@ export const useUser = () => {
     window.dispatchEvent(new CustomEvent('userConnected', { 
       detail: { userName: name, deviceId: getDeviceId(), profilePicture } 
     }));
+
+    // Reload page when new visitor sets profile picture and name
+    // This ensures all components sync properly with the new visitor data
+    setTimeout(() => {
+      console.log('🔄 Reloading page for new visitor profile sync');
+      window.location.reload();
+    }, 500); // Small delay to ensure data is saved first
   };
 
   return {

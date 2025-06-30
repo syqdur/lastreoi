@@ -71,9 +71,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     setIsOpen(false);
   };
 
+  const handleDismissNotification = (e: React.MouseEvent, notificationId: string) => {
+    e.stopPropagation();
+    markNotificationAsRead(notificationId, galleryId);
+  };
+
   const markAllAsRead = () => {
     if (notifications.length > 0) {
-      markAllNotificationsAsRead(userName, deviceId);
+      markAllNotificationsAsRead(userName, deviceId, galleryId);
     }
   };
 
@@ -137,7 +142,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           />
           
           {/* Dropdown */}
-          <div className={`absolute top-full mt-2 z-[99999] w-[calc(100vw-1rem)] left-[-10rem] sm:w-80 sm:left-auto sm:right-0 max-w-sm rounded-2xl shadow-2xl border ${
+          <div className={`absolute top-full mt-2 z-[99999] w-[calc(100vw-2rem)] left-[-12rem] sm:w-96 sm:left-auto sm:right-0 max-w-md rounded-2xl shadow-2xl border ${
             isDarkMode 
               ? 'bg-gray-800 border-gray-600' 
               : 'bg-white border-gray-200'
@@ -176,54 +181,65 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             </div>
 
             {/* Notifications List */}
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-[75vh] sm:max-h-96 overflow-y-auto">
               {notifications.length === 0 ? (
                 <div className={`p-8 text-center ${
                   isDarkMode ? 'text-gray-400' : 'text-gray-500'
                 }`}>
                   <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Keine Benachrichtigungen</p>
+                  <p className="text-sm sm:text-base">Keine Benachrichtigungen</p>
                 </div>
               ) : (
-                <div className="py-2">
+                <div className="py-1 sm:py-2">
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification)}
-                      className={`p-4 cursor-pointer transition-colors border-l-4 ${
+                      className={`p-4 sm:p-4 cursor-pointer transition-colors border-l-4 touch-manipulation active:scale-[0.98] ${
                         !notification.read
                           ? isDarkMode
-                            ? 'bg-blue-900/20 border-blue-500 hover:bg-blue-900/30'
-                            : 'bg-blue-50 border-blue-500 hover:bg-blue-100'
+                            ? 'bg-blue-900/20 border-blue-500 hover:bg-blue-900/30 active:bg-blue-900/40'
+                            : 'bg-blue-50 border-blue-500 hover:bg-blue-100 active:bg-blue-200'
                           : isDarkMode
-                            ? 'bg-transparent border-transparent hover:bg-gray-700/50'
-                            : 'bg-transparent border-transparent hover:bg-gray-50'
+                            ? 'bg-transparent border-transparent hover:bg-gray-700/50 active:bg-gray-700/70'
+                            : 'bg-transparent border-transparent hover:bg-gray-50 active:bg-gray-100'
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <span className="text-lg mt-0.5" role="img" aria-label="notification-icon">
+                        <span className="text-xl sm:text-lg mt-0.5 flex-shrink-0" role="img" aria-label="notification-icon">
                           {getNotificationIcon(notification.type)}
                         </span>
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-medium text-sm ${
+                        <div className="flex-1 min-w-0 pr-2">
+                          <p className={`font-medium text-sm sm:text-sm leading-5 ${
                             isDarkMode ? 'text-white' : 'text-gray-900'
                           }`}>
                             {notification.title}
                           </p>
-                          <p className={`text-xs mt-1 ${
+                          <p className={`text-sm sm:text-xs mt-1.5 sm:mt-1 leading-4 ${
                             isDarkMode ? 'text-gray-300' : 'text-gray-600'
                           }`}>
                             {notification.message}
                           </p>
-                          <p className={`text-xs mt-1 ${
+                          <p className={`text-xs mt-1.5 sm:mt-1 ${
                             isDarkMode ? 'text-gray-400' : 'text-gray-500'
                           }`}>
                             {formatTime(notification.createdAt)}
                           </p>
                         </div>
-                        {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                        )}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {!notification.read && (
+                            <div className="w-2.5 h-2.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full" />
+                          )}
+                          <button
+                            onClick={(e) => handleDismissNotification(e, notification.id)}
+                            className={`p-2 sm:p-1 rounded-full opacity-60 hover:opacity-100 active:opacity-80 transition-all touch-manipulation ${
+                              isDarkMode ? 'hover:bg-gray-600 active:bg-gray-500' : 'hover:bg-gray-200 active:bg-gray-300'
+                            }`}
+                            title="Benachrichtigung als gelesen markieren"
+                          >
+                            <X className="w-4 h-4 sm:w-3 sm:h-3" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

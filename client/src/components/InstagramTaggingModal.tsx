@@ -48,6 +48,7 @@ interface SearchPopupProps {
   onCancel: () => void;
   galleryUsers: GalleryUser[];
   isDarkMode: boolean;
+  tags: MediaTag[];
 }
 
 interface LocationSearchPopupProps {
@@ -295,7 +296,8 @@ const SearchPopup: React.FC<SearchPopupProps> = ({
   onSelectPerson,
   onCancel,
   galleryUsers,
-  isDarkMode
+  isDarkMode,
+  tags
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -304,9 +306,19 @@ const SearchPopup: React.FC<SearchPopupProps> = ({
     inputRef.current?.focus();
   }, []);
 
-  const filteredUsers = galleryUsers.filter(user =>
-    (user.displayName || user.userName).toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter out already tagged users to prevent duplicates
+  const alreadyTaggedUsers = new Set(
+    tags
+      .filter(tag => tag.type === 'person')
+      .map(tag => `${(tag as PersonTag).userName}_${(tag as PersonTag).deviceId}`)
   );
+
+  const filteredUsers = galleryUsers.filter(user => {
+    const userKey = `${user.userName}_${user.deviceId}`;
+    const matchesSearch = (user.displayName || user.userName).toLowerCase().includes(searchTerm.toLowerCase());
+    const notAlreadyTagged = !alreadyTaggedUsers.has(userKey);
+    return matchesSearch && notAlreadyTagged;
+  });
 
   return (
     <div 
@@ -349,21 +361,32 @@ const SearchPopup: React.FC<SearchPopupProps> = ({
           </div>
         </div>
 
-        {/* Recent Users Section */}
+        {/* Recent Users Section - Filter out already tagged users */}
         {galleryUsers.length > 0 && (
           <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
               Kürzlich markiert
             </p>
             <div className="flex space-x-2 overflow-x-auto">
-              {galleryUsers.slice(0, 5).map((user) => (
+              {galleryUsers.slice(0, 5).filter(user => {
+                const userKey = `${user.userName}_${user.deviceId}`;
+                return !alreadyTaggedUsers.has(userKey);
+              }).map((user) => (
                 <button
                   key={`${user.userName}_${user.deviceId}`}
                   onClick={() => onSelectPerson(user)}
                   className="flex-shrink-0 flex flex-col items-center space-y-1 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-medium">
-                    {(user.displayName || user.userName).charAt(0).toUpperCase()}
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-medium">
+                    {user.profilePicture ? (
+                      <img 
+                        src={user.profilePicture} 
+                        alt={user.displayName || user.userName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      (user.displayName || user.userName).charAt(0).toUpperCase()
+                    )}
                   </div>
                   <span className="text-xs text-gray-600 dark:text-gray-400 max-w-[60px] truncate">
                     {(user.displayName || user.userName).split(' ')[0]}
@@ -385,8 +408,16 @@ const SearchPopup: React.FC<SearchPopupProps> = ({
                   isDarkMode ? 'text-white' : 'text-gray-900'
                 }`}
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-medium">
-                  {(user.displayName || user.userName).charAt(0).toUpperCase()}
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-medium">
+                  {user.profilePicture ? (
+                    <img 
+                      src={user.profilePicture} 
+                      alt={user.displayName || user.userName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    (user.displayName || user.userName).charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
@@ -456,6 +487,19 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
   const handlePersonSelect = useCallback((user: GalleryUser) => {
     if (!pendingTag) return;
 
+    // Check if user is already tagged to prevent duplicates
+    const isAlreadyTagged = tags.some(tag => 
+      tag.type === 'person' && 
+      (tag as PersonTag).userName === user.userName && 
+      (tag as PersonTag).deviceId === user.deviceId
+    );
+
+    if (isAlreadyTagged) {
+      console.log('🚫 User already tagged, preventing duplicate:', user.userName);
+      setPendingTag(null);
+      return;
+    }
+
     const newTag: PersonTag = {
       id: Date.now().toString(),
       type: 'person',
@@ -467,7 +511,7 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
 
     setTags(prev => [...prev, newTag]);
     setPendingTag(null);
-  }, [pendingTag]);
+  }, [pendingTag, tags]);
 
   const [showLocationSearch, setShowLocationSearch] = useState(false);
 
@@ -588,6 +632,7 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
                 onCancel={() => setPendingTag(null)}
                 galleryUsers={galleryUsers}
                 isDarkMode={isDarkMode}
+                tags={tags}
               />
             )}
 

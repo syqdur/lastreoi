@@ -87,7 +87,7 @@ This is a comprehensive wedding gallery application with the following architect
 
 ## Recent Changes
 
-### June 30, 2025 (Migration Complete & Tagging Notification Fix - COMPLETED)
+### June 30, 2025 (Complete Migration & Enhanced Tagging/Notification System - COMPLETED)
 - **Replit Agent Migration Complete**: Successfully migrated project from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
 - **Tagging Notification System Fixed**: Resolved critical issue where tagged users weren't receiving notifications due to missing deviceId in PersonTag interface across all tagging components (SimpleTaggingModal, InstagramTaggingModal, UploadTaggingModal, MediaTaggingModal)
 - **PersonTag Interface Updates**: Updated PersonTag interfaces in all 4 tagging modals to require deviceId field and modified all PersonTag creation functions to include user.deviceId for proper notification targeting
@@ -95,6 +95,15 @@ This is a comprehensive wedding gallery application with the following architect
 - **Tag Type Compatibility**: Updated notification creation logic to handle both "person" and "user" tag types ensuring notifications work regardless of tagging interface used
 - **Real-time Notification System**: Gallery-scoped notifications now work properly with Instagram-style tagging workflow including self-tagging notifications - verified working with successful notification creation and delivery
 - **Complete Fix Verification**: Confirmed notifications now successfully create and display with proper German messaging ("Du hast dich markiert!") and click-to-navigate functionality
+- **Notification Center Mobile Enhancement**: Implemented click-to-dismiss functionality for notification messages with mobile-responsive overlay system, proper touch handling, and improved mobile layout with full-width dropdown on small screens
+- **Profile Picture Tagging Integration**: Enhanced Instagram-style tagging system with real user profile pictures throughout tagging workflow - users now see actual profile pictures in recent suggestions, search results, and tagged user displays instead of initials
+- **Duplicate Tag Prevention**: Implemented intelligent duplicate prevention system that filters out already-tagged users from selection lists during tagging process, ensuring each person can only be tagged once per media item
+- **Media Cleanup Service**: Created comprehensive MediaCleanupService for automatic deletion of orphaned media, comments, likes, and tags when media is removed from gallery feed, maintaining database integrity and preventing storage bloat
+- **Gallery Users Refresh Fix**: Fixed taggable persons list not refreshing in tagging modal by implementing automatic gallery user list refresh when upload modal opens and when existing media is clicked for tagging, ensuring all current gallery participants are always available for selection
+- **Unique Tagging Prevention Enhanced**: Fixed duplicate tagging prevention system in InstagramTaggingModal to properly check existing tags before allowing new person tags, ensuring each user can only be tagged once per media item with proper duplicate detection
+- **Notification Dismissal System Fixed**: Updated notification system to use gallery-scoped collections for proper read/unread state management, fixing issue where notification messages weren't disappearing when clicked or marked as read
+- **Profile Picture Reload Feature**: Implemented automatic page reload when new visitors set their profile picture and name in username prompt, ensuring proper data synchronization across all gallery components after new user registration
+- **Mobile Notification Center Enhancement**: Enhanced notification list with comprehensive mobile responsiveness including wider mobile layout, larger touch targets, responsive text sizing, dynamic viewport height, touch manipulation classes, and optimized spacing for seamless mobile notification management
 
 ### June 30, 2025 (User Management Optimizations & Enhanced Tagging)
 - **Optimized Delete Functions**: Implemented high-performance delete functions in UserManagementModal with parallel processing instead of sequential operations for faster user deletion

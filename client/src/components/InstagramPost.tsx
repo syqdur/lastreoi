@@ -385,23 +385,39 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
             </span>
           </div>
 
-          {/* Simple Tagged People Display */}
+          {/* Tagged People Display with Profile Pictures */}
           {item.tags && item.tags.length > 0 && (
             <div className="mb-3">
               <div className="flex flex-wrap gap-2">
-                {item.tags.filter(tag => tag.type === 'person').map((tag) => (
-                  <span
-                    key={tag.id}
-                    className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-300 ${
-                      isDarkMode 
-                        ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' 
-                        : 'bg-blue-50 text-blue-700 border border-blue-200'
-                    }`}
-                  >
-                    <Users className="w-4 h-4 mr-1.5" />
-                    {getUserDisplayName ? getUserDisplayName((tag as any).userName, (tag as any).deviceId) : (tag as any).userName}
-                  </span>
-                ))}
+                {item.tags.filter(tag => tag.type === 'person').map((tag) => {
+                  const personTag = tag as PersonTag;
+                  const avatarUrl = getUserAvatar ? getUserAvatar(personTag.userName, personTag.deviceId) : null;
+                  const displayName = getUserDisplayName ? getUserDisplayName(personTag.userName, personTag.deviceId) : personTag.userName;
+                  
+                  return (
+                    <span
+                      key={tag.id}
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-300 ${
+                        isDarkMode 
+                          ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' 
+                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                      }`}
+                    >
+                      <div className="w-5 h-5 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs">
+                        {avatarUrl ? (
+                          <img 
+                            src={avatarUrl} 
+                            alt={displayName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          displayName.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      {displayName}
+                    </span>
+                  );
+                })}
                 {item.tags.filter(tag => tag.type === 'location').map((tag) => (
                   <span
                     key={tag.id}

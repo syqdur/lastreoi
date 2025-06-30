@@ -347,6 +347,14 @@
     const handleUpload = async (files: FileList) => {
       if (!userName || !files || files.length === 0) return;
 
+      // Refresh gallery users before opening tagging modal
+      try {
+        const users = await getGalleryUsers(gallery.id);
+        setGalleryUsers(users);
+      } catch (error) {
+        console.error('Error refreshing gallery users:', error);
+      }
+
       // Create preview URL for the first file to show in tagging modal
       const firstFile = files[0];
       const previewUrl = URL.createObjectURL(firstFile);
@@ -586,7 +594,15 @@
       }
     };
 
-    const openModal = (index: number) => {
+    const openModal = async (index: number) => {
+      // Refresh gallery users before opening modal (in case user wants to tag)
+      try {
+        const users = await getGalleryUsers(gallery.id);
+        setGalleryUsers(users);
+      } catch (error) {
+        console.error('Error refreshing gallery users for modal:', error);
+      }
+
       setCurrentImageIndex(index);
       setModalOpen(true);
     };
@@ -1440,6 +1456,8 @@
           isDarkMode={isDarkMode}
           getUserAvatar={getUserAvatar}
           getUserDisplayName={getUserDisplayName}
+          deviceId={deviceId || ''}
+          galleryId={gallery.id}
         />
 
         <StoriesViewer
