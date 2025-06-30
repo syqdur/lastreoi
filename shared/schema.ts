@@ -32,6 +32,24 @@ export const galleries = pgTable("galleries", {
   createdAt: timestamp("created_at").defaultNow(),
   mediaCount: integer("media_count").default(0),
   visitorCount: integer("visitor_count").default(0),
+  planType: text("plan_type").notNull().default("free"), // free, basic, pro
+  paymentStatus: text("payment_status").default("unpaid"), // unpaid, paid, expired
+  paymentDate: timestamp("payment_date"),
+  expiryDate: timestamp("expiry_date"),
+});
+
+// Platform users table for user management with plans
+export const platformUsers = pgTable("platform_users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  planType: text("plan_type").notNull().default("free"), // free, basic, pro
+  paymentStatus: text("payment_status").default("unpaid"), // unpaid, paid, expired
+  createdAt: timestamp("created_at").defaultNow(),
+  paymentDate: timestamp("payment_date"),
+  expiryDate: timestamp("expiry_date"),
+  maxGalleries: integer("max_galleries").default(1),
+  maxMediaPerGallery: integer("max_media_per_gallery").default(50),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -47,6 +65,15 @@ export const insertRootAdminSchema = createInsertSchema(rootAdmins).pick({
 export const insertGallerySchema = createInsertSchema(galleries).omit({
   id: true,
   createdAt: true,
+  paymentDate: true,
+  expiryDate: true,
+});
+
+export const insertPlatformUserSchema = createInsertSchema(platformUsers).omit({
+  id: true,
+  createdAt: true,
+  paymentDate: true,
+  expiryDate: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -55,3 +82,5 @@ export type InsertRootAdmin = z.infer<typeof insertRootAdminSchema>;
 export type RootAdmin = typeof rootAdmins.$inferSelect;
 export type InsertGallery = z.infer<typeof insertGallerySchema>;
 export type Gallery = typeof galleries.$inferSelect;
+export type InsertPlatformUser = z.infer<typeof insertPlatformUserSchema>;
+export type PlatformUser = typeof platformUsers.$inferSelect;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Unlock, Settings, Download, Globe, Users, ExternalLink, Image, Video, MessageSquare, Gift, Heart, Star, Eye, Code, Music, Sparkles, Camera, Share2 } from 'lucide-react';
+import { Lock, Unlock, Settings, Download, Globe, Users, ExternalLink, Image, Video, MessageSquare, Gift, Heart, Star, Eye, Code, Music, Sparkles, Camera, Share2, X as XIcon } from 'lucide-react';
 import { MediaItem } from '../types';
 import { Gallery } from '../services/galleryService';
 import { downloadAllMedia } from '../services/downloadService';
@@ -7,6 +7,8 @@ import { SiteStatus, updateSiteStatus, updateFeatureToggles } from '../services/
 import { ShowcaseModal } from './ShowcaseModal';
 import { UserManagementModal } from './UserManagementModal';
 import { SpotifyAdmin } from './SpotifyAdmin';
+import PricingModal from './PricingModal';
+import PlatformUserManagement from './PlatformUserManagement';
 
 interface AdminPanelProps {
   isDarkMode: boolean;
@@ -37,6 +39,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [showShowcase, setShowShowcase] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [showSpotifyAdmin, setShowSpotifyAdmin] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showPlatformUserManagement, setShowPlatformUserManagement] = useState(false);
 
   const handleAdminToggle = () => {
     onToggleAdmin(!isAdmin);
@@ -281,6 +285,62 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
                 <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Benutzer verwalten
+                </div>
+              </div>
+            </div>
+          </button>
+
+          {/* PLATFORM USER MANAGEMENT BUTTON */}
+          <button
+            onClick={() => setShowPlatformUserManagement(true)}
+            className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
+              isDarkMode
+                ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-purple-500/20'
+                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-purple-500/20'
+            }`}
+            title="Platform User Management"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-violet-500/20 opacity-60"></div>
+            <div className="relative flex items-center gap-2 sm:gap-3">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
+                isDarkMode ? 'bg-gradient-to-br from-purple-600/30 to-violet-600/30' : 'bg-gradient-to-br from-purple-500/20 to-violet-500/20'
+              }`}>
+                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
+              </div>
+              <div className="flex-1 text-left">
+                <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Platform Users
+                </div>
+                <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Abos verwalten
+                </div>
+              </div>
+            </div>
+          </button>
+
+          {/* PRICING MODAL BUTTON */}
+          <button
+            onClick={() => setShowPricingModal(true)}
+            className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
+              isDarkMode
+                ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-orange-500/20'
+                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-orange-500/20'
+            }`}
+            title="Pricing Plans"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-amber-500/20 opacity-60"></div>
+            <div className="relative flex items-center gap-2 sm:gap-3">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
+                isDarkMode ? 'bg-gradient-to-br from-orange-600/30 to-amber-600/30' : 'bg-gradient-to-br from-orange-500/20 to-amber-500/20'
+              }`}>
+                <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
+              </div>
+              <div className="flex-1 text-left">
+                <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Pricing Plans
+                </div>
+                <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Tarife anzeigen
                 </div>
               </div>
             </div>
@@ -539,7 +599,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   isDarkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-600'
                 }`}
               >
-                <X className="w-6 h-6" />
+                <XIcon className="w-6 h-6" />
               </button>
             </div>
             
@@ -570,6 +630,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         isOpen={showShowcase}
         onClose={() => setShowShowcase(false)}
         isDarkMode={isDarkMode}
+      />
+
+      {/* PLATFORM USER MANAGEMENT MODAL */}
+      <PlatformUserManagement 
+        isOpen={showPlatformUserManagement}
+        onClose={() => setShowPlatformUserManagement(false)}
+      />
+
+      {/* PRICING MODAL */}
+      <PricingModal 
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
       />
 
       {/* External Services Modal */}
@@ -843,19 +915,3 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   );
 };
 
-// X icon component
-const X: React.FC<{ className?: string }> = ({ className }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <line x1="18" y1="6" x2="6" y2="18"></line>
-    <line x1="6" y1="6" x2="18" y2="18"></line>
-  </svg>
-);

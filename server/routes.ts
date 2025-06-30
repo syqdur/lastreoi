@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertRootAdminSchema, insertGallerySchema } from "@shared/schema";
+import { insertRootAdminSchema, insertGallerySchema, insertPlatformUserSchema } from "@shared/schema";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
@@ -128,6 +128,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Hide story ring error:", error);
       res.status(500).json({ error: "Failed to hide story ring" });
+    }
+  });
+
+  // Platform user management routes
+  app.get("/api/platform-users", async (req, res) => {
+    try {
+      const users = await storage.getAllPlatformUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Get platform users error:", error);
+      res.status(500).json({ error: "Failed to get platform users" });
+    }
+  });
+
+  app.post("/api/platform-users", async (req, res) => {
+    try {
+      const userData = insertPlatformUserSchema.parse(req.body);
+      const user = await storage.createPlatformUser(userData);
+      res.json(user);
+    } catch (error) {
+      console.error("Create platform user error:", error);
+      res.status(500).json({ error: "Failed to create platform user" });
+    }
+  });
+
+  app.put("/api/platform-users/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      const user = await storage.updatePlatformUser(parseInt(id), updateData);
+      res.json(user);
+    } catch (error) {
+      console.error("Update platform user error:", error);
+      res.status(500).json({ error: "Failed to update platform user" });
+    }
+  });
+
+  app.delete("/api/platform-users/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deletePlatformUser(parseInt(id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete platform user error:", error);
+      res.status(500).json({ error: "Failed to delete platform user" });
     }
   });
 
