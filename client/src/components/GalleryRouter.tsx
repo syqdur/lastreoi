@@ -200,23 +200,7 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
     setLocation('/');
   };
 
-  // Render loading state
-  if (isLoading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${
-        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
-      }`}>
-        <div className="text-center">
-          <EventLoadingSpinner 
-            theme={currentGallery?.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes' || 'hochzeit'} 
-            isDarkMode={isDarkMode} 
-            size="large"
-            text="Galerie wird geladen..."
-          />
-        </div>
-      </div>
-    );
-  }
+  // PERFORMANCE FIX: Removed first loading screen - direct loading into gallery
 
   // Render error state
   if (error) {
