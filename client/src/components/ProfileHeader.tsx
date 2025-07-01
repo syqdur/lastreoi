@@ -46,25 +46,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-  // FIXED: Always provide fallback data to prevent skeleton loading
+  // Use gallery profile data from admin panel "Galerie Einstellungen"
+  // Wait for real galleryProfileData to load - don't show old gallery creation data
   const displayData = React.useMemo(() => {
-    // If we have actual gallery profile data, use it
+    // Only show data when we have actual gallery profile data loaded
     if (galleryProfileData) {
       return galleryProfileData;
     }
-    
-    // If no profile data yet, return a minimal default to prevent skeleton
-    // This ensures ProfileHeader always has something to display
-    return {
-      name: gallery?.eventName || 'Gallery',
-      bio: `${gallery?.eventName || 'Gallery'} - Teilt eure schönsten Momente mit uns! 📸`,
-      countdownDate: null,
-      countdownEndMessage: 'Der große Tag ist da! 🎉',
-      countdownMessageDismissed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-  }, [galleryProfileData, gallery?.eventName]);
+    // Return null to show loading state until real data arrives
+    return null;
+  }, [galleryProfileData]);
 
   // Countdown timer effect with memoized calculation
   useEffect(() => {
@@ -111,8 +102,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return () => clearInterval(interval);
   }, [displayData?.countdownDate]);
 
-  // REMOVED: The loading check that was causing skeleton to persist
-  // displayData will always have a value now
+  // Show loading state while waiting for real gallery profile data
+  if (!displayData) {
+    return <HeaderLoadingSkeleton isDarkMode={isDarkMode} />;
+  }
 
   return (
     <>
