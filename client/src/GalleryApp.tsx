@@ -1,710 +1,4 @@
-if (profilePicture && profilePicture instanceof File) {
-          console.log('🖼️ Processing profile picture for new user:', userName);
-          const profilePictureUrl = await uploadGalleryUserProfilePicture(profilePicture, userName, deviceId, gallery.id);
-
-          newProfile = await createOrUpdateGalleryUserProfile(userName, deviceId, {
-            displayName: userName,
-            profilePicture: profilePictureUrl
-          }, gallery.id);
-        } else {
-          // Create profile without picture
-          newProfile = await createOrUpdateGalleryUserProfile(userName, deviceId, {
-            displayName: userName
-          }, gallery.id);
-        }
-
-        console.log('✅ User profile created/updated:', newProfile);
-
-        // Register user in live_users collection for proper user tracking
-        try {
-          const userDocRef = doc(db, 'galleries', gallery.id, 'live_users', deviceId);
-          await setDoc(userDocRef, {
-            userName: userName,
-            deviceId: deviceId,
-            lastSeen: new Date().toISOString(),
-            isActive: true,
-            connectedAt: new Date().toISOString()
-          });
-          console.log('✅ User registered in live_users collection');
-        } catch (error) {
-          console.error('❌ Error registering user in live_users:', error);
-        }
-
-        // Immediately update current user profile if this is the current user
-        const currentStoredName = getUserName();
-        const currentStoredDeviceId = getDeviceId();
-        if (userName === currentStoredName && deviceId === currentStoredDeviceId) {
-          console.log('✅ Updating current user profile immediately');
-          setCurrentUserProfile(newProfile);
-        }
-
-        // Immediately update user profiles list
-        setUserProfiles(prev => {
-          const index = prev.findIndex(p => p.userName === userName && p.deviceId === deviceId);
-          if (index >= 0) {
-            const updated = [...prev];
-            updated[index] = newProfile;
-            return updated;
-          } else {
-            return [...prev, newProfile];
-          }
-        });
-
-        // Trigger a custom event to notify all components of profile update
-        window.dispatchEvent(new CustomEvent('profilePictureUpdated', { 
-          detail: { userName, deviceId, profile: newProfile } 
-        }));
-
-        console.log('✅ New visitor fully registered as user without page reload');
-      } catch (error) {
-        console.error('❌ Error registering new visitor:', error);
-      }
-
-      // Refresh gallery users for tagging
-      setTimeout(async () => {
-        try {
-          const users = await getGalleryUsers(gallery.id);
-          setGalleryUsers(users);
-          syncAllUserProfiles();
-        } catch (error) {
-          console.error('Error refreshing gallery users:', error);
-        }
-      }, 1000);
-    };
-
-    window.addEventListener('userConnected', handleUserConnected as any);
-
-    return () => {
-      window.removeEventListener('userConnected', handleUserConnected as any);
-    };
-  }, [gallery.id]);
-
-  const getUserAvatar = (targetUserName: string, targetDeviceId?: string) => {
-    const userProfile = userProfiles.find(p => 
-      p.userName === targetUserName && (!targetDeviceId || p.deviceId === targetDeviceId)
-    );
-    return userProfile?.profilePicture || null;
-  };
-
-  const getUserDisplayName = (targetUserName: string, targetDeviceId?: string) => {
-    const userProfile = userProfiles.find(p => 
-      p.userName === targetUserName && (!targetDeviceId || p.deviceId === targetDeviceId)
-    );
-    return (userProfile?.displayName && userProfile.displayName !== targetUserName) 
-      ? userProfile.displayName 
-      : targetUserName;
-  };
-
-  // Show Spotify callback handler if on callback page
-  if (isSpotifyCallback()) {
-    return <SpotifyCallback isDarkMode={isDarkMode} />;
-  }
-
-  // Force gallery creators through visitor registration process
-  const isGalleryOwner = localStorage.getItem(`gallery_owner_${gallery.slug}`) === 'true';
-  const galleryCreatedFlag = localStorage.getItem(`gallery_just_created_${gallery.slug}`);
-  const needsVisitorRegistration = isGalleryOwner && galleryCreatedFlag === 'true';
-  
-  // Show UserNamePrompt for new users or gallery creators who need to register as visitors
-  // Admin setup should NEVER show during visitor registration
-  if ((showNamePrompt || needsVisitorRegistration) && !showAdminCredentialsSetup) {
-    return <UserNamePrompt 
-      onSubmit={async (name: string, profilePicture?: File) => {
-        console.log('👋 Starting user registration for gallery:', gallery.id);
-        
-        // Set user name first (this triggers the useUser hook)
-        setUserName(name, profilePicture);
-        
-        // FIXED: Ensure gallery profile data is available immediately
-        if (!galleryProfileData) {
-          console.log('🔧 Initializing gallery profile data during user registration');
-          const initialProfile = {
-            name: gallery.eventName,
-            bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-            countdownDate: null,
-            countdownEndMessage: 'Der große Tag ist da! 🎉',
-            countdownMessageDismissed: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          setGalleryProfileData(initialProfile);
-          setProfileDataLoaded(true);
-        }
-        
-        // Immediately register user in gallery-scoped collections
-        try {
-          const currentDeviceId = getDeviceId();
-          console.log('📝 Registering user in gallery collections:', { name, deviceId: currentDeviceId, galleryId: gallery.id });
-          
-          // Create user profile in gallery-specific collection
-          let newProfile;
-          if (profilePicture && profilePicture instanceof File) {
-            console.log('🖼️ Uploading profile picture for new user');
-            const profilePictureUrl = await uploadGalleryUserProfilePicture(profilePicture, name, currentDeviceId, gallery.id);
-            newProfile = await createOrUpdateGalleryUserProfile(name, currentDeviceId, {
-              displayName: name,
-              profilePicture: profilePictureUrl
-            }, gallery.id);
-          } else {
-            newProfile = await createOrUpdateGalleryUserProfile(name, currentDeviceId, {
-              displayName: name
-            }, gallery.id);
-          }
-          
-          // Register in live_users collection for gallery
-          const userDocRef = doc(db, 'galleries', gallery.id, 'live_users', currentDeviceId);
-          await setDoc(userDocRef, {
-            userName: name,
-            deviceId: currentDeviceId,
-            lastSeen: new Date().toISOString(),
-            isActive: true,
-            connectedAt: new Date().toISOString()
-          });
-          
-          console.log('✅ User successfully registered in gallery:', gallery.id);
-          
-          // Trigger user profiles refresh
-          setCurrentUserProfile(newProfile);
-          setUserProfiles(prev => {
-            const index = prev.findIndex(p => p.userName === name && p.deviceId === currentDeviceId);
-            if (index >= 0) {
-              const updated = [...prev];
-              updated[index] = newProfile;
-              return updated;
-            } else {
-              return [...prev, newProfile];
-            }
-          });
-          
-          // Refresh gallery users for tagging
-          try {
-            const users = await getGalleryUsers(gallery.id);
-            setGalleryUsers(users);
-          } catch (error) {
-            console.error('Error refreshing gallery users:', error);
-          }
-          
-        } catch (error) {
-          console.error('❌ Error during user registration:', error);
-        }
-      }} 
-      isDarkMode={isDarkMode} 
-      galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
-    />;
-  }
-
-  // Loading Screen - Show while initial data is loading
-  if (isInitialLoading && !galleryDataLoaded) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center transition-all duration-500 ${
-        isDarkMode 
-          ? 'bg-gray-900' 
-          : gallery.theme === 'hochzeit'
-          ? 'bg-gradient-to-br from-gray-50 via-pink-50/30 to-rose-50/20'
-          : gallery.theme === 'geburtstag'
-          ? 'bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50/20'
-          : gallery.theme === 'urlaub'
-          ? 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/20'
-          : 'bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20'
-      }`}>
-        <div className="text-center space-y-6 px-4">
-          <EventLoadingSpinner 
-            theme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'} 
-            isDarkMode={isDarkMode}
-          galleryUsers={galleryUsers}
-        />
-      )}
-    </div>
-  );
-};arkMode={isDarkMode} 
-            size="large"
-            text="Galerie wird geladen..."
-          />
-          
-          <div className="space-y-2">
-            <h1 className={`text-2xl font-bold ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              {gallery.eventName}
-            </h1>
-            <p className={`text-sm ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              Deine Momente werden vorbereitet...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`min-h-screen relative transition-all duration-500 ${
-      isDarkMode 
-        ? 'bg-gray-900' 
-        : gallery.theme === 'hochzeit'
-        ? 'bg-gradient-to-br from-gray-50 via-pink-50/30 to-rose-50/20'
-        : gallery.theme === 'geburtstag'
-        ? 'bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50/20'
-        : gallery.theme === 'urlaub'
-        ? 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/20'
-        : 'bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20'
-    }`}>
-
-      {/* Gallery Header */}
-      <div className={`sticky top-0 z-50 transition-all duration-300 ${
-        isDarkMode 
-          ? 'bg-gray-900/70 border-gray-700/30 backdrop-blur-xl shadow-xl shadow-purple-500/5' 
-          : gallery.theme === 'hochzeit'
-          ? 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-pink-500/5'
-          : gallery.theme === 'geburtstag'
-          ? 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-purple-500/5'
-          : gallery.theme === 'urlaub'
-          ? 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-blue-500/5'
-          : 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-green-500/5'
-      } border-b`}>
-        <div className="max-w-md mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center relative bg-transparent">
-                {/* Theme-specific Icon */}
-                <div className="relative w-full h-full flex items-center justify-center">
-                  <span className="text-xl sm:text-2xl animate-pulse" style={{
-                    animation: 'bounce 2s ease-in-out infinite'
-                  }}>
-                    {themeConfig.icon}
-                  </span>
-
-                  {/* Sparkle effect for all themes */}
-                  <div className={`absolute w-1 h-1 rounded-full transition-all duration-500 ${
-                    isDarkMode ? `bg-${themeStyles.secondaryColor || 'pink-200'}` : `bg-${themeStyles.accentColor || 'pink-300'}`
-                  }`} style={{
-                    animation: 'sparkle 2s ease-in-out infinite',
-                    top: '20%',
-                    right: '20%'
-                  }}></div>
-                </div>
-              </div>
-              <h1 className={`text-base sm:text-lg font-bold tracking-tight transition-colors duration-300 ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                {gallery.eventName}
-              </h1>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              {/* Notification Center */}
-              {userName && (
-                <NotificationCenter
-                  userName={userName}
-                  deviceId={deviceId}
-                  isDarkMode={isDarkMode}
-                  onNavigateToMedia={handleNavigateToMedia}
-                  galleryId={gallery.id}
-                />
-              )}
-
-              {/* Profile Button */}
-              <button
-                onClick={() => setShowUserProfileModal(true)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm shadow-lg min-w-0 h-[40px] ${
-                  isDarkMode 
-                    ? 'bg-white/10 hover:bg-white/15 text-white border border-white/20 shadow-black/20' 
-                    : 'bg-white/20 hover:bg-white/30 text-gray-800 border border-white/30 shadow-gray-500/20'
-                }`}
-                title="Mein Profil bearbeiten"
-              >
-                {currentUserProfile?.profilePicture ? (
-                  <img 
-                    src={currentUserProfile?.profilePicture || ''} 
-                    alt="My Profile"
-                    className="w-6 h-6 rounded-full object-cover ring-2 ring-white/30 shadow-sm flex-shrink-0"
-                  />
-                ) : (
-                  <UserPlus className={`w-4 h-4 transition-colors duration-300 flex-shrink-0 ${
-                    isDarkMode ? 'text-white/80' : 'text-gray-700'
-                  }`} />
-                )}
-                <span className="text-sm font-medium truncate hidden sm:block max-w-16">Profil</span>
-              </button>
-
-              {/* Live User Indicator */}
-              <LiveUserIndicator 
-                currentUser={userName || ''}
-                isDarkMode={isDarkMode}
-                galleryId={gallery.id}
-              />
-
-              <button
-                onClick={onToggleDarkMode}
-                className={`p-2 sm:p-2.5 rounded-full transition-all duration-300 touch-manipulation ${
-                  isDarkMode 
-                    ? 'text-yellow-400 hover:bg-gray-800/50 hover:scale-110' 
-                    : 'text-gray-600 hover:bg-gray-100/50 hover:scale-110'
-                }`}
-              >
-                {isDarkMode ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-2 sm:px-0">
-        {/* Profile Header */}
-        <ProfileHeader
-          isDarkMode={isDarkMode}
-          isAdmin={isAdmin}
-          userName={userName || undefined}
-          mediaItems={mediaItems}
-          onToggleAdmin={setIsAdmin}
-          currentUserProfile={currentUserProfile}
-          onOpenUserProfile={() => setShowUserProfileModal(true)}
-          showTopBarControls={false}
-          galleryProfileData={galleryProfileData}
-          onEditGalleryProfile={() => setShowProfileEditModal(true)}
-          gallery={gallery}
-        />
-
-        {/* Tab Navigation - always visible */}
-        <TabNavigation 
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          isDarkMode={isDarkMode}
-          galleryEnabled={siteStatus?.galleryEnabled ?? true}
-          musicWishlistEnabled={siteStatus?.musicWishlistEnabled ?? true}
-          themeTexts={themeTexts}
-          themeIcon={themeConfig.icon}
-          themeStyles={themeStyles}
-          galleryEventName={gallery.eventName}
-        />
-
-        {/* Tab Content */}
-        {activeTab === 'gallery' ? (
-          <>
-            {/* Consolidated Navigation Bar */}
-            <ConsolidatedNavigationBar
-              onUpload={handleUpload}
-              onVideoUpload={handleVideoUpload}
-              onNoteSubmit={handleNoteSubmit}
-              onAddStory={() => setShowStoryUpload(true)}
-              isUploading={isUploading}
-              progress={uploadProgress}
-              stories={stories}
-              currentUser={userName || ''}
-              deviceId={deviceId || ''}
-              onViewStory={handleViewStory}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              isDarkMode={isDarkMode}
-              storiesEnabled={siteStatus?.storiesEnabled ?? false}
-              galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
-              themeTexts={themeTexts}
-              themeStyles={themeStyles}
-            />
-
-            {status && (
-              <div className="px-4 py-2">
-                <p className={`text-sm text-center transition-colors duration-300 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`} dangerouslySetInnerHTML={{ __html: status }} />
-              </div>
-            )}
-
-            <InstagramGallery
-              items={mediaItems}
-              onItemClick={openModal}
-              onDelete={handleDelete}
-              onEditNote={handleEditNote}
-              onEditTextTag={handleEditTextTag}
-              isAdmin={isAdmin}
-              comments={comments}
-              likes={likes}
-              onAddComment={handleAddComment}
-              onDeleteComment={handleDeleteComment}
-              onToggleLike={handleToggleLike}
-              userName={userName || ''}
-              isDarkMode={isDarkMode}
-              getUserAvatar={getUserAvatar}
-              getUserDisplayName={getUserDisplayName}
-              deviceId={deviceId || ''}
-              galleryTheme={gallery.theme}
-              galleryId={gallery.id}
-              viewMode={viewMode}
-            />
-          </>
-        ) : activeTab === 'timeline' ? (
-          <Timeline 
-            isDarkMode={isDarkMode}
-            userName={userName || ''}
-            isAdmin={isAdmin}
-            galleryId={gallery.id}
-            galleryTheme={gallery.theme}
-          />
-        ) : activeTab === 'music' && gallery.settings.spotifyIntegration ? (
-          <MusicWishlist 
-            isDarkMode={isDarkMode} 
-            isAdmin={isAdmin}
-            galleryId={gallery.id}
-          />
-        ) : (
-          <div className={`p-8 text-center transition-colors duration-300 ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            <p>Diese Funktion ist derzeit deaktiviert.</p>
-          </div>
-        )}
-      </div>
-
-      {/* All the modals and components */}
-      <MediaModal
-        isOpen={modalOpen}
-        items={mediaItems}
-        currentIndex={currentImageIndex}
-        onClose={() => setModalOpen(false)}
-        onNext={nextImage}
-        onPrev={prevImage}
-        comments={comments}
-        likes={likes}
-        onAddComment={handleAddComment}
-        onDeleteComment={handleDeleteComment}
-        onToggleLike={handleToggleLike}
-        userName={userName || ''}
-        isAdmin={isAdmin}
-        isDarkMode={isDarkMode}
-        getUserAvatar={getUserAvatar}
-        getUserDisplayName={getUserDisplayName}
-        deviceId={deviceId || ''}
-        galleryId={gallery.id}
-        onUpdateTextTags={handleUpdateTextTags}
-      />
-
-      <StoriesViewer
-        isOpen={showStoriesViewer}
-        stories={stories}
-        initialStoryIndex={currentStoryIndex}
-        currentUser={userName || ''}
-        onClose={() => setShowStoriesViewer(false)}
-        onStoryViewed={handleStoryViewed}
-        onDeleteStory={handleDeleteStory}
-        isAdmin={isAdmin}
-        isDarkMode={isDarkMode}
-      />
-
-      <StoryUploadModal
-        isOpen={showStoryUpload}
-        onClose={() => setShowStoryUpload(false)}
-        onUpload={handleStoryUpload}
-        isDarkMode={isDarkMode}
-      />
-
-      <AdminLoginModal
-        isOpen={showAdminLogin}
-        onClose={() => setShowAdminLogin(false)}
-        onLogin={handleAdminLogin}
-        isDarkMode={isDarkMode}
-        galleryId={gallery.id}
-      />
-
-      <AdminCredentialsSetup
-        isOpen={showAdminCredentialsSetup}
-        onClose={() => setShowAdminCredentialsSetup(false)}
-        onSetup={handleAdminCredentialsSetup}
-        isDarkMode={isDarkMode}
-        galleryName={gallery.eventName}
-      />
-
-      {userName && deviceId && (
-        <UserProfileModal
-          isOpen={showUserProfileModal}
-          onClose={() => setShowUserProfileModal(false)}
-          userName={userName}
-          deviceId={deviceId}
-          isDarkMode={isDarkMode}
-          onProfileUpdated={handleProfileUpdated}
-          isAdmin={isAdmin}
-          currentUserName={userName}
-          currentDeviceId={deviceId}
-          galleryId={gallery.id}
-        />
-      )}
-
-      {/* Admin Panel Burger Menu - Only visible for admins */}
-      <AdminPanelBurger
-        isDarkMode={isDarkMode}
-        isAdmin={isAdmin}
-        onToggleAdmin={(newIsAdmin: boolean) => {
-          if (newIsAdmin) {
-            setShowAdminLogin(true);
-          } else {
-            handleAdminLogout();
-          }
-        }}
-        mediaItems={mediaItems}
-        siteStatus={siteStatus || undefined}
-        getUserAvatar={getUserAvatar}
-        getUserDisplayName={getUserDisplayName}
-        gallery={gallery}
-      />
-
-      {isAdmin && (
-        <ProfileEditModal
-          isOpen={showProfileEditModal}
-          onClose={() => setShowProfileEditModal(false)}
-          currentProfileData={{
-            profilePicture: galleryProfileData?.profilePicture,
-            name: galleryProfileData?.name || gallery.eventName,
-            bio: galleryProfileData?.bio || `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-            countdownDate: galleryProfileData?.countdownDate || gallery.eventDate,
-            countdownEndMessage: galleryProfileData?.countdownEndMessage || 'Der große Tag ist da! 🎉',
-            countdownMessageDismissed: galleryProfileData?.countdownMessageDismissed || false
-          }}
-          onSave={async (profileData) => {
-            try {
-              console.log('🔄 Saving gallery profile...', profileData);
-              let profilePictureUrl = galleryProfileData?.profilePicture;
-
-              // Handle profile picture update
-              if (profileData.profilePicture instanceof File) {
-                console.log('📸 Processing gallery profile picture...');
-
-                // Since ProfileEditModal already compresses the image, the File should already be compressed
-                // But let's ensure it's under Firebase limits by converting to base64
-                const reader = new FileReader();
-                profilePictureUrl = await new Promise((resolve, reject) => {
-                  reader.onload = () => {
-                    const result = reader.result as string;
-                    // Check if the base64 is under Firebase limit (900KB)
-                    if (result.length > 900000) {
-                      console.warn('⚠️ Profile picture still too large after compression:', Math.round(result.length / 1024), 'KB');
-                      reject(new Error('Profilbild ist zu groß für Firebase. Bitte wählen Sie ein kleineres Bild.'));
-                    } else {
-                      console.log('✅ Gallery profile picture processed successfully:', Math.round(result.length / 1024), 'KB');
-                      resolve(result);
-                    }
-                  };
-                  reader.onerror = reject;
-                  reader.readAsDataURL(profileData.profilePicture as File);
-                });
-              } else if (typeof profileData.profilePicture === 'string') {
-                profilePictureUrl = profileData.profilePicture;
-              }
-
-              const updatedGalleryProfile: any = {
-                name: profileData.name,
-                bio: profileData.bio,
-                countdownEndMessage: profileData.countdownEndMessage,
-                countdownMessageDismissed: profileData.countdownMessageDismissed,
-                updatedAt: new Date().toISOString()
-              };
-
-              // Only include profilePicture if it has a value (not undefined)
-              if (profilePictureUrl) {
-                updatedGalleryProfile.profilePicture = profilePictureUrl;
-              }
-
-              // Handle countdownDate explicitly - include it if it has a value, otherwise explicitly set to null to remove it
-              if (profileData.countdownDate && profileData.countdownDate.trim() !== '') {
-                updatedGalleryProfile.countdownDate = profileData.countdownDate;
-              } else {
-                updatedGalleryProfile.countdownDate = null; // Explicitly remove countdown
-              }
-
-              console.log('📝 Profile data to save:', updatedGalleryProfile);
-              console.log('🎯 Gallery ID:', gallery.id);
-
-              // Save to gallery profile collection using setDoc
-              const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-              console.log('📍 Document path:', `galleries/${gallery.id}/profile/main`);
-
-              await setDoc(profileDocRef, updatedGalleryProfile, { merge: true });
-
-              setGalleryProfileData(updatedGalleryProfile);
-              setShowProfileEditModal(false);
-              console.log('✅ Gallery profile updated successfully');
-            } catch (error: any) {
-              console.error('❌ Error updating gallery profile:', error);
-              console.error('❌ Error message:', error.message);
-              console.error('❌ Error code:', error.code);
-              alert(`Fehler beim Aktualisieren des Galerie-Profils: ${error.message}`);
-            }
-          }}
-          isDarkMode={isDarkMode}
-        />
-      )}
-
-      <BackToTopButton isDarkMode={isDarkMode} galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'} />
-
-      {/* Admin Login Toggle - Bottom Left */}
-      {userName && (
-        <button
-          onClick={() => {
-            if (isAdmin) {
-              handleAdminLogout();
-            } else {
-              setShowAdminLogin(true);
-            }
-          }}
-          className={`fixed bottom-20 left-4 w-12 h-12 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ring-2 z-40 ${
-            isDarkMode 
-              ? 'bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
-              : 'bg-white/90 hover:bg-gray-50/90 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
-          }`}
-          title={isAdmin ? "Admin-Modus verlassen" : "Admin-Modus"}
-        >
-          {isAdmin ? (
-            <Unlock className={`w-5 h-5 transition-colors duration-300 ${
-              isDarkMode ? 'text-gray-300' : 'text-gray-600'
-            }`} />
-          ) : (
-            <Lock className={`w-5 h-5 transition-colors duration-300 ${
-              isDarkMode ? 'text-gray-300' : 'text-gray-600'
-            }`} />
-          )}
-        </button>
-      )}
-
-      {/* Galerie Einstellungen Button - Top Right */}
-      {isAdmin && (
-        <button
-          onClick={() => setShowProfileEditModal(true)}
-          className={`fixed top-4 right-4 w-12 h-12 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ring-2 z-40 ${
-            isDarkMode 
-              ? 'bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
-              : 'bg-white/90 hover:bg-gray-50/90 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
-          }`}
-          title="Galerie-Einstellungen"
-        >
-          <Settings className={`w-5 h-5 transition-colors duration-300 ${
-            isDarkMode ? 'text-gray-300' : 'text-gray-600'
-          }`} />
-        </button>
-      )}
-
-      {/* Gallery Tutorial */}
-      <GalleryTutorial
-        isOpen={showTutorial}
-        onClose={handleCloseTutorial}
-        isDarkMode={isDarkMode}
-        galleryTheme={gallery.theme || 'hochzeit'}
-      />
-
-      {/* Admin Tutorial */}
-      <AdminTutorial
-        isOpen={showAdminTutorial}
-        onClose={handleCloseAdminTutorial}
-        isDarkMode={isDarkMode}
-        galleryTheme={gallery.theme || 'hochzeit'}
-      />
-
-      {/* Simple Tagging Modal */}
-      {showTaggingModal && pendingUploadUrl && (
-        <SimpleTaggingModal
-          isOpen={showTaggingModal}
-          onClose={handleTaggingCancel}
-          onConfirm={handleTaggingConfirm}
-          mediaUrl={pendingUploadUrl}
-          mediaType={pendingUploadFiles?.[0]?.type.startsWith('video') ? 'video' : 'image'}
-          isDimport React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, MoreHorizontal, Sun, Moon, UserPlus, Lock, Unlock, Settings } from 'lucide-react';
 import { UserNamePrompt } from './components/UserNamePrompt';
 import { UploadSection } from './components/UploadSection';
@@ -1479,346 +773,1051 @@ export const GalleryApp: React.FC<GalleryAppProps> = ({
       // Store credentials in localStorage
       localStorage.setItem(`admin_credentials_${gallery.id}`, JSON.stringify(adminCredentials));
       console.log('✅ Admin credentials saved to localStorage');
+const authData = {
+       username: credentials.username,
+       timestamp: Date.now()
+     };
+     localStorage.setItem(`admin_auth_${gallery.id}`, JSON.stringify(authData));
+     console.log('✅ Admin session saved to localStorage');
 
-      // Set admin session
-      const authData = {
-        username: credentials.username,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(`admin_auth_${gallery.id}`, JSON.stringify(authData));
-      console.log('✅ Admin session saved to localStorage');
+     setIsAdmin(true);
+     setShowAdminCredentialsSetup(false);
+     console.log('🔐 Admin credentials set up successfully');
 
-      setIsAdmin(true);
-      setShowAdminCredentialsSetup(false);
-      console.log('🔐 Admin credentials set up successfully');
+     // Create default gallery profile with owner name when admin credentials are set up
+     if (!galleryProfileData || !galleryProfileData.profilePicture) {
+       const ownerProfile = {
+         name: credentials.username,
+         bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+         countdownDate: null, // Disabled by default
+         countdownEndMessage: 'Der große Tag ist da! 🎉',
+         countdownMessageDismissed: false,
+         createdAt: new Date().toISOString(),
+         updatedAt: new Date().toISOString()
+       };
 
-      // Create default gallery profile with owner name when admin credentials are set up
-      if (!galleryProfileData || !galleryProfileData.profilePicture) {
-        const ownerProfile = {
-          name: credentials.username,
-          bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-          countdownDate: null, // Disabled by default
-          countdownEndMessage: 'Der große Tag ist da! 🎉',
-          countdownMessageDismissed: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+       // Set profile locally first for immediate UI update
+       setGalleryProfileData(ownerProfile);
+       console.log('✅ Default owner profile created locally');
+     }
+   } catch (error: any) {
+     console.error('❌ Error setting up admin credentials:', error);
+     throw new Error(`Fehler beim Einrichten der Admin-Zugangsdaten: ${error?.message || 'Unbekannter Fehler'}`);
+   }
+ };
 
-        // Set profile locally first for immediate UI update
-        setGalleryProfileData(ownerProfile);
-        console.log('✅ Default owner profile created locally');
-      }
-    } catch (error: any) {
-      console.error('❌ Error setting up admin credentials:', error);
-      throw new Error(`Fehler beim Einrichten der Admin-Zugangsdaten: ${error?.message || 'Unbekannter Fehler'}`);
-    }
-  };
+ const handleProfileUpdated = (profile: UserProfile) => {
+   setCurrentUserProfile(profile);
+   setUserProfiles(prev => {
+     const index = prev.findIndex(p => p.id === profile.id);
+     if (index >= 0) {
+       const updated = [...prev];
+       updated[index] = profile;
+       return updated;
+     } else {
+       return [...prev, profile];
+     }
+   });
+ };
 
-  const handleProfileUpdated = (profile: UserProfile) => {
-    setCurrentUserProfile(profile);
-    setUserProfiles(prev => {
-      const index = prev.findIndex(p => p.id === profile.id);
-      if (index >= 0) {
-        const updated = [...prev];
-        updated[index] = profile;
-        return updated;
-      } else {
-        return [...prev, profile];
-      }
-    });
-  };
+ const handleNavigateToMedia = (mediaId: string) => {
+   const mediaIndex = mediaItems.findIndex(item => item.id === mediaId);
+   if (mediaIndex !== -1) {
+     setActiveTab('gallery');
+     setCurrentImageIndex(mediaIndex);
+     setModalOpen(true);
+   }
+ };
 
-  const handleNavigateToMedia = (mediaId: string) => {
-    const mediaIndex = mediaItems.findIndex(item => item.id === mediaId);
-    if (mediaIndex !== -1) {
-      setActiveTab('gallery');
-      setCurrentImageIndex(mediaIndex);
-      setModalOpen(true);
-    }
-  };
+ // Real-time profile synchronization using Firebase listener
+ useEffect(() => {
+   if (!userName || !deviceId) return;
 
-  // Real-time profile synchronization using Firebase listener
-  useEffect(() => {
-    if (!userName || !deviceId) return;
+   console.log('🔄 Setting up real-time profile listener for:', userName);
 
-    console.log('🔄 Setting up real-time profile listener for:', userName);
+   const profilesCollection = collection(db, 'galleries', gallery.id, 'userProfiles');
+   const q = query(
+     profilesCollection,
+     where('userName', '==', userName),
+     where('deviceId', '==', deviceId)
+   );
 
-    const profilesCollection = collection(db, 'galleries', gallery.id, 'userProfiles');
-    const q = query(
-      profilesCollection,
-      where('userName', '==', userName),
-      where('deviceId', '==', deviceId)
-    );
+   const unsubscribe = onSnapshot(q, (querySnapshot: any) => {
+     if (!querySnapshot.empty) {
+       const doc = querySnapshot.docs[0];
+       const profileData = doc.data();
+       const latestProfile = {
+         id: doc.id,
+         ...profileData
+       } as UserProfile;
 
-    const unsubscribe = onSnapshot(q, (querySnapshot: any) => {
-      if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0];
-        const profileData = doc.data();
-        const latestProfile = {
-          id: doc.id,
-          ...profileData
-        } as UserProfile;
+       // Only update if data actually changed
+       if (JSON.stringify(latestProfile) !== JSON.stringify(currentUserProfile)) {
+         console.log('✅ Profile updated via listener:', latestProfile);
+         setCurrentUserProfile(latestProfile);
+       }
+     } else {
+       // Profile doesn't exist, set to null
+       if (currentUserProfile !== null) {
+         console.log('📝 Profile not found, setting to null');
+         setCurrentUserProfile(null);
+       }
+     }
+   }, (error: any) => {
+     console.error('Error in profile listener:', error);
+   });
 
-        // Only update if data actually changed
-        if (JSON.stringify(latestProfile) !== JSON.stringify(currentUserProfile)) {
-          console.log('✅ Profile updated via listener:', latestProfile);
-          setCurrentUserProfile(latestProfile);
-        }
-      } else {
-        // Profile doesn't exist, set to null
-        if (currentUserProfile !== null) {
-          console.log('📝 Profile not found, setting to null');
-          setCurrentUserProfile(null);
-        }
-      }
-    }, (error: any) => {
-      console.error('Error in profile listener:', error);
-    });
+   return () => {
+     console.log('🔌 Cleaning up profile listener');
+     unsubscribe();
+   };
+ }, [userName, deviceId, gallery.id]); // Removed currentUserProfile from dependencies to prevent loops
 
-    return () => {
-      console.log('🔌 Cleaning up profile listener');
-      unsubscribe();
-    };
-  }, [userName, deviceId, gallery.id]); // Removed currentUserProfile from dependencies to prevent loops
+ // Load current user profile
+ useEffect(() => {
+   const loadCurrentUserProfile = async () => {
+     if (userName && deviceId) {
+       try {
+         const userProfile = await getGalleryUserProfile(userName, deviceId, gallery.id);
+         setCurrentUserProfile(userProfile);
 
-  // Load current user profile
-  useEffect(() => {
-    const loadCurrentUserProfile = async () => {
-      if (userName && deviceId) {
-        try {
-          const userProfile = await getGalleryUserProfile(userName, deviceId, gallery.id);
-          setCurrentUserProfile(userProfile);
+         if (!userProfile) {
+           const allProfiles = await getAllGalleryUserProfiles(gallery.id);
+           let existingUserProfile = allProfiles.find((p: UserProfile) => p.userName === userName);
 
-          if (!userProfile) {
-            const allProfiles = await getAllGalleryUserProfiles(gallery.id);
-            let existingUserProfile = allProfiles.find((p: UserProfile) => p.userName === userName);
+           if (!existingUserProfile) {
+             const lowerUserName = userName.toLowerCase();
+             existingUserProfile = allProfiles.find((p: UserProfile) => {
+               const lowerProfileName = p.userName.toLowerCase();
+               return lowerProfileName.includes(lowerUserName.slice(0, 4)) || 
+                      lowerUserName.includes(lowerProfileName.slice(0, 4));
+             });
+           }
 
-            if (!existingUserProfile) {
-              const lowerUserName = userName.toLowerCase();
-              existingUserProfile = allProfiles.find((p: UserProfile) => {
-                const lowerProfileName = p.userName.toLowerCase();
-                return lowerProfileName.includes(lowerUserName.slice(0, 4)) || 
-                       lowerUserName.includes(lowerProfileName.slice(0, 4));
-              });
-            }
+           if (existingUserProfile) {
+             try {
+               await createOrUpdateGalleryUserProfile(userName, deviceId, {
+                 displayName: existingUserProfile.displayName || userName,
+                 profilePicture: existingUserProfile.profilePicture
+               }, gallery.id);
 
-            if (existingUserProfile) {
-              try {
-                await createOrUpdateGalleryUserProfile(userName, deviceId, {
-                  displayName: existingUserProfile.displayName || userName,
-                  profilePicture: existingUserProfile.profilePicture
-                }, gallery.id);
+               const linkedProfile = await getGalleryUserProfile(userName, deviceId, gallery.id);
+               setCurrentUserProfile(linkedProfile);
+             } catch (error) {
+               console.error('Error linking profile:', error);
+               setCurrentUserProfile(null);
+             }
+           } else {
+             setCurrentUserProfile(null);
+           }
+         }
+       } catch (error) {
+         console.error('Error loading current user profile:', error);
+       }
+     }
+   };
 
-                const linkedProfile = await getGalleryUserProfile(userName, deviceId, gallery.id);
-                setCurrentUserProfile(linkedProfile);
-              } catch (error) {
-                console.error('Error linking profile:', error);
-                setCurrentUserProfile(null);
-              }
-            } else {
-              setCurrentUserProfile(null);
-            }
-          }
-        } catch (error) {
-          console.error('Error loading current user profile:', error);
-        }
-      }
-    };
+   loadCurrentUserProfile();
+ }, [userName, deviceId, gallery.id]);
 
-    loadCurrentUserProfile();
-  }, [userName, deviceId, gallery.id]);
+ // FIXED: Real-time gallery profile data synchronization
+ useEffect(() => {
+   if (!gallery.id) {
+     console.log('❌ No gallery ID available for profile listener');
+     return;
+   }
 
-  // FIXED: Real-time gallery profile data synchronization
-  useEffect(() => {
-    if (!gallery.id) {
-      console.log('❌ No gallery ID available for profile listener');
-      return;
-    }
+   // Reset loading state when gallery changes
+   setProfileDataLoaded(false);
+   setProfileListenerInitialized(false);
+   
+   // Immediately set fallback data based on current gallery
+   const immediateProfile = {
+     name: gallery.eventName,
+     bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+     countdownDate: null,
+     countdownEndMessage: 'Der große Tag ist da! 🎉',
+     countdownMessageDismissed: false,
+     createdAt: new Date().toISOString(),
+     updatedAt: new Date().toISOString()
+   };
+   console.log('📋 Setting immediate gallery profile:', immediateProfile);
+   setGalleryProfileData(immediateProfile);
+   // FIX: Set profileDataLoaded to true immediately to prevent skeleton
+   setProfileDataLoaded(true);
 
-    // Reset loading state when gallery changes
-    setProfileDataLoaded(false);
-    setProfileListenerInitialized(false);
-    
-    // Immediately set fallback data based on current gallery
-    const immediateProfile = {
-      name: gallery.eventName,
-      bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-      countdownDate: null,
-      countdownEndMessage: 'Der große Tag ist da! 🎉',
-      countdownMessageDismissed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    console.log('📋 Setting immediate gallery profile:', immediateProfile);
-    setGalleryProfileData(immediateProfile);
-    // FIX: Set profileDataLoaded to true immediately to prevent skeleton
-    setProfileDataLoaded(true);
+   console.log('🔄 Setting up real-time gallery profile listener for:', gallery.id);
+   console.log('🎪 Gallery event name:', gallery.eventName);
 
-    console.log('🔄 Setting up real-time gallery profile listener for:', gallery.id);
-    console.log('🎪 Gallery event name:', gallery.eventName);
+   const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
 
-    const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
+   const unsubscribe = onSnapshot(profileDocRef, (docSnapshot: any) => {
+     console.log('📡 Gallery profile snapshot received for:', gallery.id);
+     if (docSnapshot.exists()) {
+       const firebaseData = docSnapshot.data();
+       console.log('✅ Gallery profile updated via real-time listener:', firebaseData);
+       console.log('🔍 Current gallery name:', gallery.eventName);
+       console.log('🔍 Firebase profile name:', firebaseData.name);
 
-    const unsubscribe = onSnapshot(profileDocRef, (docSnapshot: any) => {
-      console.log('📡 Gallery profile snapshot received for:', gallery.id);
-      if (docSnapshot.exists()) {
-        const firebaseData = docSnapshot.data();
-        console.log('✅ Gallery profile updated via real-time listener:', firebaseData);
-        console.log('🔍 Current gallery name:', gallery.eventName);
-        console.log('🔍 Firebase profile name:', firebaseData.name);
+       // Always apply Firebase data if it exists - this contains customized gallery settings
+       console.log('🔄 Applying real-time Firebase profile data from Gallery Settings');
+       setGalleryProfileData(firebaseData);
+       setProfileDataLoaded(true);
+       setProfileListenerInitialized(true);
+     } else {
+       console.log('📝 No Firebase profile found, keeping default gallery profile');
+       // Keep the default profile we already set
+       setProfileDataLoaded(true);
+       setProfileListenerInitialized(true);
+     }
+   }, (error: any) => {
+     console.error('❌ Error in gallery profile listener:', error);
+     // Set default profile on error
+     setProfileDataLoaded(true);
+     setProfileListenerInitialized(true);
+   });
 
-        // Always apply Firebase data if it exists - this contains customized gallery settings
-        console.log('🔄 Applying real-time Firebase profile data from Gallery Settings');
-        setGalleryProfileData(firebaseData);
-        setProfileDataLoaded(true);
-        setProfileListenerInitialized(true);
-      } else {
-        console.log('📝 No Firebase profile found, keeping default gallery profile');
-        // Keep the default profile we already set
-        setProfileDataLoaded(true);
-        setProfileListenerInitialized(true);
-      }
-    }, (error: any) => {
-      console.error('❌ Error in gallery profile listener:', error);
-      // Set default profile on error
-      setProfileDataLoaded(true);
-      setProfileListenerInitialized(true);
-    });
+   return () => {
+     console.log('🧹 Cleaning up gallery profile listener for:', gallery.id);
+     unsubscribe();
+   };
+ }, [gallery.id, gallery.eventName]);
 
-    return () => {
-      console.log('🧹 Cleaning up gallery profile listener for:', gallery.id);
-      unsubscribe();
-    };
-  }, [gallery.id, gallery.eventName]);
+ // Subscribe to site status changes
+ useEffect(() => {
+   console.log('🔄 Setting up site status subscription for gallery:', gallery.id);
 
-  // Subscribe to site status changes
-  useEffect(() => {
-    console.log('🔄 Setting up site status subscription for gallery:', gallery.id);
+   const unsubscribe = subscribeSiteStatus((status) => {
+     console.log('📊 Site status updated:', status);
+     setSiteStatus(status);
+   });
 
-    const unsubscribe = subscribeSiteStatus((status) => {
-      console.log('📊 Site status updated:', status);
-      setSiteStatus(status);
-    });
+   return () => {
+     console.log('🧹 Cleaning up site status subscription');
+     unsubscribe();
+   };
+ }, [gallery.id]);
 
-    return () => {
-      console.log('🧹 Cleaning up site status subscription');
-      unsubscribe();
-    };
-  }, [gallery.id]);
+ // Check for admin credentials setup AFTER user completes visitor registration
+ useEffect(() => {
+   if (!userName || !deviceId) return; // Only check after user has registered completely
+   
+   const checkAdminCredentials = async () => {
+     try {
+       console.log('🔍 Checking admin credentials for gallery:', gallery.slug, 'ID:', gallery.id);
 
-  // Check for admin credentials setup AFTER user completes visitor registration
-  useEffect(() => {
-    if (!userName || !deviceId) return; // Only check after user has registered completely
-    
-    const checkAdminCredentials = async () => {
-      try {
-        console.log('🔍 Checking admin credentials for gallery:', gallery.slug, 'ID:', gallery.id);
+       // Check if this is a gallery owner (created by this device)
+       const isOwner = localStorage.getItem(`gallery_owner_${gallery.slug}`) === 'true';
+       console.log('👑 Is owner:', isOwner);
 
-        // Check if this is a gallery owner (created by this device)
-        const isOwner = localStorage.getItem(`gallery_owner_${gallery.slug}`) === 'true';
-        console.log('👑 Is owner:', isOwner);
+       if (isOwner) {
+         // Check if admin credentials are already set up (Firestore first, then localStorage)
+         let credentialsExist = false;
 
-        if (isOwner) {
-          // Check if admin credentials are already set up (Firestore first, then localStorage)
-          let credentialsExist = false;
+         try {
+           const adminCredsDoc = await getDoc(doc(db, 'galleries', gallery.id, 'admin', 'credentials'));
+           credentialsExist = adminCredsDoc.exists();
+           console.log('📄 Admin credentials doc exists in Firestore:', credentialsExist);
+         } catch (firestoreError) {
+           console.log('⚠️ Could not check Firestore, checking localStorage...');
+           // Check localStorage fallback
+           const localCreds = localStorage.getItem(`admin_credentials_${gallery.id}`);
+           credentialsExist = !!localCreds;
+           console.log('📱 Admin credentials exist in localStorage:', credentialsExist);
+         }
 
-          try {
-            const adminCredsDoc = await getDoc(doc(db, 'galleries', gallery.id, 'admin', 'credentials'));
-            credentialsExist = adminCredsDoc.exists();
-            console.log('📄 Admin credentials doc exists in Firestore:', credentialsExist);
-          } catch (firestoreError) {
-            console.log('⚠️ Could not check Firestore, checking localStorage...');
-            // Check localStorage fallback
-            const localCreds = localStorage.getItem(`admin_credentials_${gallery.id}`);
-            credentialsExist = !!localCreds;
-            console.log('📱 Admin credentials exist in localStorage:', credentialsExist);
-          }
+         if (!credentialsExist) {
+           // Gallery owner needs admin setup - show it immediately after visitor registration is complete
+           console.log('🔧 Gallery owner needs admin credentials setup');
+           setShowAdminCredentialsSetup(true);
+           // Ensure admin mode is off until credentials are set up
+           setIsAdmin(false);
+         } else {
+           // Credentials exist - check if already logged in
+           const savedAuth = localStorage.getItem(`admin_auth_${gallery.id}`);
+           console.log('🔐 Saved auth exists:', !!savedAuth);
 
-          if (!credentialsExist) {
-            // Gallery owner needs admin setup - show it immediately after visitor registration is complete
-            console.log('🔧 Gallery owner needs admin credentials setup');
-            setShowAdminCredentialsSetup(true);
-            // Ensure admin mode is off until credentials are set up
-            setIsAdmin(false);
-          } else {
-            // Credentials exist - check if already logged in
-            const savedAuth = localStorage.getItem(`admin_auth_${gallery.id}`);
-            console.log('🔐 Saved auth exists:', !!savedAuth);
+           if (savedAuth) {
+             const authData = JSON.parse(savedAuth);
+             // Check if auth is still valid (24 hours)
+             if (Date.now() - authData.timestamp < 24 * 60 * 60 * 1000) {
+               setIsAdmin(true);
+               console.log('🔐 Admin auto-login successful');
 
-            if (savedAuth) {
-              const authData = JSON.parse(savedAuth);
-              // Check if auth is still valid (24 hours)
-              if (Date.now() - authData.timestamp < 24 * 60 * 60 * 1000) {
-                setIsAdmin(true);
-                console.log('🔐 Admin auto-login successful');
+               // Check if admin tutorial should be shown (first time admin access)
+               const adminTutorialKey = `admin_tutorial_shown_${gallery.id}`;
+               const adminTutorialShown = localStorage.getItem(adminTutorialKey);
+               if (!adminTutorialShown) {
+                 setShowAdminTutorial(true);
+               }
+             } else {
+               // Auth expired, remove it
+               localStorage.removeItem(`admin_auth_${gallery.id}`);
+               setIsAdmin(false);
+               console.log('⏰ Admin auth expired');
+             }
+           } else {
+             // No saved auth, ensure admin mode is off
+             setIsAdmin(false);
+             console.log('🚫 No saved admin auth');
+           }
+         }
+       } else {
+         // Not the owner, ensure admin mode is off
+         setIsAdmin(false);
+         console.log('👤 Not gallery owner');
+       }
+     } catch (error) {
+       console.error('Error checking admin credentials:', error);
+       setIsAdmin(false);
+     }
+   };
 
-                // Check if admin tutorial should be shown (first time admin access)
-                const adminTutorialKey = `admin_tutorial_shown_${gallery.id}`;
-                const adminTutorialShown = localStorage.getItem(adminTutorialKey);
-                if (!adminTutorialShown) {
-                  setShowAdminTutorial(true);
-                }
-              } else {
-                // Auth expired, remove it
-                localStorage.removeItem(`admin_auth_${gallery.id}`);
-                setIsAdmin(false);
-                console.log('⏰ Admin auth expired');
-              }
-            } else {
-              // No saved auth, ensure admin mode is off
-              setIsAdmin(false);
-              console.log('🚫 No saved admin auth');
-            }
-          }
-        } else {
-          // Not the owner, ensure admin mode is off
-          setIsAdmin(false);
-          console.log('👤 Not gallery owner');
-        }
-      } catch (error) {
-        console.error('Error checking admin credentials:', error);
-        setIsAdmin(false);
-      }
-    };
+   // Add a small delay to ensure visitor registration is fully complete
+   const timeoutId = setTimeout(checkAdminCredentials, 1000);
+   return () => clearTimeout(timeoutId);
+ }, [gallery.id, gallery.slug, userName, deviceId]); // Depends on both userName and deviceId
 
-    // Add a small delay to ensure visitor registration is fully complete
-    const timeoutId = setTimeout(checkAdminCredentials, 1000);
-    return () => clearTimeout(timeoutId);
-  }, [gallery.id, gallery.slug, userName, deviceId]); // Depends on both userName and deviceId
+ // Clean up gallery creation flag after visitor registration is complete
+ useEffect(() => {
+   if (userName) {
+     // User has completed visitor registration, clean up creation flag
+     const galleryCreatedFlag = localStorage.getItem(`gallery_just_created_${gallery.slug}`);
+     if (galleryCreatedFlag === 'true') {
+       console.log('🧹 Cleaning up gallery creation flag after visitor registration');
+       localStorage.removeItem(`gallery_just_created_${gallery.slug}`);
+     }
+   }
+ }, [userName, gallery.slug]);
 
-  // Clean up gallery creation flag after visitor registration is complete
-  useEffect(() => {
-    if (userName) {
-      // User has completed visitor registration, clean up creation flag
-      const galleryCreatedFlag = localStorage.getItem(`gallery_just_created_${gallery.slug}`);
-      if (galleryCreatedFlag === 'true') {
-        console.log('🧹 Cleaning up gallery creation flag after visitor registration');
-        localStorage.removeItem(`gallery_just_created_${gallery.slug}`);
-      }
-    }
-  }, [userName, gallery.slug]);
+ // Sync all user profiles
+ useEffect(() => {
+   const syncAllUserProfiles = async () => {
+     try {
+       const allProfiles = await getAllGalleryUserProfiles(gallery.id);
+       setUserProfiles(allProfiles);
+     } catch (error) {
+       console.error('Error syncing user profiles:', error);
+     }
+   };
 
-  // Sync all user profiles
-  useEffect(() => {
-    const syncAllUserProfiles = async () => {
-      try {
-        const allProfiles = await getAllGalleryUserProfiles(gallery.id);
-        setUserProfiles(allProfiles);
-      } catch (error) {
-        console.error('Error syncing user profiles:', error);
-      }
-    };
+   syncAllUserProfiles();
 
-    syncAllUserProfiles();
+   const handleUserConnected = async (event: CustomEvent) => {
+     const { userName, deviceId, profilePicture } = event.detail;
 
-    const handleUserConnected = async (event: CustomEvent) => {
-      const { userName, deviceId, profilePicture } = event.detail;
+     try {
+       console.log('👋 New visitor registering:', userName, deviceId);
 
-      try {
-        console.log('👋 New visitor registering:', userName, deviceId);
+       // Always create/update user profile (even without profile picture)
+       let newProfile;
+       
+       if (profilePicture && profilePicture instanceof File) {
+         console.log('🖼️ Processing profile picture for new user:', userName);
+         const profilePictureUrl = await uploadGalleryUserProfilePicture(profilePicture, userName, deviceId, gallery.id);
 
-        // Always create/update user profile (even without profile picture)
-        let newProfile;
-        
-        if (profilePicture && profilePicture instanceof File) {
-          console.log('
+         newProfile = await createOrUpdateGalleryUserProfile(userName, deviceId, {
+           displayName: userName,
+           profilePicture: profilePictureUrl
+         }, gallery.id);
+       } else {
+         // Create profile without picture
+         newProfile = await createOrUpdateGalleryUserProfile(userName, deviceId, {
+           displayName: userName
+         }, gallery.id);
+       }
+
+       console.log('✅ User profile created/updated:', newProfile);
+
+       // Register user in live_users collection for proper user tracking
+       try {
+         const userDocRef = doc(db, 'galleries', gallery.id, 'live_users', deviceId);
+         await setDoc(userDocRef, {
+           userName: userName,
+           deviceId: deviceId,
+           lastSeen: new Date().toISOString(),
+           isActive: true,
+           connectedAt: new Date().toISOString()
+         });
+         console.log('✅ User registered in live_users collection');
+       } catch (error) {
+         console.error('❌ Error registering user in live_users:', error);
+       }
+
+       // Immediately update current user profile if this is the current user
+       const currentStoredName = getUserName();
+       const currentStoredDeviceId = getDeviceId();
+       if (userName === currentStoredName && deviceId === currentStoredDeviceId) {
+         console.log('✅ Updating current user profile immediately');
+         setCurrentUserProfile(newProfile);
+       }
+
+       // Immediately update user profiles list
+       setUserProfiles(prev => {
+         const index = prev.findIndex(p => p.userName === userName && p.deviceId === deviceId);
+         if (index >= 0) {
+           const updated = [...prev];
+           updated[index] = newProfile;
+           return updated;
+         } else {
+           return [...prev, newProfile];
+         }
+       });
+
+       // Trigger a custom event to notify all components of profile update
+       window.dispatchEvent(new CustomEvent('profilePictureUpdated', { 
+         detail: { userName, deviceId, profile: newProfile } 
+       }));
+
+       console.log('✅ New visitor fully registered as user without page reload');
+     } catch (error) {
+       console.error('❌ Error registering new visitor:', error);
+     }
+
+     // Refresh gallery users for tagging
+     setTimeout(async () => {
+       try {
+         const users = await getGalleryUsers(gallery.id);
+         setGalleryUsers(users);
+         syncAllUserProfiles();
+       } catch (error) {
+         console.error('Error refreshing gallery users:', error);
+       }
+     }, 1000);
+   };
+
+   window.addEventListener('userConnected', handleUserConnected as any);
+
+   return () => {
+     window.removeEventListener('userConnected', handleUserConnected as any);
+   };
+ }, [gallery.id]);
+
+ const getUserAvatar = (targetUserName: string, targetDeviceId?: string) => {
+   const userProfile = userProfiles.find(p => 
+     p.userName === targetUserName && (!targetDeviceId || p.deviceId === targetDeviceId)
+   );
+   return userProfile?.profilePicture || null;
+ };
+
+ const getUserDisplayName = (targetUserName: string, targetDeviceId?: string) => {
+   const userProfile = userProfiles.find(p => 
+     p.userName === targetUserName && (!targetDeviceId || p.deviceId === targetDeviceId)
+   );
+   return (userProfile?.displayName && userProfile.displayName !== targetUserName) 
+     ? userProfile.displayName 
+     : targetUserName;
+ };
+
+ // Show Spotify callback handler if on callback page
+ if (isSpotifyCallback()) {
+   return <SpotifyCallback isDarkMode={isDarkMode} />;
+ }
+
+ // Force gallery creators through visitor registration process
+ const isGalleryOwner = localStorage.getItem(`gallery_owner_${gallery.slug}`) === 'true';
+ const galleryCreatedFlag = localStorage.getItem(`gallery_just_created_${gallery.slug}`);
+ const needsVisitorRegistration = isGalleryOwner && galleryCreatedFlag === 'true';
+ 
+ // Show UserNamePrompt for new users or gallery creators who need to register as visitors
+ // Admin setup should NEVER show during visitor registration
+ if ((showNamePrompt || needsVisitorRegistration) && !showAdminCredentialsSetup) {
+   return <UserNamePrompt 
+     onSubmit={async (name: string, profilePicture?: File) => {
+       console.log('👋 Starting user registration for gallery:', gallery.id);
+       
+       // Set user name first (this triggers the useUser hook)
+       setUserName(name, profilePicture);
+       
+       // FIXED: Ensure gallery profile data is available immediately
+       if (!galleryProfileData) {
+         console.log('🔧 Initializing gallery profile data during user registration');
+         const initialProfile = {
+           name: gallery.eventName,
+           bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+           countdownDate: null,
+           countdownEndMessage: 'Der große Tag ist da! 🎉',
+           countdownMessageDismissed: false,
+           createdAt: new Date().toISOString(),
+           updatedAt: new Date().toISOString()
+         };
+         setGalleryProfileData(initialProfile);
+         setProfileDataLoaded(true);
+       }
+       
+       // Immediately register user in gallery-scoped collections
+       try {
+         const currentDeviceId = getDeviceId();
+         console.log('📝 Registering user in gallery collections:', { name, deviceId: currentDeviceId, galleryId: gallery.id });
+         
+         // Create user profile in gallery-specific collection
+         let newProfile;
+         if (profilePicture && profilePicture instanceof File) {
+           console.log('🖼️ Uploading profile picture for new user');
+           const profilePictureUrl = await uploadGalleryUserProfilePicture(profilePicture, name, currentDeviceId, gallery.id);
+           newProfile = await createOrUpdateGalleryUserProfile(name, currentDeviceId, {
+             displayName: name,
+             profilePicture: profilePictureUrl
+           }, gallery.id);
+         } else {
+           newProfile = await createOrUpdateGalleryUserProfile(name, currentDeviceId, {
+             displayName: name
+           }, gallery.id);
+         }
+         
+         // Register in live_users collection for gallery
+         const userDocRef = doc(db, 'galleries', gallery.id, 'live_users', currentDeviceId);
+         await setDoc(userDocRef, {
+           userName: name,
+           deviceId: currentDeviceId,
+           lastSeen: new Date().toISOString(),
+           isActive: true,
+           connectedAt: new Date().toISOString()
+         });
+         
+         console.log('✅ User successfully registered in gallery:', gallery.id);
+         
+         // Trigger user profiles refresh
+         setCurrentUserProfile(newProfile);
+         setUserProfiles(prev => {
+           const index = prev.findIndex(p => p.userName === name && p.deviceId === currentDeviceId);
+           if (index >= 0) {
+             const updated = [...prev];
+             updated[index] = newProfile;
+             return updated;
+           } else {
+             return [...prev, newProfile];
+           }
+         });
+         
+         // Refresh gallery users for tagging
+         try {
+           const users = await getGalleryUsers(gallery.id);
+           setGalleryUsers(users);
+         } catch (error) {
+           console.error('Error refreshing gallery users:', error);
+         }
+         
+       } catch (error) {
+         console.error('❌ Error during user registration:', error);
+       }
+     }} 
+     isDarkMode={isDarkMode} 
+     galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
+   />;
+ }
+
+ // Loading Screen - Show while initial data is loading
+ if (isInitialLoading && !galleryDataLoaded) {
+   return (
+     <div className={`min-h-screen flex items-center justify-center transition-all duration-500 ${
+       isDarkMode 
+         ? 'bg-gray-900' 
+         : gallery.theme === 'hochzeit'
+         ? 'bg-gradient-to-br from-gray-50 via-pink-50/30 to-rose-50/20'
+         : gallery.theme === 'geburtstag'
+         ? 'bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50/20'
+         : gallery.theme === 'urlaub'
+         ? 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/20'
+         : 'bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20'
+     }`}>
+       <div className="text-center space-y-6 px-4">
+         <EventLoadingSpinner 
+           theme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'} 
+           isDarkMode={isDarkMode} 
+           size="large"
+           text="Galerie wird geladen..."
+         />
+         
+         <div className="space-y-2">
+           <h1 className={`text-2xl font-bold ${
+             isDarkMode ? 'text-white' : 'text-gray-900'
+           }`}>
+             {gallery.eventName}
+           </h1>
+           <p className={`text-sm ${
+             isDarkMode ? 'text-gray-400' : 'text-gray-600'
+           }`}>
+             Deine Momente werden vorbereitet...
+           </p>
+         </div>
+       </div>
+     </div>
+   );
+ }
+
+ return (
+   <div className={`min-h-screen relative transition-all duration-500 ${
+     isDarkMode 
+       ? 'bg-gray-900' 
+       : gallery.theme === 'hochzeit'
+       ? 'bg-gradient-to-br from-gray-50 via-pink-50/30 to-rose-50/20'
+       : gallery.theme === 'geburtstag'
+       ? 'bg-gradient-to-br from-gray-50 via-purple-50/30 to-violet-50/20'
+       : gallery.theme === 'urlaub'
+       ? 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/20'
+       : 'bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20'
+   }`}>
+
+     {/* Gallery Header */}
+     <div className={`sticky top-0 z-50 transition-all duration-300 ${
+       isDarkMode 
+         ? 'bg-gray-900/70 border-gray-700/30 backdrop-blur-xl shadow-xl shadow-purple-500/5' 
+         : gallery.theme === 'hochzeit'
+         ? 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-pink-500/5'
+         : gallery.theme === 'geburtstag'
+         ? 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-purple-500/5'
+         : gallery.theme === 'urlaub'
+         ? 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-blue-500/5'
+         : 'bg-white/70 border-gray-200/30 backdrop-blur-xl shadow-xl shadow-green-500/5'
+     } border-b`}>
+       <div className="max-w-md mx-auto px-4 sm:px-6 py-3 sm:py-4">
+         <div className="flex items-center justify-between">
+           <div className="flex items-center gap-2 sm:gap-3">
+             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center relative bg-transparent">
+               {/* Theme-specific Icon */}
+               <div className="relative w-full h-full flex items-center justify-center">
+                 <span className="text-xl sm:text-2xl animate-pulse" style={{
+                   animation: 'bounce 2s ease-in-out infinite'
+                 }}>
+                   {themeConfig.icon}
+                 </span>
+
+                 {/* Sparkle effect for all themes */}
+                 <div className={`absolute w-1 h-1 rounded-full transition-all duration-500 ${
+                   isDarkMode ? `bg-${themeStyles.secondaryColor || 'pink-200'}` : `bg-${themeStyles.accentColor || 'pink-300'}`
+                 }`} style={{
+                   animation: 'sparkle 2s ease-in-out infinite',
+                   top: '20%',
+                   right: '20%'
+                 }}></div>
+               </div>
+             </div>
+             <h1 className={`text-base sm:text-lg font-bold tracking-tight transition-colors duration-300 ${
+               isDarkMode ? 'text-white' : 'text-gray-900'
+             }`}>
+               {gallery.eventName}
+             </h1>
+           </div>
+           <div className="flex items-center gap-1 sm:gap-2">
+             {/* Notification Center */}
+             {userName && (
+               <NotificationCenter
+                 userName={userName}
+                 deviceId={deviceId}
+                 isDarkMode={isDarkMode}
+                 onNavigateToMedia={handleNavigateToMedia}
+                 galleryId={gallery.id}
+               />
+             )}
+
+             {/* Profile Button */}
+             <button
+               onClick={() => setShowUserProfileModal(true)}
+               className={`flex items-center gap-2 px-3 py-2 rounded-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm shadow-lg min-w-0 h-[40px] ${
+                 isDarkMode 
+                   ? 'bg-white/10 hover:bg-white/15 text-white border border-white/20 shadow-black/20' 
+                   : 'bg-white/20 hover:bg-white/30 text-gray-800 border border-white/30 shadow-gray-500/20'
+               }`}
+               title="Mein Profil bearbeiten"
+             >
+               {currentUserProfile?.profilePicture ? (
+                 <img 
+                   src={currentUserProfile?.profilePicture || ''} 
+                   alt="My Profile"
+                   className="w-6 h-6 rounded-full object-cover ring-2 ring-white/30 shadow-sm flex-shrink-0"
+                 />
+               ) : (
+                 <UserPlus className={`w-4 h-4 transition-colors duration-300 flex-shrink-0 ${
+                   isDarkMode ? 'text-white/80' : 'text-gray-700'
+                 }`} />
+               )}
+               <span className="text-sm font-medium truncate hidden sm:block max-w-16">Profil</span>
+             </button>
+
+             {/* Live User Indicator */}
+             <LiveUserIndicator 
+               currentUser={userName || ''}
+               isDarkMode={isDarkMode}
+               galleryId={gallery.id}
+             />
+
+             <button
+               onClick={onToggleDarkMode}
+               className={`p-2 sm:p-2.5 rounded-full transition-all duration-300 touch-manipulation ${
+                 isDarkMode 
+                   ? 'text-yellow-400 hover:bg-gray-800/50 hover:scale-110' 
+                   : 'text-gray-600 hover:bg-gray-100/50 hover:scale-110'
+               }`}
+             >
+               {isDarkMode ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
+             </button>
+           </div>
+         </div>
+       </div>
+     </div>
+
+     <div className="max-w-md mx-auto px-2 sm:px-0">
+       {/* Profile Header */}
+       <ProfileHeader
+         isDarkMode={isDarkMode}
+         isAdmin={isAdmin}
+         userName={userName || undefined}
+         mediaItems={mediaItems}
+         onToggleAdmin={setIsAdmin}
+         currentUserProfile={currentUserProfile}
+         onOpenUserProfile={() => setShowUserProfileModal(true)}
+         showTopBarControls={false}
+         galleryProfileData={galleryProfileData}
+         onEditGalleryProfile={() => setShowProfileEditModal(true)}
+         gallery={gallery}
+       />
+
+       {/* Tab Navigation - always visible */}
+       <TabNavigation 
+         activeTab={activeTab}
+         onTabChange={handleTabChange}
+         isDarkMode={isDarkMode}
+         galleryEnabled={siteStatus?.galleryEnabled ?? true}
+         musicWishlistEnabled={siteStatus?.musicWishlistEnabled ?? true}
+         themeTexts={themeTexts}
+         themeIcon={themeConfig.icon}
+         themeStyles={themeStyles}
+         galleryEventName={gallery.eventName}
+       />
+
+       {/* Tab Content */}
+       {activeTab === 'gallery' ? (
+         <>
+           {/* Consolidated Navigation Bar */}
+           <ConsolidatedNavigationBar
+             onUpload={handleUpload}
+             onVideoUpload={handleVideoUpload}
+             onNoteSubmit={handleNoteSubmit}
+             onAddStory={() => setShowStoryUpload(true)}
+             isUploading={isUploading}
+             progress={uploadProgress}
+             stories={stories}
+             currentUser={userName || ''}
+             deviceId={deviceId || ''}
+             onViewStory={handleViewStory}
+             viewMode={viewMode}
+             onViewModeChange={setViewMode}
+             isDarkMode={isDarkMode}
+             storiesEnabled={siteStatus?.storiesEnabled ?? false}
+             galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
+             themeTexts={themeTexts}
+             themeStyles={themeStyles}
+           />
+
+           {status && (
+             <div className="px-4 py-2">
+               <p className={`text-sm text-center transition-colors duration-300 ${
+                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
+               }`} dangerouslySetInnerHTML={{ __html: status }} />
+             </div>
+           )}
+
+           <InstagramGallery
+             items={mediaItems}
+             onItemClick={openModal}
+             onDelete={handleDelete}
+             onEditNote={handleEditNote}
+             onEditTextTag={handleEditTextTag}
+             isAdmin={isAdmin}
+             comments={comments}
+             likes={likes}
+             onAddComment={handleAddComment}
+             onDeleteComment={handleDeleteComment}
+             onToggleLike={handleToggleLike}
+             userName={userName || ''}
+             isDarkMode={isDarkMode}
+             getUserAvatar={getUserAvatar}
+             getUserDisplayName={getUserDisplayName}
+             deviceId={deviceId || ''}
+             galleryTheme={gallery.theme}
+             galleryId={gallery.id}
+             viewMode={viewMode}
+           />
+         </>
+       ) : activeTab === 'timeline' ? (
+         <Timeline 
+           isDarkMode={isDarkMode}
+           userName={userName || ''}
+           isAdmin={isAdmin}
+           galleryId={gallery.id}
+           galleryTheme={gallery.theme}
+         />
+       ) : activeTab === 'music' && gallery.settings.spotifyIntegration ? (
+         <MusicWishlist 
+           isDarkMode={isDarkMode} 
+           isAdmin={isAdmin}
+           galleryId={gallery.id}
+         />
+       ) : (
+         <div className={`p-8 text-center transition-colors duration-300 ${
+           isDarkMode ? 'text-gray-400' : 'text-gray-600'
+         }`}>
+           <p>Diese Funktion ist derzeit deaktiviert.</p>
+         </div>
+       )}
+     </div>
+
+     {/* All the modals and components */}
+     <MediaModal
+       isOpen={modalOpen}
+       items={mediaItems}
+       currentIndex={currentImageIndex}
+       onClose={() => setModalOpen(false)}
+       onNext={nextImage}
+       onPrev={prevImage}
+       comments={comments}
+       likes={likes}
+       onAddComment={handleAddComment}
+       onDeleteComment={handleDeleteComment}
+       onToggleLike={handleToggleLike}
+       userName={userName || ''}
+       isAdmin={isAdmin}
+       isDarkMode={isDarkMode}
+       getUserAvatar={getUserAvatar}
+       getUserDisplayName={getUserDisplayName}
+       deviceId={deviceId || ''}
+       galleryId={gallery.id}
+       onUpdateTextTags={handleUpdateTextTags}
+     />
+
+     <StoriesViewer
+       isOpen={showStoriesViewer}
+       stories={stories}
+       initialStoryIndex={currentStoryIndex}
+       currentUser={userName || ''}
+       onClose={() => setShowStoriesViewer(false)}
+       onStoryViewed={handleStoryViewed}
+       onDeleteStory={handleDeleteStory}
+       isAdmin={isAdmin}
+       isDarkMode={isDarkMode}
+     />
+
+     <StoryUploadModal
+       isOpen={showStoryUpload}
+       onClose={() => setShowStoryUpload(false)}
+       onUpload={handleStoryUpload}
+       isDarkMode={isDarkMode}
+     />
+
+     <AdminLoginModal
+       isOpen={showAdminLogin}
+       onClose={() => setShowAdminLogin(false)}
+       onLogin={handleAdminLogin}
+       isDarkMode={isDarkMode}
+       galleryId={gallery.id}
+     />
+
+     <AdminCredentialsSetup
+       isOpen={showAdminCredentialsSetup}
+       onClose={() => setShowAdminCredentialsSetup(false)}
+       onSetup={handleAdminCredentialsSetup}
+       isDarkMode={isDarkMode}
+       galleryName={gallery.eventName}
+     />
+
+     {userName && deviceId && (
+       <UserProfileModal
+         isOpen={showUserProfileModal}
+         onClose={() => setShowUserProfileModal(false)}
+         userName={userName}
+         deviceId={deviceId}
+         isDarkMode={isDarkMode}
+         onProfileUpdated={handleProfileUpdated}
+         isAdmin={isAdmin}
+         currentUserName={userName}
+         currentDeviceId={deviceId}
+         galleryId={gallery.id}
+       />
+     )}
+
+     {/* Admin Panel Burger Menu - Only visible for admins */}
+     <AdminPanelBurger
+       isDarkMode={isDarkMode}
+       isAdmin={isAdmin}
+       onToggleAdmin={(newIsAdmin: boolean) => {
+         if (newIsAdmin) {
+           setShowAdminLogin(true);
+         } else {
+           handleAdminLogout();
+         }
+       }}
+       mediaItems={mediaItems}
+       siteStatus={siteStatus || undefined}
+       getUserAvatar={getUserAvatar}
+       getUserDisplayName={getUserDisplayName}
+       gallery={gallery}
+     />
+
+     {isAdmin && (
+       <ProfileEditModal
+         isOpen={showProfileEditModal}
+         onClose={() => setShowProfileEditModal(false)}
+         currentProfileData={{
+           profilePicture: galleryProfileData?.profilePicture,
+           name: galleryProfileData?.name || gallery.eventName,
+           bio: galleryProfileData?.bio || `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+           countdownDate: galleryProfileData?.countdownDate || gallery.eventDate,
+           countdownEndMessage: galleryProfileData?.countdownEndMessage || 'Der große Tag ist da! 🎉',
+           countdownMessageDismissed: galleryProfileData?.countdownMessageDismissed || false
+         }}
+         onSave={async (profileData) => {
+           try {
+             console.log('🔄 Saving gallery profile...', profileData);
+             let profilePictureUrl = galleryProfileData?.profilePicture;
+
+             // Handle profile picture update
+             if (profileData.profilePicture instanceof File) {
+               console.log('📸 Processing gallery profile picture...');
+
+               // Since ProfileEditModal already compresses the image, the File should already be compressed
+               // But let's ensure it's under Firebase limits by converting to base64
+               const reader = new FileReader();
+               profilePictureUrl = await new Promise((resolve, reject) => {
+                 reader.onload = () => {
+                   const result = reader.result as string;
+                   // Check if the base64 is under Firebase limit (900KB)
+                   if (result.length > 900000) {
+                     console.warn('⚠️ Profile picture still too large after compression:', Math.round(result.length / 1024), 'KB');
+                     reject(new Error('Profilbild ist zu groß für Firebase. Bitte wählen Sie ein kleineres Bild.'));
+                   } else {
+                     console.log('✅ Gallery profile picture processed successfully:', Math.round(result.length / 1024), 'KB');
+                     resolve(result);
+                   }
+                 };
+                 reader.onerror = reject;
+                 reader.readAsDataURL(profileData.profilePicture as File);
+               });
+             } else if (typeof profileData.profilePicture === 'string') {
+               profilePictureUrl = profileData.profilePicture;
+             }
+
+             const updatedGalleryProfile: any = {
+               name: profileData.name,
+               bio: profileData.bio,
+               countdownEndMessage: profileData.countdownEndMessage,
+               countdownMessageDismissed: profileData.countdownMessageDismissed,
+               updatedAt: new Date().toISOString()
+             };
+
+             // Only include profilePicture if it has a value (not undefined)
+             if (profilePictureUrl) {
+               updatedGalleryProfile.profilePicture = profilePictureUrl;
+             }
+
+             // Handle countdownDate explicitly - include it if it has a value, otherwise explicitly set to null to remove it
+             if (profileData.countdownDate && profileData.countdownDate.trim() !== '') {
+               updatedGalleryProfile.countdownDate = profileData.countdownDate;
+             } else {
+               updatedGalleryProfile.countdownDate = null; // Explicitly remove countdown
+             }
+
+             console.log('📝 Profile data to save:', updatedGalleryProfile);
+             console.log('🎯 Gallery ID:', gallery.id);
+
+             // Save to gallery profile collection using setDoc
+             const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
+             console.log('📍 Document path:', `galleries/${gallery.id}/profile/main`);
+
+             await setDoc(profileDocRef, updatedGalleryProfile, { merge: true });
+
+             setGalleryProfileData(updatedGalleryProfile);
+             setShowProfileEditModal(false);
+             console.log('✅ Gallery profile updated successfully');
+           } catch (error: any) {
+             console.error('❌ Error updating gallery profile:', error);
+             console.error('❌ Error message:', error.message);
+             console.error('❌ Error code:', error.code);
+             alert(`Fehler beim Aktualisieren des Galerie-Profils: ${error.message}`);
+           }
+         }}
+         isDarkMode={isDarkMode}
+       />
+     )}
+
+     <BackToTopButton isDarkMode={isDarkMode} galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'} />
+
+     {/* Admin Login Toggle - Bottom Left */}
+     {userName && (
+       <button
+         onClick={() => {
+           if (isAdmin) {
+             handleAdminLogout();
+           } else {
+             setShowAdminLogin(true);
+           }
+         }}
+         className={`fixed bottom-20 left-4 w-12 h-12 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ring-2 z-40 ${
+           isDarkMode 
+             ? 'bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
+             : 'bg-white/90 hover:bg-gray-50/90 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
+         }`}
+         title={isAdmin ? "Admin-Modus verlassen" : "Admin-Modus"}
+       >
+         {isAdmin ? (
+           <Unlock className={`w-5 h-5 transition-colors duration-300 ${
+             isDarkMode ? 'text-gray-300' : 'text-gray-600'
+           }`} />
+         ) : (
+           <Lock className={`w-5 h-5 transition-colors duration-300 ${
+             isDarkMode ? 'text-gray-300' : 'text-gray-600'
+           }`} />
+         )}
+       </button>
+     )}
+
+     {/* Galerie Einstellungen Button - Top Right */}
+     {isAdmin && (
+       <button
+         onClick={() => setShowProfileEditModal(true)}
+         className={`fixed top-4 right-4 w-12 h-12 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ring-2 z-40 ${
+           isDarkMode 
+             ? 'bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
+             : 'bg-white/90 hover:bg-gray-50/90 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
+         }`}
+         title="Galerie-Einstellungen"
+       >
+         <Settings className={`w-5 h-5 transition-colors duration-300 ${
+           isDarkMode ? 'text-gray-300' : 'text-gray-600'
+         }`} />
+       </button>
+     )}
+
+     {/* Gallery Tutorial */}
+     <GalleryTutorial
+       isOpen={showTutorial}
+       onClose={handleCloseTutorial}
+       isDarkMode={isDarkMode}
+       galleryTheme={gallery.theme || 'hochzeit'}
+     />
+
+     {/* Admin Tutorial */}
+     <AdminTutorial
+       isOpen={showAdminTutorial}
+       onClose={handleCloseAdminTutorial}
+       isDarkMode={isDarkMode}
+       galleryTheme={gallery.theme || 'hochzeit'}
+     />
+
+     {/* Simple Tagging Modal */}
+     {showTaggingModal && pendingUploadUrl && (
+       <SimpleTaggingModal
+         isOpen={showTaggingModal}
+         onClose={handleTaggingCancel}
+         onConfirm={handleTaggingConfirm}
+         mediaUrl={pendingUploadUrl}
+         mediaType={pendingUploadFiles?.[0]?.type.startsWith('video') ? 'video' : 'image'}
+         isDarkMode={isDarkMode}
+         galleryUsers={galleryUsers}
+       />
+     )}
+   </div>
+ );
+};
+
+   
