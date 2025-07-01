@@ -62,8 +62,9 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
 }) => {
   // Return null immediately if modal is closed to prevent unnecessary calculations
   if (!isOpen) return null;
+  
   const [tags, setTags] = useState<MediaTag[]>([]);
-  const [isTaggingMode, setIsTaggingMode] = useState(false);
+  const [isTaggingMode, setIsTaggingMode] = useState(true); // Start in tagging mode by default
   const [showQuickUsers, setShowQuickUsers] = useState(false);
   const [showAllUsers, setShowAllUsers] = useState(false);
   const [showLocationInput, setShowLocationInput] = useState(false);
@@ -77,8 +78,12 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
   const mediaRef = useRef<HTMLDivElement>(null);
 
   // Memoize users to prevent unnecessary recalculations
-  const quickUsers = React.useMemo(() => galleryUsers.slice(0, 8), [galleryUsers]);
-  const allUsers = React.useMemo(() => galleryUsers, [galleryUsers]);
+  const quickUsers = React.useMemo(() => {
+    if (!galleryUsers || galleryUsers.length === 0) return [];
+    return galleryUsers.slice(0, 8);
+  }, [galleryUsers]);
+  
+  const allUsers = React.useMemo(() => galleryUsers || [], [galleryUsers]);
 
   // Enhanced location search function
   const searchLocationSuggestions = async (query: string) => {
@@ -105,8 +110,10 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
     }
   };
 
-  // Location search with debounce
+  // Location search with debounce - only when modal is open and location input is shown
   useEffect(() => {
+    if (!isOpen || !showLocationInput) return;
+    
     if (customLocationName && customLocationName.length > 2) {
       const debounceTimer = setTimeout(async () => {
         await searchLocationSuggestions(customLocationName);
@@ -116,7 +123,7 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
     } else {
       setLocationSuggestions([]);
     }
-  }, [customLocationName]);
+  }, [customLocationName, isOpen, showLocationInput]);
 
   const handleMediaClick = useCallback((event: React.MouseEvent | React.TouchEvent) => {
     if (!isTaggingMode) return;
@@ -573,11 +580,18 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
               <div
                 key={tag.id}
                 className="absolute"
-                style={{
-                  left: `${tag.position.x}%`,
-                  top: `${tag.position.y}%`,
-                  transform: 'translate(-50%, -50%)'
-                }}
+                style={tag.type === 'location' 
+                  ? {
+                      right: '8px',
+                      bottom: '8px',
+                      transform: 'none'
+                    }
+                  : {
+                      left: `${tag.position.x}%`,
+                      top: `${tag.position.y}%`,
+                      transform: 'translate(-50%, -50%)'
+                    }
+                }
               >
                 <div className="relative group">
                   {/* Tag Dot or Text */}
@@ -604,7 +618,11 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
                       </div>
 
                       {/* Tag Label - Enhanced Instagram Style */}
-                      <div className={`absolute ${tag.position.y > 80 ? 'bottom-8' : 'top-8'} left-1/2 transform -translate-x-1/2 bg-black/90 text-white px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap backdrop-blur-sm shadow-lg`}>
+                      <div className={`absolute ${
+                        tag.type === 'location' 
+                          ? 'bottom-8 right-0' 
+                          : tag.position.y > 80 ? 'bottom-8' : 'top-8'
+                      } ${tag.type !== 'location' ? 'left-1/2 transform -translate-x-1/2' : ''} bg-black/90 text-white px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap backdrop-blur-sm shadow-lg`}>
                         {tag.type === 'person' 
                           ? (tag.displayName || tag.userName)
                           : tag.locationName
@@ -688,7 +706,13 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
                 <div className="flex flex-col gap-3">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setShowLocationInput(true)}
+                      onClick={() => {
+                        // Set default position if not already set
+                        if (!pendingPosition) {
+                          setPendingPosition({ x: 50, y: 50 });
+                        }
+                        setShowLocationInput(true);
+                      }}
                       className="flex-1 flex items-center justify-center gap-2 p-3 rounded-2xl bg-green-600 hover:bg-green-700 active:bg-green-800 transition-colors text-white font-bold text-sm min-h-[48px] touch-manipulation"
                     >
                       <MapPin className="w-4 h-4" />
@@ -832,7 +856,10 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
           {showTextInput && pendingTextPosition && (
             <div className="fixed inset-0 z-[2147483649] bg-black/80 flex items-center justify-center">
               <div className="bg-gray-900/98 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl w-full max-w-sm mx-4 p-6">
-                <h3 className="text-white text-lg font-bold mb-4 text-center">Text hinzufügen</h3>
+                <div className="text-center mb-4">
+                  <h3 className="text-white text-lg font-bold mb-1">Text hinzufügen</h3>
+                  <p className="text-white/60 text-sm">Dieser Text wird unter dem Beitrag erscheinen</p>
+                </div>
                 <input
                   type="text"
                   placeholder="Text eingeben..."

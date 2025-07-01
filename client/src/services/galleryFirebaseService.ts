@@ -385,6 +385,42 @@ export const editGalleryNote = async (
   });
 };
 
+// Gallery-specific text tag editing
+export const editTextTag = async (
+  mediaId: string, 
+  tagId: string,
+  newText: string,
+  galleryId: string
+): Promise<void> => {
+  const mediaCollection = `galleries/${galleryId}/media`;
+  const mediaRef = doc(db, mediaCollection, mediaId);
+  
+  // Get current media document
+  const mediaDoc = await getDoc(mediaRef);
+  if (!mediaDoc.exists()) {
+    throw new Error('Media item not found');
+  }
+  
+  const mediaData = mediaDoc.data();
+  const tags = mediaData.tags || [];
+  
+  // Find and update the specific text tag
+  const updatedTags = tags.map((tag: any) => {
+    if (tag.id === tagId && tag.type === 'text') {
+      return {
+        ...tag,
+        text: newText
+      };
+    }
+    return tag;
+  });
+  
+  // Update the media document with modified tags
+  await updateDoc(mediaRef, {
+    tags: updatedTags
+  });
+};
+
 // Gallery-specific media deletion
 export const deleteGalleryMediaItem = async (
   item: MediaItem,

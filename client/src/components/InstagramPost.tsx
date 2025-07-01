@@ -11,6 +11,7 @@ interface InstagramPostProps {
   onToggleLike: (mediaId: string) => void;
   onDelete?: (item: MediaItem) => void;
   onEditNote?: (item: MediaItem, newText: string) => void;
+  onEditTextTag?: (item: MediaItem, tagId: string, newText: string) => void;
   showDeleteButton: boolean;
   userName: string;
   isAdmin: boolean;
@@ -32,6 +33,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
   onToggleLike,
   onDelete,
   onEditNote,
+  onEditTextTag,
   showDeleteButton,
   userName,
   isAdmin,
@@ -49,6 +51,8 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
   const [imageLoading, setImageLoading] = useState(true);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [editNoteText, setEditNoteText] = useState(item.noteText || '');
+  const [editingTextTagId, setEditingTextTagId] = useState<string | null>(null);
+  const [editTextTagText, setEditTextTagText] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Listen for profile picture updates
@@ -117,6 +121,29 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
   const handleCancelEdit = () => {
     setEditNoteText(item.noteText || '');
     setIsEditingNote(false);
+  };
+
+  const handleEditTextTag = (tagId: string, currentText: string) => {
+    setEditingTextTagId(tagId);
+    setEditTextTagText(currentText);
+  };
+
+  const handleSaveTextTag = () => {
+    if (onEditTextTag && editingTextTagId && editTextTagText.trim()) {
+      onEditTextTag(item, editingTextTagId, editTextTagText.trim());
+    }
+    setEditingTextTagId(null);
+    setEditTextTagText('');
+  };
+
+  const handleCancelTextEdit = () => {
+    setEditingTextTagId(null);
+    setEditTextTagText('');
+  };
+
+  // Check if current user can edit text tags
+  const canEditTextTag = (tagOwner?: string, tagDeviceId?: string) => {
+    return isAdmin || (item.uploadedBy === userName && item.deviceId === getUserDeviceId?.());
   };
 
   const handleImageLoad = () => {
@@ -419,11 +446,73 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
             <div className="mb-3">
               {item.tags.filter(tag => tag.type === 'text').map((tag) => {
                 const textTag = tag as any; // TextTag interface
+                const canEdit = canEditTextTag();
+                const isEditing = editingTextTagId === tag.id;
+                
                 return (
-                  <div key={tag.id} className={`text-lg font-medium mb-2 transition-colors duration-300 ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    "{textTag.text}"
+                  <div key={tag.id} className="mb-2">
+                    {isEditing ? (
+                      <div className={`p-3 rounded-lg transition-colors duration-300 ${
+                        isDarkMode ? 'bg-gray-700/30 border border-gray-600/50' : 'bg-blue-50/80 border border-blue-200/50'
+                      }`}>
+                        <h4 className={`font-semibold mb-2 transition-colors duration-300 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          Text bearbeiten:
+                        </h4>
+                        <textarea
+                          value={editTextTagText}
+                          onChange={(e) => setEditTextTagText(e.target.value)}
+                          className={`w-full p-3 rounded-lg border resize-none transition-colors duration-300 ${
+                            isDarkMode 
+                              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
+                              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                          }`}
+                          rows={2}
+                          maxLength={200}
+                          placeholder="Text eingeben..."
+                        />
+                        <div className={`text-xs mt-1 transition-colors duration-300 ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          {editTextTagText.length}/200
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            onClick={handleCancelTextEdit}
+                            className={`px-3 py-1 rounded text-sm transition-colors duration-300 ${
+                              isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                            }`}
+                          >
+                            Abbrechen
+                          </button>
+                          <button
+                            onClick={handleSaveTextTag}
+                            disabled={!editTextTagText.trim() || editTextTagText === textTag.text}
+                            className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                          >
+                            Speichern
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`flex items-start gap-2 text-lg font-medium transition-colors duration-300 ${
+                        isDarkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        <span className="flex-1">{textTag.text}</span>
+                        {canEdit && (
+                          <button
+                            onClick={() => handleEditTextTag(tag.id, textTag.text)}
+                            className={`p-1 rounded hover:bg-opacity-20 transition-colors ${
+                              isDarkMode ? 'text-gray-400 hover:text-white hover:bg-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-300'
+                            }`}
+                            title="Text bearbeiten"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

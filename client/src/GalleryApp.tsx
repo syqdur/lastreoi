@@ -69,6 +69,7 @@
     uploadGalleryVideoBlob,
     addGalleryNote,
     editGalleryNote,
+    editTextTag,
     deleteGalleryMediaItem,
     loadGalleryComments,
     addGalleryComment,
@@ -479,6 +480,29 @@
       } catch (error) {
         setStatus('❌ Fehler beim Aktualisieren der Notiz. Bitte versuche es erneut.');
         console.error('Edit note error:', error);
+        setTimeout(() => setStatus(''), 5000);
+      } finally {
+        setIsUploading(false);
+      }
+    };
+
+    const handleEditTextTag = async (item: MediaItem, tagId: string, newText: string) => {
+      // Check permissions: user can edit tags on their own media, or admin can edit all
+      if (!isAdmin && item.uploadedBy !== userName) {
+        alert('Du kannst nur Text-Tags auf deinen eigenen Beiträgen bearbeiten.');
+        return;
+      }
+
+      setIsUploading(true);
+      setStatus('⏳ Text wird aktualisiert...');
+
+      try {
+        await editTextTag(item.id, tagId, newText, gallery.id);
+        setStatus('✅ Text erfolgreich aktualisiert!');
+        setTimeout(() => setStatus(''), 3000);
+      } catch (error) {
+        setStatus('❌ Fehler beim Aktualisieren des Texts. Bitte versuche es erneut.');
+        console.error('Edit text tag error:', error);
         setTimeout(() => setStatus(''), 5000);
       } finally {
         setIsUploading(false);
@@ -1383,6 +1407,19 @@
           )}
 
 
+          {/* Tab Navigation - always visible */}
+          <TabNavigation 
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            isDarkMode={isDarkMode}
+            galleryEnabled={siteStatus?.galleryEnabled ?? true}
+            musicWishlistEnabled={siteStatus?.musicWishlistEnabled ?? true}
+            themeTexts={themeTexts}
+            themeIcon={themeConfig.icon}
+            themeStyles={themeStyles}
+            galleryEventName={gallery.eventName}
+          />
+
           {/* Tab Content */}
           {activeTab === 'gallery' ? (
             <>
@@ -1407,19 +1444,6 @@
                 themeStyles={themeStyles}
               />
 
-              {/* Tab Navigation - positioned beneath upload content bar */}
-              <TabNavigation 
-                activeTab={activeTab}
-                onTabChange={handleTabChange}
-                isDarkMode={isDarkMode}
-                galleryEnabled={siteStatus?.galleryEnabled ?? true}
-                musicWishlistEnabled={siteStatus?.musicWishlistEnabled ?? true}
-                themeTexts={themeTexts}
-                themeIcon={themeConfig.icon}
-                themeStyles={themeStyles}
-                galleryEventName={gallery.eventName}
-              />
-
               {status && (
                 <div className="px-4 py-2">
                   <p className={`text-sm text-center transition-colors duration-300 ${
@@ -1433,6 +1457,7 @@
                 onItemClick={openModal}
                 onDelete={handleDelete}
                 onEditNote={handleEditNote}
+                onEditTextTag={handleEditTextTag}
                 isAdmin={isAdmin}
                 comments={comments}
                 likes={likes}
