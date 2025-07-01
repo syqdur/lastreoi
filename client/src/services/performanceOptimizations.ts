@@ -1,44 +1,61 @@
 /**
- * Comprehensive Performance Optimization System for Wedding Gallery App
- * This module implements all major performance improvements identified in the analysis
+ * CRITICAL Performance Optimizations for Gallery Loading Speed
+ * This module fixes slow gallery loading issues
  */
 
 import { debounce, throttle, memoize, BatchProcessor, PerformanceMonitor } from './performanceService';
 
-// 1. Firebase Query Optimization
-export const optimizeFirebaseQueries = () => {
-  console.log('🚀 Initializing Firebase Query Optimizations...');
+// PERFORMANCE CONFIGURATION - Optimized for speed
+export const PERF_CONFIG = {
+  // Reduce initial load significantly
+  INITIAL_MEDIA_LIMIT: 8,        // Reduced from 20
+  PAGINATION_SIZE: 6,            // Smaller chunks
+  COMMENTS_LIMIT: 20,            // Reduced from 50
   
-  // Implement pagination for all major collections
-  const defaultLimits = {
-    media: 20,
-    comments: 50,
-    likes: 100,
-    notifications: 30,
-    stories: 10
-  };
+  // Image optimization
+  MAX_IMAGE_WIDTH: 600,          // Reduced from 800
+  MAX_IMAGE_HEIGHT: 400,         // Reduced from 600
+  IMAGE_QUALITY: 0.7,            // Reduced from 0.8
   
-  // Create batching system for writes
-  const firebaseBatchProcessor = new BatchProcessor(
+  // Caching times
+  CACHE_TTL: {
+    MEDIA: 15000,      // 15 seconds (reduced)
+    COMMENTS: 30000,   // 30 seconds (reduced)
+    LIKES: 20000,      // 20 seconds (reduced)
+    PROFILES: 60000    // 1 minute (reduced)
+  },
+  
+  // Debounce for better responsiveness
+  SCROLL_DEBOUNCE: 50,     // Faster scroll response
+  SEARCH_DEBOUNCE: 200,    // Faster search
+  LOAD_DEBOUNCE: 100       // Faster loading
+};
+
+// 1. Optimized Firebase Query System
+export const createOptimizedFirebaseQueries = () => {
+  console.log('🚀 Creating Optimized Firebase Queries...');
+  
+  // Smart batching system with smaller batches for speed
+  const fastBatchProcessor = new BatchProcessor(
     async (operations: any[]) => {
-      // Group operations by type and execute in parallel
-      const grouped = operations.reduce((acc, op) => {
-        if (!acc[op.type]) acc[op.type] = [];
-        acc[op.type].push(op);
-        return acc;
-      }, {});
+      // Process in smaller parallel batches for speed
+      const batchSize = 3; // Smaller batches
+      const batches = [];
       
+      for (let i = 0; i < operations.length; i += batchSize) {
+        batches.push(operations.slice(i, i + batchSize));
+      }
+      
+      // Process all batches in parallel
       await Promise.all(
-        Object.values(grouped).map((ops: any) => 
-          processOperationBatch(ops)
-        )
+        batches.map(batch => processSmallBatch(batch))
       );
     },
-    10,
-    300
+    3,    // Much smaller batch size
+    50    // Faster processing
   );
   
-  return { defaultLimits, firebaseBatchProcessor };
+  return { batchProcessor: fastBatchProcessor };
 };
 
 // 2. Image and Media Optimization
@@ -242,6 +259,27 @@ const subscribeToOptimizedNotifications = (galleryId: string, deviceId: string, 
   console.log(`Setting up optimized notification subscription for ${deviceId} in gallery ${galleryId}`);
 };
 
+// Helper function for processing small batches quickly
+const processSmallBatch = async (operations: any[]): Promise<void> => {
+  try {
+    // Process operations in parallel for maximum speed
+    await Promise.all(operations.map(async (op) => {
+      switch (op.type) {
+        case 'upload':
+          return await op.execute();
+        case 'delete':
+          return await op.execute();
+        case 'update':
+          return await op.execute();
+        default:
+          return await op.execute();
+      }
+    }));
+  } catch (error) {
+    console.warn('Batch processing error (continuing):', error);
+  }
+};
+
 // Main optimization initializer
 export const initializePerformanceOptimizations = () => {
   console.log('🚀 Initializing Comprehensive Performance Optimizations...');
@@ -250,7 +288,7 @@ export const initializePerformanceOptimizations = () => {
   const endTime = monitor.time('performanceInit');
   
   const optimizations = {
-    firebase: optimizeFirebaseQueries(),
+    firebase: createOptimizedFirebaseQueries(),
     media: optimizeMediaLoading(),
     components: optimizeComponentUpdates(),
     realTime: optimizeRealTimeListeners(),

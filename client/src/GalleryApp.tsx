@@ -34,6 +34,7 @@
   import { useOptimizedGallery } from './hooks/useOptimizedGallery';
   import { MediaItem, Comment, Like, TextTag, PersonTag, LocationTagWithPosition } from './types';
   import { initializePerformanceOptimizations } from './services/performanceOptimizations';
+import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, perfLogger } from './utils/quickPerformanceFix';
   import { Gallery, galleryService } from './services/galleryService';
   import { getThemeConfig, getThemeTexts, getThemeStyles } from './config/themes';
   import { storage, db } from './config/firebase';
@@ -114,25 +115,30 @@
     const themeStyles = getThemeStyles(gallery.theme || 'hochzeit');
 
     const { userName, deviceId, showNamePrompt, setUserName } = useUser();
+    
+    // 🚀 PERFORMANCE FIX: Reduce initial state complexity
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
     const [comments, setComments] = useState<Comment[]>([]);
     const [likes, setLikes] = useState<Like[]>([]);
     const [stories, setStories] = useState<Story[]>([]);
+    
+    // Simplified loading states
+    const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    
+    // UI states
     const [showUserProfileModal, setShowUserProfileModal] = useState(false);
     const [showProfileEditModal, setShowProfileEditModal] = useState(false);
     const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
     const [galleryProfileData, setGalleryProfileData] = useState<any>(null);
-    const [profileDataLoaded, setProfileDataLoaded] = useState(false);
-    const [profileListenerInitialized, setProfileListenerInitialized] = useState(false);
     const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
     const [galleryUsers, setGalleryUsers] = useState<any[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [status, setStatus] = useState('');
     const [siteStatus, setSiteStatus] = useState<SiteStatus | null>(null);
-    const [isAdmin, setIsAdmin] = useState(false); // Always start with false - admin mode requires credentials
+    const [isAdmin, setIsAdmin] = useState(false);
     const [showAdminCredentialsSetup, setShowAdminCredentialsSetup] = useState(false);
     const [showStoriesViewer, setShowStoriesViewer] = useState(false);
     const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -145,30 +151,26 @@
     const [pendingUploadFiles, setPendingUploadFiles] = useState<FileList | null>(null);
     const [pendingUploadUrl, setPendingUploadUrl] = useState<string>('');
     
-    // New loading states to fix pink loading ring
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
-    const [galleryDataLoaded, setGalleryDataLoaded] = useState(false);
+    // 🚀 PERFORMANCE: Removed redundant loading states
     
+    // 🚀 PERFORMANCE FIX: Optimized loading with reduced frequency
     // Initialize performance optimizations
     useEffect(() => {
-      const optimizations = initializePerformanceOptimizations();
-      console.log('🚀 Performance optimizations initialized for gallery:', gallery.id);
+      console.log('🚀 Initializing FAST performance fixes for gallery:', gallery.id);
       
-      return () => {
-        // Cleanup optimizations on unmount
-        optimizations.memory.executeCleanup();
-      };
+      // Apply quick fixes first
+      perfLogger.start('Performance Initialization');
+      initQuickFix();
+      initializePerformanceOptimizations();
+      perfLogger.end('Performance Initialization');
+      
     }, [gallery.id]);
 
-    // Reset state when gallery changes to fix data isolation
+    // 🚀 PERFORMANCE FIX: Simplified gallery change handler
     useEffect(() => {
-      console.log('🔄 Gallery changed - resetting all state for:', gallery.id, gallery.eventName);
+      console.log('🔄 Gallery changed - resetting state for:', gallery.id);
 
-      // New loading states
-      setIsInitialLoading(true);
-      setGalleryDataLoaded(false);
-
-      // Clear old data immediately
+      // Clear old data immediately - FASTER
       setGalleryProfileData(null);
       setMediaItems([]);
       setComments([]);
@@ -180,11 +182,11 @@
       setIsAdmin(false);
       setModalOpen(false);
       setActiveTab('gallery');
+      setIsLoading(true);
 
-      // Check if tutorial should be shown for this gallery
+      // Check tutorial only once
       const tutorialKey = `tutorial_shown_${gallery.id}`;
-      const tutorialShown = localStorage.getItem(tutorialKey);
-      if (!tutorialShown && userName) {
+      if (!localStorage.getItem(tutorialKey) && userName) {
         setShowTutorial(true);
       }
     }, [gallery.id, userName]);
@@ -275,31 +277,61 @@
       };
     }, [userName, deviceId, gallery.id, gallery.settings.allowStories, isAdmin]);
 
+    // 🚀 PERFORMANCE FIX: Optimized data loading with priorities and FAST_LOAD_CONFIG
     useEffect(() => {
       if (!userName) return;
 
-      const unsubscribeGallery = loadGalleryMedia(gallery.id, setMediaItems);
-      const unsubscribeComments = loadGalleryComments(gallery.id, setComments);
-      const unsubscribeLikes = loadGalleryLikes(gallery.id, setLikes);
-      const unsubscribeUserProfiles = loadGalleryUserProfiles(gallery.id, setUserProfiles);
+      console.log('🚀 Loading gallery data with AGGRESSIVE performance optimizations...');
+      perfLogger.start('Gallery Data Load');
+      
+      // 1. PRIORITY: Load media first with REDUCED limit
+      const unsubscribeGallery = loadGalleryMedia(gallery.id, (items) => {
+        // 🚀 Use FAST_LOAD_CONFIG for aggressive optimization
+        const limitedItems = items.slice(0, FAST_LOAD_CONFIG.INITIAL_MEDIA_LIMIT);
+        setMediaItems(limitedItems);
+        setIsLoading(false);
+        perfLogger.end('Gallery Data Load');
+        
+        // Load remaining items after UI renders
+        setTimeout(() => {
+          setMediaItems(items);
+        }, 1000); // Increased delay for better UX
+      }, FAST_LOAD_CONFIG.INITIAL_MEDIA_LIMIT);
 
-      // Load gallery users for tagging
-      const loadUsers = async () => {
+      // 2. DELAYED: Load other data to prevent blocking
+      const timeouts: any[] = [];
+      
+      // Load comments with delay
+      timeouts.push(setTimeout(() => {
+        loadGalleryComments(gallery.id, (comments) => {
+          const limitedComments = comments.slice(0, FAST_LOAD_CONFIG.INITIAL_COMMENTS_LIMIT);
+          setComments(limitedComments);
+        });
+      }, 500));
+
+      // Load likes with delay  
+      timeouts.push(setTimeout(() => {
+        loadGalleryLikes(gallery.id, setLikes);
+      }, 750));
+
+      // Load user profiles with delay
+      timeouts.push(setTimeout(() => {
+        loadGalleryUserProfiles(gallery.id, setUserProfiles);
+      }, 1000));
+
+      // Load gallery users last (lowest priority)
+      timeouts.push(setTimeout(async () => {
         try {
           const users = await getGalleryUsers(gallery.id);
           setGalleryUsers(users);
         } catch (error) {
           console.error('Error loading gallery users:', error);
         }
-      };
-
-      loadUsers();
+      }, 1250));
 
       return () => {
         unsubscribeGallery();
-        unsubscribeComments();
-        unsubscribeLikes();
-        unsubscribeUserProfiles();
+        timeouts.forEach(timeout => clearTimeout(timeout));
       };
     }, [userName, gallery.id]);
 
