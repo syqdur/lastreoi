@@ -122,7 +122,7 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
     const [likes, setLikes] = useState<Like[]>([]);
     const [stories, setStories] = useState<Story[]>([]);
     
-    // Simplified loading states
+    // PERFORMANCE FIX: Single, simple loading state only
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -151,19 +151,13 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
     const [pendingUploadFiles, setPendingUploadFiles] = useState<FileList | null>(null);
     const [pendingUploadUrl, setPendingUploadUrl] = useState<string>('');
     
-    // 🚀 PERFORMANCE: Removed redundant loading states
-    
-    // 🚀 PERFORMANCE FIX: Optimized loading with reduced frequency
     // Initialize performance optimizations
     useEffect(() => {
-      console.log('🚀 Initializing FAST performance fixes for gallery:', gallery.id);
-      
-      // Apply quick fixes first
+      console.log('🚀 Initializing performance fixes for gallery:', gallery.id);
       perfLogger.start('Performance Initialization');
       initQuickFix();
       initializePerformanceOptimizations();
       perfLogger.end('Performance Initialization');
-      
     }, [gallery.id]);
 
     // 🚀 PERFORMANCE FIX: Simplified gallery change handler
@@ -277,26 +271,17 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       };
     }, [userName, deviceId, gallery.id, gallery.settings.allowStories, isAdmin]);
 
-    // 🚀 PERFORMANCE FIX: Optimized data loading with priorities and FAST_LOAD_CONFIG
+    // PERFORMANCE FIX: Simplified data loading
     useEffect(() => {
       if (!userName) return;
 
-      console.log('🚀 Loading gallery data with AGGRESSIVE performance optimizations...');
-      perfLogger.start('Gallery Data Load');
+      console.log('Loading gallery data for:', gallery.id);
       
-      // 1. PRIORITY: Load media first with REDUCED limit
+      // Load media with simplified loading
       const unsubscribeGallery = loadGalleryMedia(gallery.id, (items) => {
-        // 🚀 Use FAST_LOAD_CONFIG for aggressive optimization
-        const limitedItems = items.slice(0, FAST_LOAD_CONFIG.INITIAL_MEDIA_LIMIT);
-        setMediaItems(limitedItems);
-        setIsLoading(false);
-        perfLogger.end('Gallery Data Load');
-        
-        // Load remaining items after UI renders
-        setTimeout(() => {
-          setMediaItems(items);
-        }, 1000); // Increased delay for better UX
-      }, FAST_LOAD_CONFIG.INITIAL_MEDIA_LIMIT);
+        setMediaItems(items);
+        setIsLoading(false); // Simple: set loading false when media loads
+      });
 
       // 2. DELAYED: Load other data to prevent blocking
       const timeouts: any[] = [];
@@ -335,41 +320,7 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       };
     }, [userName, gallery.id]);
 
-    // New data check useEffect to handle loading completion
-    useEffect(() => {
-      if (!userName || !gallery.id) return;
-
-      console.log('🔍 Checking if all data is loaded...');
-
-      const checkDataLoaded = () => {
-        const hasProfile = profileDataLoaded; // Use existing profileDataLoaded state
-        const hasMediaData = mediaItems !== undefined;
-        const hasSiteStatus = siteStatus !== null;
-
-        if (hasProfile && hasMediaData && hasSiteStatus) {
-          setGalleryDataLoaded(true);
-          setIsInitialLoading(false);
-        }
-      };
-
-      // Check immediately
-      checkDataLoaded();
-
-      // Check less frequently for better performance
-      const interval = setInterval(checkDataLoaded, 1000);
-
-      // Timeout after 3 seconds for faster loading
-      const timeout = setTimeout(() => {
-        setGalleryDataLoaded(true);
-        setIsInitialLoading(false);
-        clearInterval(interval);
-      }, 3000);
-
-      return () => {
-        clearInterval(interval);
-        clearTimeout(timeout);
-      };
-    }, [userName, gallery.id, profileDataLoaded, mediaItems, siteStatus]);
+    // PERFORMANCE FIX: Removed redundant data loading checks
 
     // Auto-logout when window/tab is closed
     useEffect(() => {
@@ -949,9 +900,7 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
         return;
       }
 
-      // Reset loading state when gallery changes
-      setProfileDataLoaded(false);
-      setProfileListenerInitialized(false);
+      // PERFORMANCE FIX: Removed redundant loading state resets
       
       // Immediately set fallback data based on current gallery
       const immediateProfile = {
@@ -982,8 +931,6 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
           // Always apply Firebase data if it exists - this contains customized gallery settings
           console.log('🔄 Applying real-time Firebase profile data from Gallery Settings');
           setGalleryProfileData(firebaseData);
-          setProfileDataLoaded(true);
-          setProfileListenerInitialized(true);
         } else {
           console.log('📝 No Firebase profile found, creating default gallery profile');
           // Create default profile if none exists
@@ -998,8 +945,6 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
           };
           console.log('📋 Setting default profile:', defaultProfile);
           setGalleryProfileData(defaultProfile);
-          setProfileDataLoaded(true);
-          setProfileListenerInitialized(true);
         }
       }, (error: any) => {
         console.error('❌ Error in gallery profile listener:', error);
@@ -1015,8 +960,6 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
         };
         console.log('📋 Setting default profile after error:', defaultProfile);
         setGalleryProfileData(defaultProfile);
-        setProfileDataLoaded(true);
-        setProfileListenerInitialized(true);
       });
 
       return () => {
@@ -1256,14 +1199,9 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       return <SpotifyCallback isDarkMode={isDarkMode} />;
     }
 
-    // Force gallery creators through visitor registration process
-    const isGalleryOwner = localStorage.getItem(`gallery_owner_${gallery.slug}`) === 'true';
-    const galleryCreatedFlag = localStorage.getItem(`gallery_just_created_${gallery.slug}`);
-    const needsVisitorRegistration = isGalleryOwner && galleryCreatedFlag === 'true';
-    
-    // Show UserNamePrompt for new users or gallery creators who need to register as visitors
-    // Admin setup should NEVER show during visitor registration
-    if ((showNamePrompt || needsVisitorRegistration) && !showAdminCredentialsSetup) {
+    // PERFORMANCE FIX: Show UserNamePrompt only once for new users
+    // Remove redundant gallery creator logic that causes multiple prompts
+    if (showNamePrompt && !showAdminCredentialsSetup) {
       return <UserNamePrompt 
         onSubmit={async (name: string, profilePicture?: File) => {
           console.log('👋 Starting user registration for gallery:', gallery.id);
@@ -1333,8 +1271,8 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       />;
     }
 
-    // Loading Screen - Show while initial data is loading
-    if (isInitialLoading && !galleryDataLoaded) {
+    // PERFORMANCE FIX: Single simple loading screen
+    if (isLoading) {
       return (
         <div className={`min-h-screen flex items-center justify-center transition-all duration-500 ${
           isDarkMode 
