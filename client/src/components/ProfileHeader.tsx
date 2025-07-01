@@ -48,7 +48,22 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   
   // Use gallery profile data from admin panel "Galerie Einstellungen" or gallery data
   // Always prefer galleryProfileData but use gallery data as immediate fallback
-  const displayData = galleryProfileData || gallery;
+  // For new visitors, prioritize galleryProfileData to avoid showing old gallery creation data
+  const displayData = React.useMemo(() => {
+    // If we have galleryProfileData, always use it
+    if (galleryProfileData) {
+      return galleryProfileData;
+    }
+    // Otherwise use gallery data but only the current event info, not creation data
+    return {
+      name: gallery?.eventName || 'Gallery',
+      bio: gallery?.bio || '',
+      profilePicture: gallery?.profilePicture || null,
+      countdownDate: gallery?.countdownDate || null,
+      countdownEndMessage: gallery?.countdownEndMessage || '',
+      countdownMessageDismissed: gallery?.countdownMessageDismissed || false
+    };
+  }, [galleryProfileData, gallery]);
 
   // Countdown timer effect with memoized calculation
   useEffect(() => {

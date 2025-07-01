@@ -95,7 +95,7 @@ This is a comprehensive wedding gallery application with the following architect
 - **Compact Media Layout**: Reduced media content margins and spacing for more streamlined post presentation
 - **Rounded Button Design**: Made Feed/Grid toggle buttons fully rounded (rounded-full) for smoother, more modern appearance
 - **Duplicate Location Badge Removal**: Removed redundant location overlay badge since location information is shown in post details below
-- **Profile Header Loading Fix**: Fixed ProfileHeader to show current gallery profile data immediately for new visitors instead of showing old gallery creation data by prioritizing galleryProfileData over fallback data
+- **Profile Header Loading Fix**: Fixed ProfileHeader to show current gallery profile data immediately for new visitors instead of showing old gallery creation data by implementing useMemo hook to properly prioritize galleryProfileData over fallback data and only use current event info
 
 ### July 1, 2025 (Text Editing Feature)
 - **Successful Migration from Replit Agent**: Completed migration from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
