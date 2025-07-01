@@ -185,74 +185,22 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
           </div>
 
-          {/* Controls - User Profile and Admin - Mobile optimized */}
-          {showTopBarControls && (
+          {/* Admin Gallery Profile Settings - Only visible in admin mode */}
+          {showTopBarControls && isAdmin && (
             <div className="flex items-center gap-1 sm:gap-2">
-              {/* User Profile Edit Button - Shows user's profile picture or default icon */}
               <button
-                onClick={() => onOpenUserProfile?.()}
-                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 overflow-hidden ring-2 touch-manipulation ${
-                  currentUserProfile?.profilePicture
-                    ? 'ring-blue-400/50 hover:ring-blue-400/70'
-                    : isDarkMode 
-                      ? 'bg-blue-600/50 hover:bg-blue-500/50 backdrop-blur-sm ring-blue-500/50' 
-                      : 'bg-blue-500/50 hover:bg-blue-600/50 backdrop-blur-sm ring-blue-400/50'
-                }`}
-                title="Mein Profil bearbeiten"
-                style={{ minWidth: '40px', minHeight: '40px' }}
-              >
-                {currentUserProfile?.profilePicture ? (
-                  <img 
-                    src={currentUserProfile.profilePicture} 
-                    alt="My Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <UserPlus className={`w-4 h-4 transition-colors duration-300 ${
-                      isDarkMode ? 'text-white' : 'text-white'
-                    }`} />
-                  </div>
-                )}
-              </button>
-              
-              {/* Admin Toggle */}
-              <button
-                onClick={() => onToggleAdmin?.(!isAdmin)}
-                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center ring-2 touch-manipulation ${
+                onClick={() => onEditGalleryProfile?.()}
+                className={`w-8 h-8 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center ring-2 ${
                   isDarkMode 
                     ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
                     : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
                 }`}
-                title={isAdmin ? "Admin-Modus verlassen" : "Admin-Modus"}
+                title="Galerie-Profil bearbeiten"
               >
-                {isAdmin ? (
-                  <Unlock className={`w-4 h-4 transition-colors duration-300 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`} />
-                ) : (
-                  <Lock className={`w-4 h-4 transition-colors duration-300 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`} />
-                )}
+                <Settings className={`w-4 h-4 transition-colors duration-300 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`} />
               </button>
-              
-              {/* Admin Site Settings - Only visible in admin mode */}
-              {isAdmin && (
-                <button
-                  onClick={() => onEditGalleryProfile?.()}
-                  className={`w-8 h-8 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center ring-2 ${
-                    isDarkMode 
-                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
-                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
-                  }`}
-                  title="Galerie-Profil bearbeiten"
-                >
-                  <Settings className={`w-4 h-4 transition-colors duration-300 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`} />
-                </button>
-              )}
             </div>
           )}
         </div>

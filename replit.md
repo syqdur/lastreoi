@@ -106,6 +106,12 @@ This is a comprehensive wedding gallery application with the following architect
 - **Express Server Active**: Backend running successfully on port 5000 with proper API routing and database integration
 - **Migration Verified**: All features confirmed working including Firebase integration, real-time users, Spotify authentication, and complete gallery functionality
 
+### July 1, 2025 (Admin Controls Cleanup & Performance Fixes - COMPLETED)
+- **Admin Controls Simplification**: Removed all admin buttons from ProfileHeader except "Galerie-Profil bearbeiten" Settings button - only shows settings gear icon for gallery profile editing when in admin mode
+- **Performance Loading Screen Fix**: Removed redundant first loading screen showing only "Galerie wird geladen..." to eliminate double loading screens and improve user experience
+- **Clean Admin Interface**: ProfileHeader now shows minimal admin controls with only essential gallery profile editing functionality for cleaner interface
+- **Loading Performance Optimization**: Direct loading into gallery without unnecessary loading states for faster gallery access
+
 ### July 1, 2025 (Previous UI Improvements)
 - **Successful Migration from Replit Agent**: Completed migration from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
 - **Instagram Post UI Improvements**: Made posts more compact by reducing header padding (px-4 py-3), smaller profile pictures (w-10 h-10), reduced text sizes, and tighter spacing for better mobile experience
