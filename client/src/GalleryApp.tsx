@@ -1431,7 +1431,7 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
             onToggleAdmin={setIsAdmin}
             currentUserProfile={currentUserProfile}
             onOpenUserProfile={() => setShowUserProfileModal(true)}
-            showTopBarControls={false}
+            showTopBarControls={true}
             galleryProfileData={galleryProfileData}
             onEditGalleryProfile={() => setShowProfileEditModal(true)}
             gallery={gallery}
