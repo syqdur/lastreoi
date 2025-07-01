@@ -219,85 +219,79 @@ export const AdminPanelBurger: React.FC<AdminPanelBurgerProps> = ({
                   </button>
 
                   {/* GALLERY TOGGLE */}
-                  {siteStatus && (
-                    <button
-                      onClick={() => {
-                        handleToggleGallery();
-                        setShowBurgerMenu(false);
-                      }}
-                      disabled={isUpdatingFeatures}
-                      className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 border ${
-                        isUpdatingFeatures
-                          ? 'opacity-50 cursor-not-allowed'
-                          : isDarkMode
-                            ? 'bg-gray-700/50 border-gray-600/50 hover:bg-gray-700/70'
-                            : 'bg-white/50 border-gray-200/50 hover:bg-white/70'
-                      }`}
-                    >
-                      <Image className={`w-5 h-5 mx-auto mb-1 ${
-                        siteStatus.galleryEnabled 
-                          ? isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                          : isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`} />
-                      <div className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        Gallery
-                      </div>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      handleToggleGallery();
+                      setShowBurgerMenu(false);
+                    }}
+                    disabled={isUpdatingFeatures || !siteStatus}
+                    className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 border ${
+                      isUpdatingFeatures || !siteStatus
+                        ? 'opacity-50 cursor-not-allowed'
+                        : isDarkMode
+                          ? 'bg-gray-700/50 border-gray-600/50 hover:bg-gray-700/70'
+                          : 'bg-white/50 border-gray-200/50 hover:bg-white/70'
+                    }`}
+                  >
+                    <Image className={`w-5 h-5 mx-auto mb-1 ${
+                      siteStatus?.galleryEnabled ?? true
+                        ? isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                        : isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`} />
+                    <div className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Gallery
+                    </div>
+                  </button>
 
                   {/* MUSIC WISHLIST TOGGLE */}
-                  {siteStatus && (
-                    <button
-                      onClick={() => {
-                        handleToggleMusicWishlist();
-                        setShowBurgerMenu(false);
-                      }}
-                      disabled={isUpdatingFeatures}
-                      className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 border ${
-                        isUpdatingFeatures
-                          ? 'opacity-50 cursor-not-allowed'
-                          : isDarkMode
-                            ? 'bg-gray-700/50 border-gray-600/50 hover:bg-gray-700/70'
-                            : 'bg-white/50 border-gray-200/50 hover:bg-white/70'
-                      }`}
-                    >
-                      <Music className={`w-5 h-5 mx-auto mb-1 ${
-                        siteStatus.musicWishlistEnabled 
-                          ? isDarkMode ? 'text-purple-400' : 'text-purple-600'
-                          : isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`} />
-                      <div className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        Music Wishlist
-                      </div>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      handleToggleMusicWishlist();
+                      setShowBurgerMenu(false);
+                    }}
+                    disabled={isUpdatingFeatures || !siteStatus}
+                    className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 border ${
+                      isUpdatingFeatures || !siteStatus
+                        ? 'opacity-50 cursor-not-allowed'
+                        : isDarkMode
+                          ? 'bg-gray-700/50 border-gray-600/50 hover:bg-gray-700/70'
+                          : 'bg-white/50 border-gray-200/50 hover:bg-white/70'
+                    }`}
+                  >
+                    <Music className={`w-5 h-5 mx-auto mb-1 ${
+                      siteStatus?.musicWishlistEnabled ?? true
+                        ? isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                        : isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`} />
+                    <div className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Music Wishlist
+                    </div>
+                  </button>
 
                   {/* STORIES TOGGLE */}
-                  {siteStatus && (
-                    <button
-                      onClick={() => {
-                        handleToggleStories();
-                        setShowBurgerMenu(false);
-                      }}
-                      disabled={isUpdatingFeatures}
-                      className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 border ${
-                        isUpdatingFeatures
-                          ? 'opacity-50 cursor-not-allowed'
-                          : isDarkMode
-                            ? 'bg-gray-700/50 border-gray-600/50 hover:bg-gray-700/70'
-                            : 'bg-white/50 border-gray-200/50 hover:bg-white/70'
-                      }`}
-                    >
-                      <Camera className={`w-5 h-5 mx-auto mb-1 ${
-                        siteStatus.storiesEnabled 
-                          ? isDarkMode ? 'text-green-400' : 'text-green-600'
-                          : isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`} />
-                      <div className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        Stories
-                      </div>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      handleToggleStories();
+                      setShowBurgerMenu(false);
+                    }}
+                    disabled={isUpdatingFeatures || !siteStatus}
+                    className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 border ${
+                      isUpdatingFeatures || !siteStatus
+                        ? 'opacity-50 cursor-not-allowed'
+                        : isDarkMode
+                          ? 'bg-gray-700/50 border-gray-600/50 hover:bg-gray-700/70'
+                          : 'bg-white/50 border-gray-200/50 hover:bg-white/70'
+                    }`}
+                  >
+                    <Camera className={`w-5 h-5 mx-auto mb-1 ${
+                      siteStatus?.storiesEnabled ?? true
+                        ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                        : isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`} />
+                    <div className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Stories
+                    </div>
+                  </button>
 
                   {/* ZIP DOWNLOAD BUTTON */}
                   <button

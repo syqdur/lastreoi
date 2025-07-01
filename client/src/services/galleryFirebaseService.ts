@@ -421,6 +421,21 @@ export const editTextTag = async (
   });
 };
 
+// Update all tags for a media item (for admin text tag management)
+export const updateMediaTags = async (
+  mediaId: string,
+  tags: any[],
+  galleryId: string
+): Promise<void> => {
+  const mediaCollection = `galleries/${galleryId}/media`;
+  const mediaRef = doc(db, mediaCollection, mediaId);
+  
+  // Update the media document with new tags
+  await updateDoc(mediaRef, {
+    tags: tags
+  });
+};
+
 // Gallery-specific media deletion
 export const deleteGalleryMediaItem = async (
   item: MediaItem,

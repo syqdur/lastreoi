@@ -31,7 +31,7 @@
   import { ConsolidatedNavigationBar } from './components/ConsolidatedNavigationBar';
   import { useUser } from './hooks/useUser';
   import { useOptimizedGallery } from './hooks/useOptimizedGallery';
-  import { MediaItem, Comment, Like } from './types';
+  import { MediaItem, Comment, Like, TextTag, PersonTag, LocationTagWithPosition } from './types';
   import { initializePerformanceOptimizations } from './services/performanceOptimizations';
   import { Gallery, galleryService } from './services/galleryService';
   import { getThemeConfig, getThemeTexts, getThemeStyles } from './config/themes';
@@ -70,6 +70,7 @@
     addGalleryNote,
     editGalleryNote,
     editTextTag,
+    updateMediaTags,
     deleteGalleryMediaItem,
     loadGalleryComments,
     addGalleryComment,
@@ -503,6 +504,41 @@
       } catch (error) {
         setStatus('❌ Fehler beim Aktualisieren des Texts. Bitte versuche es erneut.');
         console.error('Edit text tag error:', error);
+        setTimeout(() => setStatus(''), 5000);
+      } finally {
+        setIsUploading(false);
+      }
+    };
+
+    // Handle updating text tags for MediaModal (admin functionality)
+    const handleUpdateTextTags = async (mediaId: string, tags: TextTag[]) => {
+      if (!isAdmin) {
+        alert('Nur Administratoren können Text-Tags bearbeiten.');
+        return;
+      }
+
+      setIsUploading(true);
+      setStatus('⏳ Text-Tags werden aktualisiert...');
+
+      try {
+        // Find the media item to update
+        const mediaItem = mediaItems.find(item => item.id === mediaId);
+        if (!mediaItem) {
+          throw new Error('Media item not found');
+        }
+
+        // Update the media item with new text tags
+        const nonTextTags = mediaItem.tags ? 
+          mediaItem.tags.filter(tag => tag.type !== 'text') : [];
+        const updatedTags = [...nonTextTags, ...tags] as any[];
+
+        // Update in Firebase
+        await updateMediaTags(mediaId, updatedTags, gallery.id);
+        setStatus('✅ Text-Tags erfolgreich aktualisiert!');
+        setTimeout(() => setStatus(''), 3000);
+      } catch (error) {
+        setStatus('❌ Fehler beim Aktualisieren der Text-Tags. Bitte versuche es erneut.');
+        console.error('Update text tags error:', error);
         setTimeout(() => setStatus(''), 5000);
       } finally {
         setIsUploading(false);
@@ -1389,8 +1425,8 @@
         </div>
 
         <div className="max-w-md mx-auto px-2 sm:px-0">
-          {/* Profile Header - Only show when profile data is loaded */}
-          {profileDataLoaded && (
+          {/* Profile Header - Only show when gallery profile data is loaded */}
+          {galleryProfileData && (
             <ProfileHeader
               isDarkMode={isDarkMode}
               isAdmin={isAdmin}
@@ -1517,6 +1553,7 @@
           getUserDisplayName={getUserDisplayName}
           deviceId={deviceId || ''}
           galleryId={gallery.id}
+          onUpdateTextTags={handleUpdateTextTags}
         />
 
         <StoriesViewer
@@ -1581,7 +1618,7 @@
             }
           }}
           mediaItems={mediaItems}
-          siteStatus={siteStatus ?? undefined}
+          siteStatus={siteStatus || undefined}
           getUserAvatar={getUserAvatar}
           getUserDisplayName={getUserDisplayName}
           gallery={gallery}
