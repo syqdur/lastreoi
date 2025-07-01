@@ -247,12 +247,12 @@ export const ConsolidatedNavigationBar: React.FC<ConsolidatedNavigationBarProps>
           </div>
 
           {/* View Toggle (Right) */}
-          <div className={`flex-shrink-0 flex rounded-xl p-1 transition-colors duration-300 ${
+          <div className={`flex-shrink-0 flex rounded-full p-1 transition-colors duration-300 ${
             isDarkMode ? 'bg-gray-700/30' : 'bg-white/70'
           }`}>
             <button
               onClick={() => onViewModeChange('feed')}
-              className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 whitespace-nowrap ${
+              className={`flex items-center gap-1 px-3 py-2 rounded-full transition-all duration-300 transform hover:scale-105 whitespace-nowrap ${
                 viewMode === 'feed'
                   ? `${themeColors.primary} ${themeColors.primaryText} shadow-lg`
                   : isDarkMode
@@ -265,7 +265,7 @@ export const ConsolidatedNavigationBar: React.FC<ConsolidatedNavigationBarProps>
             </button>
             <button
               onClick={() => onViewModeChange('grid')}
-              className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 whitespace-nowrap ${
+              className={`flex items-center gap-1 px-3 py-2 rounded-full transition-all duration-300 transform hover:scale-105 whitespace-nowrap ${
                 viewMode === 'grid'
                   ? `${themeColors.primary} ${themeColors.primaryText} shadow-lg`
                   : isDarkMode

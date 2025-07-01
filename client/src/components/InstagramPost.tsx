@@ -220,9 +220,9 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
       
       <div className="relative z-10">
         {/* Post Header */}
-        <div className="flex items-center justify-between p-6">
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-full p-0.5 bg-gradient-to-r ${
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full p-0.5 bg-gradient-to-r ${
               isDarkMode 
                 ? 'from-pink-500 via-purple-500 to-indigo-500' 
                 : 'from-pink-400 via-purple-400 to-indigo-400'
@@ -236,56 +236,54 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
               </div>
             </div>
             <div>
-              <span className={`font-semibold text-base transition-colors duration-300 ${
+              <span className={`font-semibold text-sm transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
                 {getUserDisplayName ? getUserDisplayName(item.uploadedBy, item.deviceId) : item.uploadedBy}
                 {item.uploadedBy === userName && (
-                  <span className={`ml-2 text-xs px-3 py-1 rounded-full transition-colors duration-300 ${
+                  <span className={`ml-1.5 text-xs px-2 py-0.5 rounded-full transition-colors duration-300 ${
                     isDarkMode ? 'bg-blue-600/80 text-white' : 'bg-blue-100/80 text-blue-800'
                   }`}>
                     Du
                   </span>
                 )}
               </span>
-              <div className={`text-sm transition-colors duration-300 ${
+              <div className={`text-xs transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-500'
               }`}>
                 {formatDate(item.uploadedAt)}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {canEditNote && (
               <button
                 onClick={() => setIsEditingNote(true)}
-                className={`p-2 rounded-full transition-all duration-300 transform hover:scale-110 ${
+                className={`p-1.5 rounded-full transition-all duration-300 transform hover:scale-110 ${
                   isDarkMode ? 'text-blue-400 hover:bg-blue-900/30' : 'text-blue-500 hover:bg-blue-50/80'
                 }`}
                 title="Notiz bearbeiten"
               >
-                <Edit3 className="w-5 h-5" />
+                <Edit3 className="w-4 h-4" />
               </button>
             )}
             {canDeletePost && (
               <button
                 onClick={handleDelete}
-                className={`p-2 rounded-full transition-all duration-300 transform hover:scale-110 ${
+                className={`p-1.5 rounded-full transition-all duration-300 transform hover:scale-110 ${
                   isDarkMode ? 'text-red-400 hover:bg-red-900/30' : 'text-red-500 hover:bg-red-50/80'
                 }`}
                 title="Beitrag löschen"
               >
-                <Trash2 className="w-5 h-5" />
+                <Trash2 className="w-4 h-4" />
               </button>
             )}
-            <MoreHorizontal className={`w-6 h-6 transition-colors duration-300 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`} />
+
           </div>
         </div>
 
         {/* Media Content with Tagging */}
-        <div className="relative mx-6 mb-4 rounded-2xl overflow-hidden">
+        <div className="relative mx-4 mb-3 rounded-2xl overflow-hidden">
           {item.type === 'video' ? (
             <div className="relative w-full aspect-square">
               <video
@@ -315,10 +313,13 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                   }}
                   className={`bg-black/60 backdrop-blur-sm rounded-full p-3 transition-all duration-300 transform hover:scale-110 shadow-lg ${
                     isLiked ? 'text-red-500' : 'text-white hover:text-red-400'
-                  }`}
+                  } flex items-center gap-2`}
                   title={isLiked ? 'Unlike' : 'Like'}
                 >
                   <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
+                  {likeCount > 0 && (
+                    <span className="text-sm font-semibold">{likeCount}</span>
+                  )}
                 </button>
               </div>
 
@@ -386,10 +387,13 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                 }}
                 className={`bg-black/60 backdrop-blur-sm rounded-full p-3 transition-all duration-300 transform hover:scale-110 shadow-lg ${
                   isLiked ? 'text-red-500' : 'text-white hover:text-red-400'
-                }`}
+                } flex items-center gap-2`}
                 title={isLiked ? 'Unlike' : 'Like'}
               >
                 <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
+                {likeCount > 0 && (
+                  <span className="text-sm font-semibold">{likeCount}</span>
+                )}
               </button>
             </div>
 
@@ -412,18 +416,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                   </div>
                 )}
 
-                {/* Tagged Location Badge - Bottom Right */}
-                {item.tags.filter(tag => tag.type === 'location').length > 0 && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-black/70 backdrop-blur-sm rounded-full text-white text-xs border border-white/20">
-                    <MapPin className="w-3 h-3" />
-                    <span className="hidden sm:inline truncate max-w-20 md:max-w-32">
-                      {((item.tags.find(tag => tag.type === 'location') as any)?.locationName || 'Ort')}
-                    </span>
-                    <span className="sm:hidden">
-                      📍
-                    </span>
-                  </div>
-                )}
+
               </div>
             )}
           </div>
@@ -431,15 +424,8 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
         </div>
 
         {/* Clean Post Info Section */}
-        <div className="px-6 py-4">
-          {/* Likes Display */}
-          <div className="mb-3">
-            <span className={`font-semibold text-base transition-colors duration-300 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              {likeCount > 0 ? `${likeCount} „Gefällt mir"-Angabe${likeCount > 1 ? 'n' : ''}` : 'Gefällt dir das?'}
-            </span>
-          </div>
+        <div className="px-4 py-3">
+
 
           {/* Text Tags Display */}
           {item.tags && item.tags.filter(tag => tag.type === 'text').length > 0 && (

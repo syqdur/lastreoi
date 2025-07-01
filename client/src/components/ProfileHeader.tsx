@@ -46,13 +46,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-  // Use gallery profile data from admin panel "Galerie Einstellungen"
-  const displayData = galleryProfileData || {
-    name: gallery?.eventName || 'Gallery',
-    bio: gallery?.eventName ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : 'Teilt eure schönsten Momente mit uns! 📸',
-    profilePicture: null, // Let the component show the theme icon instead
-    countdownDate: null
-  };
+  // Use gallery profile data from admin panel "Galerie Einstellungen" or gallery data
+  // Always prefer galleryProfileData but use gallery data as immediate fallback
+  const displayData = galleryProfileData || gallery;
 
   // Countdown timer effect with memoized calculation
   useEffect(() => {
@@ -160,7 +156,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <h2 className={`text-lg sm:text-xl font-bold tracking-tight transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                {displayData?.name || gallery?.eventName || 'Gallery'}
+                {galleryProfileData?.name || displayData?.name || gallery?.eventName || 'Gallery'}
               </h2>
               <div className={`flex gap-6 sm:gap-8 mt-2 sm:mt-3 text-sm font-medium transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -250,11 +246,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
        
         <div className="space-y-4">
-          {displayData?.bio && (
+          {(galleryProfileData?.bio || displayData?.bio) && (
             <p className={`text-sm transition-colors duration-300 ${
               isDarkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              {displayData.bio}
+              {galleryProfileData?.bio || displayData?.bio}
             </p>
           )}
           
