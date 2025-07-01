@@ -9,7 +9,7 @@ export interface MediaItem {
   noteText?: string;
   note?: string; // Legacy support
   isUnavailable?: boolean;
-  tags?: (PersonTag | LocationTagWithPosition)[]; // Tagged users and locations in this media (Instagram-style tags)
+  tags?: (PersonTag | LocationTagWithPosition | TextTag)[]; // Tagged users, locations, and text in this media (Instagram-style tags)
   location?: LocationTag; // Geographic location where media was taken
   galleryTheme?: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'; // Theme for event-based styling
 }
@@ -70,6 +70,19 @@ export interface LocationTagWithPosition {
     lat: number;
     lng: number;
   };
+}
+
+// Instagram-style text tag
+export interface TextTag {
+  id: string;
+  type: 'text';
+  position?: {
+    x: number; // percentage 0-100
+    y: number; // percentage 0-100
+  };
+  text: string;
+  fontSize?: number;
+  color?: string;
 }
 
 export interface MediaTag {

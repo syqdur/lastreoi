@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, MoreHorizontal, Trash2, Edit3, AlertTriangle, Users, MapPin } from 'lucide-react';
-import { MediaItem, Comment, Like, PersonTag } from '../types';
+import { MediaItem, Comment, Like, PersonTag, TextTag } from '../types';
 
 interface InstagramPostProps {
   item: MediaItem;
@@ -414,8 +414,24 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
             </span>
           </div>
 
+          {/* Text Tags Display */}
+          {item.tags && item.tags.filter(tag => tag.type === 'text').length > 0 && (
+            <div className="mb-3">
+              {item.tags.filter(tag => tag.type === 'text').map((tag) => {
+                const textTag = tag as any; // TextTag interface
+                return (
+                  <div key={tag.id} className={`text-lg font-medium mb-2 transition-colors duration-300 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    "{textTag.text}"
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Tagged People Display with Profile Pictures */}
-          {item.tags && item.tags.length > 0 && (
+          {item.tags && item.tags.filter(tag => tag.type === 'person').length > 0 && (
             <div className="mb-3">
               <div className="flex flex-wrap gap-2">
                 {item.tags.filter(tag => tag.type === 'person').map((tag) => {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Users, MapPin, Navigation } from 'lucide-react';
+import { X, Users, MapPin, Navigation, Type, Hash } from 'lucide-react';
 
 interface TagPosition {
   x: number;
@@ -23,7 +23,16 @@ interface LocationTag {
   coordinates?: { lat: number; lng: number } | null;
 }
 
-type MediaTag = PersonTag | LocationTag;
+interface TextTag {
+  id: string;
+  type: 'text';
+  position: TagPosition;
+  text: string;
+  fontSize?: number;
+  color?: string;
+}
+
+type MediaTag = PersonTag | LocationTag | TextTag;
 
 interface GalleryUser {
   userName: string;
@@ -51,6 +60,8 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
   isDarkMode,
   galleryUsers
 }) => {
+  // Return null immediately if modal is closed to prevent unnecessary calculations
+  if (!isOpen) return null;
   const [tags, setTags] = useState<MediaTag[]>([]);
   const [isTaggingMode, setIsTaggingMode] = useState(false);
   const [showQuickUsers, setShowQuickUsers] = useState(false);
@@ -61,11 +72,13 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isSearchingLocations, setIsSearchingLocations] = useState(false);
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [pendingTextPosition, setPendingTextPosition] = useState<TagPosition | null>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
 
-  // Show more users for better selection
-  const quickUsers = galleryUsers.slice(0, 8);
-  const allUsers = galleryUsers;
+  // Memoize users to prevent unnecessary recalculations
+  const quickUsers = React.useMemo(() => galleryUsers.slice(0, 8), [galleryUsers]);
+  const allUsers = React.useMemo(() => galleryUsers, [galleryUsers]);
 
   // Enhanced location search function
   const searchLocationSuggestions = async (query: string) => {
@@ -458,19 +471,53 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
     }
   };
 
+  const handleAddText = useCallback(() => {
+    const centerPosition = { x: 50, y: 50 };
+    setPendingTextPosition(centerPosition);
+    setShowTextInput(true);
+  }, []);
+
+  const handleTextConfirm = useCallback((text: string) => {
+    if (!pendingTextPosition) return;
+
+    const textTag: TextTag = {
+      id: crypto.randomUUID(),
+      type: 'text',
+      position: pendingTextPosition,
+      text,
+      fontSize: 18,
+      color: '#ffffff'
+    };
+
+    setTags(prev => [...prev, textTag]);
+    setShowTextInput(false);
+    setPendingTextPosition(null);
+  }, [pendingTextPosition]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[2147483647] bg-black/90 flex items-center justify-center">
       <div className="relative w-full h-full max-w-5xl max-h-[100vh] sm:max-h-[95vh] flex flex-col">
-        {/* Header - More Compact */}
-        <div className="flex items-center justify-between px-4 py-2 bg-gray-900/98 backdrop-blur-xl border-b border-white/10">
-          <h2 className="text-white font-semibold text-lg">Markieren</h2>
+        {/* Header - Instagram 2.0 Design */}
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-900/98 to-black/98 backdrop-blur-xl border-b border-white/10">
           <button
             onClick={onClose}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 transition-all hover:scale-110"
           >
-            <X className="w-5 h-5 text-white" />
+            <X className="w-6 h-6 text-white" />
+          </button>
+          <div className="text-center">
+            <h1 className="text-lg font-bold text-white">Markierungen</h1>
+            <p className="text-xs text-white/60 mt-0.5">
+              {isTaggingMode ? 'Tippe auf das Bild zum markieren' : 'Verwende die Buttons unten'}
+            </p>
+          </div>
+          <button
+            onClick={handleConfirm}
+            className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-xl text-white font-bold transition-all shadow-lg hover:scale-105"
+          >
+            Fertig
           </button>
         </div>
 
@@ -533,31 +580,47 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
                 }}
               >
                 <div className="relative group">
-                  {/* Tag Dot */}
-                  <div className="w-6 h-6 bg-white rounded-full border-2 border-blue-500 flex items-center justify-center animate-pulse">
-                    {tag.type === 'person' ? (
-                      <Users className="w-3 h-3 text-blue-500" />
-                    ) : (
-                      <MapPin className="w-3 h-3 text-green-500" />
-                    )}
-                  </div>
-
-                  {/* Tag Label - Always Visible */}
-                  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-2 py-1 rounded-md text-xs whitespace-nowrap">
-                    {tag.type === 'person' 
-                      ? (tag.displayName || tag.userName)
-                      : tag.locationName
-                    }
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeTag(tag.id);
+                  {/* Tag Dot or Text */}
+                  {tag.type === 'text' ? (
+                    <div 
+                      className="bg-transparent text-white font-bold text-lg cursor-pointer select-none"
+                      style={{ 
+                        fontSize: `${(tag as any).fontSize || 18}px`,
+                        color: (tag as any).color || '#ffffff',
+                        textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5)'
                       }}
-                      className="ml-2 text-red-400 hover:text-red-300"
                     >
-                      ×
-                    </button>
-                  </div>
+                      {(tag as any).text}
+                    </div>
+                  ) : (
+                    <>
+                      {/* Tag Dot */}
+                      <div className="w-6 h-6 bg-white rounded-full border-2 border-purple-500 flex items-center justify-center animate-pulse shadow-lg">
+                        {tag.type === 'person' ? (
+                          <Users className="w-3 h-3 text-purple-500" />
+                        ) : (
+                          <MapPin className="w-3 h-3 text-green-500" />
+                        )}
+                      </div>
+
+                      {/* Tag Label - Enhanced Instagram Style */}
+                      <div className={`absolute ${tag.position.y > 80 ? 'bottom-8' : 'top-8'} left-1/2 transform -translate-x-1/2 bg-black/90 text-white px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap backdrop-blur-sm shadow-lg`}>
+                        {tag.type === 'person' 
+                          ? (tag.displayName || tag.userName)
+                          : tag.locationName
+                        }
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeTag(tag.id);
+                          }}
+                          className="ml-2 text-red-400 hover:text-red-300 font-bold text-sm"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -765,6 +828,52 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
             </div>
           )}
 
+          {/* Text Input Modal */}
+          {showTextInput && pendingTextPosition && (
+            <div className="fixed inset-0 z-[2147483649] bg-black/80 flex items-center justify-center">
+              <div className="bg-gray-900/98 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl w-full max-w-sm mx-4 p-6">
+                <h3 className="text-white text-lg font-bold mb-4 text-center">Text hinzufügen</h3>
+                <input
+                  type="text"
+                  placeholder="Text eingeben..."
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-transparent bg-white/10 backdrop-blur-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 focus:outline-none placeholder-gray-400 text-white mb-4"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const text = (e.target as HTMLInputElement).value.trim();
+                      if (text) {
+                        handleTextConfirm(text);
+                      }
+                    }
+                  }}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setShowTextInput(false);
+                      setPendingTextPosition(null);
+                    }}
+                    className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl text-white font-medium"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    onClick={() => {
+                      const input = document.querySelector('input[placeholder="Text eingeben..."]') as HTMLInputElement;
+                      const text = input?.value.trim();
+                      if (text) {
+                        handleTextConfirm(text);
+                      }
+                    }}
+                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-bold"
+                  >
+                    Hinzufügen
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* All Users Modal - Fixed Mobile Positioning */}
           {showAllUsers && pendingPosition && (
             <div className="fixed inset-0 z-[2147483649] bg-black/80 flex items-end sm:items-center justify-center">
@@ -824,44 +933,115 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
           )}
         </div>
 
-        {/* Bottom Controls - Responsive Design */}
-        <div className="p-3 bg-gray-900/98 backdrop-blur-xl border-t border-white/10">
-          <div className="flex flex-col gap-3 max-w-md mx-auto">
-            {/* Primary Action Button */}
+        {/* Bottom Controls - Instagram 2.0 Design */}
+        <div className="p-4 bg-gradient-to-r from-gray-900/98 to-black/98 backdrop-blur-xl border-t border-white/10">
+          {/* Tag Status Indicators */}
+          {tags.length > 0 && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                {tags.filter(t => t.type === 'person').length > 0 && (
+                  <div className="flex items-center gap-1 px-3 py-1 bg-purple-500/20 rounded-full border border-purple-500/30">
+                    <Users className="w-4 h-4 text-purple-400" />
+                    <span className="text-white text-sm font-medium">
+                      {tags.filter(t => t.type === 'person').length}
+                    </span>
+                  </div>
+                )}
+                {tags.filter(t => t.type === 'location').length > 0 && (
+                  <div className="flex items-center gap-1 px-3 py-1 bg-green-500/20 rounded-full border border-green-500/30">
+                    <MapPin className="w-4 h-4 text-green-400" />
+                    <span className="text-white text-sm font-medium">
+                      {tags.filter(t => t.type === 'location').length}
+                    </span>
+                  </div>
+                )}
+                {tags.filter(t => t.type === 'text').length > 0 && (
+                  <div className="flex items-center gap-1 px-3 py-1 bg-blue-500/20 rounded-full border border-blue-500/30">
+                    <Type className="w-4 h-4 text-blue-400" />
+                    <span className="text-white text-sm font-medium">
+                      {tags.filter(t => t.type === 'text').length}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Primary Controls - 4-Button Grid */}
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {/* Person Tagging Toggle */}
             <button
               onClick={() => setIsTaggingMode(!isTaggingMode)}
-              className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 min-h-[52px] touch-manipulation ${
+              className={`flex flex-col items-center justify-center p-3 rounded-xl font-medium transition-all ${
                 isTaggingMode
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-white/15 text-white hover:bg-white/25 active:bg-white/30'
+                  ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg scale-105'
+                  : 'bg-white/10 text-white hover:bg-white/20 hover:scale-105'
               }`}
             >
-              <Users className="w-5 h-5" />
-              <span className="text-base font-semibold">
-                {isTaggingMode ? 'Tippen zum Markieren' : 'Personen markieren'}
-              </span>
-              {tags.length > 0 && (
-                <span className="bg-green-600 text-white px-2 py-1 rounded-full text-sm font-bold min-w-[24px] text-center">
-                  {tags.length}
-                </span>
-              )}
+              <Users className="w-6 h-6 mb-1" />
+              <span className="text-xs font-bold">Personen</span>
             </button>
 
-            {/* Secondary Actions */}
-            <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white rounded-xl transition-colors font-medium text-base min-h-[48px] touch-manipulation"
-              >
-                Abbrechen
-              </button>
-              <button
-                onClick={handleConfirm}
-                className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white rounded-xl transition-colors font-bold text-base min-h-[48px] touch-manipulation shadow-lg"
-              >
-                Fertig
-              </button>
-            </div>
+            {/* Location Button */}
+            <button
+              onClick={() => {
+                setPendingPosition({ x: 50, y: 15 }); // Set a default position for location tags
+                setShowLocationInput(true);
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-xl font-medium transition-all bg-white/10 text-white hover:bg-white/20 hover:scale-105"
+            >
+              <MapPin className="w-6 h-6 mb-1" />
+              <span className="text-xs font-bold">Ort</span>
+            </button>
+
+            {/* Text Button */}
+            <button
+              onClick={handleAddText}
+              className="flex flex-col items-center justify-center p-3 rounded-xl font-medium transition-all bg-white/10 text-white hover:bg-white/20 hover:scale-105"
+            >
+              <Type className="w-6 h-6 mb-1" />
+              <span className="text-xs font-bold">Text</span>
+            </button>
+
+            {/* Clear All Button */}
+            <button
+              onClick={() => setTags([])}
+              disabled={tags.length === 0}
+              className={`flex flex-col items-center justify-center p-3 rounded-xl font-medium transition-all ${
+                tags.length > 0
+                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:scale-105'
+                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+              }`}
+            >
+              <Hash className="w-6 h-6 mb-1 rotate-45" />
+              <span className="text-xs font-bold">Löschen</span>
+            </button>
+          </div>
+
+          {/* Instructions */}
+          <div className="text-center mb-4">
+            <p className="text-white/60 text-xs">
+              {isTaggingMode 
+                ? '✨ Tippe auf das Bild um Personen zu markieren'
+                : '👆 Aktiviere "Personen" zum Markieren'
+              }
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-3 bg-gray-700/50 hover:bg-gray-600/50 active:bg-gray-500/50 text-white rounded-xl transition-colors font-medium text-base min-h-[48px] touch-manipulation backdrop-blur-sm"
+            >
+              Abbrechen
+            </button>
+            <button
+              onClick={handleConfirm}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl transition-all font-bold text-base min-h-[48px] touch-manipulation shadow-lg hover:scale-105"
+            >
+              Fertig
+            </button>
           </div>
         </div>
       </div>

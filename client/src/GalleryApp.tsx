@@ -1383,19 +1383,6 @@
           )}
 
 
-          {/* Tab Navigation */}
-          <TabNavigation 
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            isDarkMode={isDarkMode}
-            galleryEnabled={siteStatus?.galleryEnabled ?? true}
-            musicWishlistEnabled={siteStatus?.musicWishlistEnabled ?? true}
-            themeTexts={themeTexts}
-            themeIcon={themeConfig.icon}
-            themeStyles={themeStyles}
-            galleryEventName={gallery.eventName}
-          />
-
           {/* Tab Content */}
           {activeTab === 'gallery' ? (
             <>
@@ -1418,6 +1405,19 @@
                 galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
                 themeTexts={themeTexts}
                 themeStyles={themeStyles}
+              />
+
+              {/* Tab Navigation - positioned beneath upload content bar */}
+              <TabNavigation 
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
+                isDarkMode={isDarkMode}
+                galleryEnabled={siteStatus?.galleryEnabled ?? true}
+                musicWishlistEnabled={siteStatus?.musicWishlistEnabled ?? true}
+                themeTexts={themeTexts}
+                themeIcon={themeConfig.icon}
+                themeStyles={themeStyles}
+                galleryEventName={gallery.eventName}
               />
 
               {status && (
