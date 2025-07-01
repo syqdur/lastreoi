@@ -178,16 +178,21 @@ export const ConsolidatedNavigationBar: React.FC<ConsolidatedNavigationBarProps>
           <div className="flex items-center gap-2 flex-1 min-w-0 overflow-x-auto scrollbar-hide">
             {/* Add Story Button */}
             {storiesEnabled && (
-              <button
-                onClick={onAddStory}
-                className={`flex-shrink-0 w-12 h-12 rounded-full border-2 border-dashed flex items-center justify-center transition-all duration-300 transform hover:scale-105 ${
-                  isDarkMode 
-                    ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/30' 
-                    : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-                }`}
-              >
-                <Plus className={`w-5 h-5 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-              </button>
+              <div className="flex flex-col items-center gap-1">
+                <button
+                  onClick={onAddStory}
+                  className={`flex-shrink-0 w-12 h-12 rounded-full border-2 border-dashed flex items-center justify-center transition-all duration-300 transform hover:scale-105 ${
+                    isDarkMode 
+                      ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/30' 
+                      : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                  }`}
+                >
+                  <Plus className={`w-5 h-5 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                </button>
+                <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Story hinzufügen
+                </span>
+              </div>
             )}
 
             {/* User Stories */}

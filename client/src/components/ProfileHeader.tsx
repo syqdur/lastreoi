@@ -46,24 +46,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-  // Use gallery profile data from admin panel "Galerie Einstellungen" or gallery data
-  // Always prefer galleryProfileData but use gallery data as immediate fallback
-  // For new visitors, prioritize galleryProfileData to avoid showing old gallery creation data
+  // Use gallery profile data from admin panel "Galerie Einstellungen"
+  // Wait for real galleryProfileData to load - don't show old gallery creation data
   const displayData = React.useMemo(() => {
-    // If we have galleryProfileData, always use it
+    // Only show data when we have actual gallery profile data loaded
     if (galleryProfileData) {
       return galleryProfileData;
     }
-    // Otherwise use gallery data but only the current event info, not creation data
-    return {
-      name: gallery?.eventName || 'Gallery',
-      bio: gallery?.bio || '',
-      profilePicture: gallery?.profilePicture || null,
-      countdownDate: gallery?.countdownDate || null,
-      countdownEndMessage: gallery?.countdownEndMessage || '',
-      countdownMessageDismissed: gallery?.countdownMessageDismissed || false
-    };
-  }, [galleryProfileData, gallery]);
+    // Return null to show loading state until real data arrives
+    return null;
+  }, [galleryProfileData]);
 
   // Countdown timer effect with memoized calculation
   useEffect(() => {
@@ -109,6 +101,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
     return () => clearInterval(interval);
   }, [displayData?.countdownDate]);
+
+  // Show loading state while waiting for real gallery profile data
+  if (!displayData) {
+    return <HeaderLoadingSkeleton isDarkMode={isDarkMode} />;
+  }
 
   return (
     <>
@@ -171,7 +168,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <h2 className={`text-lg sm:text-xl font-bold tracking-tight transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                {galleryProfileData?.name || displayData?.name || gallery?.eventName || 'Gallery'}
+{displayData?.name || 'Gallery'}
               </h2>
               <div className={`flex gap-6 sm:gap-8 mt-2 sm:mt-3 text-sm font-medium transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -261,11 +258,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
        
         <div className="space-y-4">
-          {(galleryProfileData?.bio || displayData?.bio) && (
+          {displayData?.bio && (
             <p className={`text-sm transition-colors duration-300 ${
               isDarkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              {galleryProfileData?.bio || displayData?.bio}
+              {displayData.bio}
             </p>
           )}
           

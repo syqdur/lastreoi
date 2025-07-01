@@ -87,9 +87,19 @@ This is a comprehensive wedding gallery application with the following architect
 
 ## Recent Changes
 
-### July 1, 2025 (Complete Replit Agent to Replit Migration & ProfileHeader Fix)
+### July 1, 2025 (New Logo & Testing Phase Pricing - COMPLETED)
+- **New Telya Logo Integration**: Updated landing page with new professional Telya logo featuring pink heart icon in speech bubble design for improved brand recognition
+- **Testing Phase Pricing Update**: Modified "Kostenlos" plan to include ALL premium features during testing phase - users now get unlimited photos/videos, Instagram Stories, person tagging, timeline, Spotify integration, GPS location, push notifications, admin controls, and all advanced features for free during testing period
+- **Complete Feature Access**: Testing phase allows full platform evaluation with all Pro-level features available at no cost for comprehensive user feedback and platform validation
+
+### July 1, 2025 (Story Button Text Enhancement & ProfileHeader Fix - COMPLETED)
+- **Story Button Text Addition**: Added "Story hinzufügen" text label underneath the Add Story button in ConsolidatedNavigationBar component for better user clarity and improved German UI experience
+- **Enhanced Story Button Design**: Wrapped story button in vertical flex container with proper spacing and theme-appropriate text colors for consistent visual hierarchy
+- **Complete Replit Agent to Replit Migration & ProfileHeader Fix - COMPLETED)
 - **Successful Migration from Replit Agent**: Completed comprehensive migration from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
-- **ProfileHeader Data Loading Fix**: Fixed critical issue where ProfileHeader wasn't showing current gallery data after new user registration through UserNamePrompt - ProfileHeader now displays immediately with fallback data instead of waiting for Firebase profile data to load
+- **ProfileHeader Data Loading Fix**: Fixed critical issue where ProfileHeader wasn't showing current gallery data after first visit - ProfileHeader now shows loading skeleton while waiting for real Firebase data instead of displaying old fallback gallery information
+- **Firebase Listener Enhancement**: Improved gallery profile Firebase listener with better error handling, logging, and immediate data clearing to ensure consistent data loading across all gallery visits
+- **Real-time Profile Data**: ProfileHeader now properly loads and displays current gallery profile data from Firebase admin settings instead of showing outdated gallery creation data
 - **Immediate Data Display**: New visitors now see correct gallery information (name, bio, theme) immediately after completing registration instead of seeing loading states or old gallery data
 - **Enhanced User Experience**: Eliminated ProfileHeader loading delays by providing fallback gallery data that matches current gallery context while Firebase profile data loads in background
 - **All Dependencies Working**: tsx, Node.js 20, and all npm packages properly installed and running in Replit environment

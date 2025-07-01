@@ -6,6 +6,7 @@
   import { MediaModal } from './components/MediaModal';
   import { AdminPanelBurger } from './components/AdminPanelBurger';
   import { ProfileHeader } from './components/ProfileHeader';
+  import { HeaderLoadingSkeleton } from './components/HeaderLoadingSkeleton';
   import { UnderConstructionPage } from './components/UnderConstructionPage';
   import { StoriesBar } from './components/StoriesBar';
   import { StoriesViewer } from './components/StoriesViewer';
@@ -124,6 +125,7 @@
     const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
     const [galleryProfileData, setGalleryProfileData] = useState<any>(null);
     const [profileDataLoaded, setProfileDataLoaded] = useState(false);
+    const [profileListenerInitialized, setProfileListenerInitialized] = useState(false);
     const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
     const [galleryUsers, setGalleryUsers] = useState<any[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
@@ -910,14 +912,35 @@
 
     // Real-time gallery profile data synchronization
     useEffect(() => {
+      if (!gallery.id) {
+        console.log('❌ No gallery ID available for profile listener');
+        return;
+      }
+
       // Reset loading state when gallery changes
       setProfileDataLoaded(false);
+      setProfileListenerInitialized(false);
+      
+      // Immediately set fallback data based on current gallery
+      const immediateProfile = {
+        name: gallery.eventName,
+        bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+        countdownDate: null,
+        countdownEndMessage: 'Der große Tag ist da! 🎉',
+        countdownMessageDismissed: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      console.log('📋 Setting immediate gallery profile:', immediateProfile);
+      setGalleryProfileData(immediateProfile);
 
       console.log('🔄 Setting up real-time gallery profile listener for:', gallery.id);
+      console.log('🎪 Gallery event name:', gallery.eventName);
 
       const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
 
       const unsubscribe = onSnapshot(profileDocRef, (docSnapshot: any) => {
+        console.log('📡 Gallery profile snapshot received for:', gallery.id);
         if (docSnapshot.exists()) {
           const firebaseData = docSnapshot.data();
           console.log('✅ Gallery profile updated via real-time listener:', firebaseData);
@@ -925,10 +948,10 @@
           console.log('🔍 Firebase profile name:', firebaseData.name);
 
           // Always apply Firebase data if it exists - this contains customized gallery settings
-          // The Firebase data represents the actual configured profile from admin panel
           console.log('🔄 Applying real-time Firebase profile data from Gallery Settings');
           setGalleryProfileData(firebaseData);
           setProfileDataLoaded(true);
+          setProfileListenerInitialized(true);
         } else {
           console.log('📝 No Firebase profile found, creating default gallery profile');
           // Create default profile if none exists
@@ -941,8 +964,10 @@
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
+          console.log('📋 Setting default profile:', defaultProfile);
           setGalleryProfileData(defaultProfile);
           setProfileDataLoaded(true);
+          setProfileListenerInitialized(true);
         }
       }, (error: any) => {
         console.error('❌ Error in gallery profile listener:', error);
@@ -956,15 +981,17 @@
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
+        console.log('📋 Setting default profile after error:', defaultProfile);
         setGalleryProfileData(defaultProfile);
         setProfileDataLoaded(true);
+        setProfileListenerInitialized(true);
       });
 
       return () => {
-        console.log('🧹 Cleaning up gallery profile listener');
+        console.log('🧹 Cleaning up gallery profile listener for:', gallery.id);
         unsubscribe();
       };
-    }, [gallery.id, gallery.eventName, gallery.eventDate]);
+    }, [gallery.id, gallery.eventName]);
 
     // Subscribe to site status changes
     useEffect(() => {
@@ -1425,22 +1452,20 @@
         </div>
 
         <div className="max-w-md mx-auto px-2 sm:px-0">
-          {/* Profile Header - Only show when gallery profile data is loaded */}
-          {galleryProfileData && (
-            <ProfileHeader
-              isDarkMode={isDarkMode}
-              isAdmin={isAdmin}
-              userName={userName || undefined}
-              mediaItems={mediaItems}
-              onToggleAdmin={setIsAdmin}
-              currentUserProfile={currentUserProfile}
-              onOpenUserProfile={() => setShowUserProfileModal(true)}
-              showTopBarControls={false}
-              galleryProfileData={galleryProfileData}
-              onEditGalleryProfile={() => setShowProfileEditModal(true)}
-              gallery={gallery}
-            />
-          )}
+          {/* Profile Header */}
+          <ProfileHeader
+            isDarkMode={isDarkMode}
+            isAdmin={isAdmin}
+            userName={userName || undefined}
+            mediaItems={mediaItems}
+            onToggleAdmin={setIsAdmin}
+            currentUserProfile={currentUserProfile}
+            onOpenUserProfile={() => setShowUserProfileModal(true)}
+            showTopBarControls={false}
+            galleryProfileData={galleryProfileData}
+            onEditGalleryProfile={() => setShowProfileEditModal(true)}
+            gallery={gallery}
+          />
 
 
           {/* Tab Navigation - always visible */}
