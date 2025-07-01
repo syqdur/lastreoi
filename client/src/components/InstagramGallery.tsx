@@ -23,6 +23,7 @@ interface InstagramGalleryProps {
   deviceId: string;
   galleryTheme: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes';
   galleryId: string;
+  viewMode?: 'feed' | 'grid';
 }
 
 export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
@@ -42,9 +43,9 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
   getUserDisplayName,
   deviceId,
   galleryTheme,
-  galleryId
+  galleryId,
+  viewMode = 'feed'
 }) => {
-  const [viewMode, setViewMode] = useState<'feed' | 'grid'>('feed');
   const [notesSliderIndex, setNotesSliderIndex] = useState(0);
 
   const noteItems = items.filter(item => item.type === 'note');
@@ -72,74 +73,6 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
 
   return (
     <div>
-      {/* Modern View Toggle */}
-      <div className={`mx-3 mb-3 p-1 rounded-xl transition-all duration-500 overflow-hidden ${
-        isDarkMode 
-          ? 'bg-gray-800/40 border border-gray-700/30 backdrop-blur-xl shadow-lg' 
-          : 'bg-white/60 border border-gray-200/40 backdrop-blur-xl shadow-lg'
-      }`}>
-        <div className="flex items-center justify-center relative z-10">
-          <div className={`p-1 rounded-lg transition-all duration-300 flex flex-row ${
-            isDarkMode ? 'bg-gray-700/30' : 'bg-white/50'
-          }`}>
-            <button
-              onClick={() => setViewMode('feed')}
-              className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 touch-manipulation ${
-                viewMode === 'feed'
-                  ? isDarkMode
-                    ? galleryTheme === 'hochzeit'
-                      ? 'bg-pink-600 text-white shadow-lg'
-                      : galleryTheme === 'geburtstag'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : galleryTheme === 'urlaub'
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-green-600 text-white shadow-lg'
-                    : galleryTheme === 'hochzeit'
-                      ? 'bg-pink-500 text-white shadow-lg'
-                      : galleryTheme === 'geburtstag'
-                      ? 'bg-purple-500 text-white shadow-lg'
-                      : galleryTheme === 'urlaub'
-                      ? 'bg-blue-500 text-white shadow-lg'
-                      : 'bg-green-500 text-white shadow-lg'
-                : isDarkMode
-                  ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/30'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}
-            >
-              <List className="w-4 h-4" />
-              <span className="text-xs font-medium">Feed</span>
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 touch-manipulation ${
-                viewMode === 'grid'
-                  ? isDarkMode
-                    ? galleryTheme === 'hochzeit'
-                      ? 'bg-pink-600 text-white shadow-lg'
-                      : galleryTheme === 'geburtstag'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : galleryTheme === 'urlaub'
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-green-600 text-white shadow-lg'
-                    : galleryTheme === 'hochzeit'
-                      ? 'bg-pink-500 text-white shadow-lg'
-                      : galleryTheme === 'geburtstag'
-                      ? 'bg-purple-500 text-white shadow-lg'
-                      : galleryTheme === 'urlaub'
-                      ? 'bg-blue-500 text-white shadow-lg'
-                      : 'bg-green-500 text-white shadow-lg'
-                  : isDarkMode
-                    ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/30'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}
-            >
-              <Grid className="w-4 h-4" />
-              <span className="text-xs font-medium">Grid</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Content */}
       {viewMode === 'feed' ? (
         // Feed View

@@ -28,6 +28,7 @@
   import { AdminTutorial } from './components/AdminTutorial';
   import { SimpleTaggingModal } from './components/SimpleTaggingModal';
   import { EventLoadingSpinner } from './components/EventLoadingSpinner';
+  import { ConsolidatedNavigationBar } from './components/ConsolidatedNavigationBar';
   import { useUser } from './hooks/useUser';
   import { useOptimizedGallery } from './hooks/useOptimizedGallery';
   import { MediaItem, Comment, Like } from './types';
@@ -133,6 +134,7 @@
     const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
     const [showStoryUpload, setShowStoryUpload] = useState(false);
     const [activeTab, setActiveTab] = useState<'gallery' | 'music' | 'timeline'>('gallery');
+    const [viewMode, setViewMode] = useState<'feed' | 'grid'>('feed');
     const [showTutorial, setShowTutorial] = useState(false);
     const [showAdminTutorial, setShowAdminTutorial] = useState(false);
     const [showTaggingModal, setShowTaggingModal] = useState(false);
@@ -1381,19 +1383,6 @@
           )}
 
 
-          {/* Stories Bar */}
-          {siteStatus?.storiesEnabled && (
-            <StoriesBar
-              stories={stories}
-              currentUser={userName || ''}
-              deviceId={deviceId}
-              onAddStory={() => setShowStoryUpload(true)}
-              onViewStory={handleViewStory}
-              isDarkMode={isDarkMode}
-              storiesEnabled={siteStatus.storiesEnabled}
-            />
-          )}
-
           {/* Tab Navigation */}
           <TabNavigation 
             activeTab={activeTab}
@@ -1410,18 +1399,25 @@
           {/* Tab Content */}
           {activeTab === 'gallery' ? (
             <>
-              <UploadSection
+              {/* Consolidated Navigation Bar */}
+              <ConsolidatedNavigationBar
                 onUpload={handleUpload}
                 onVideoUpload={handleVideoUpload}
                 onNoteSubmit={handleNoteSubmit}
                 onAddStory={() => setShowStoryUpload(true)}
                 isUploading={isUploading}
                 progress={uploadProgress}
+                stories={stories}
+                currentUser={userName || ''}
+                deviceId={deviceId || ''}
+                onViewStory={handleViewStory}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
                 isDarkMode={isDarkMode}
-                storiesEnabled={gallery.settings.allowStories}
+                storiesEnabled={siteStatus?.storiesEnabled ?? false}
+                galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
                 themeTexts={themeTexts}
                 themeStyles={themeStyles}
-                galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
               />
 
               {status && (
@@ -1450,6 +1446,7 @@
                 deviceId={deviceId || ''}
                 galleryTheme={gallery.theme}
                 galleryId={gallery.id}
+                viewMode={viewMode}
               />
             </>
           ) : activeTab === 'timeline' ? (

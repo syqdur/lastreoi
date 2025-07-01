@@ -260,22 +260,51 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
         {/* Media Content with Tagging */}
         <div className="relative mx-6 mb-4 rounded-2xl overflow-hidden">
           {item.type === 'video' ? (
-          <video
-            src={item.url}
-            className="w-full aspect-square object-cover"
-            controls
-            preload="auto"
-            playsInline
-            webkit-playsinline="true"
-            muted
-            onLoadStart={() => setImageLoading(true)}
-            onLoadedData={() => setImageLoading(false)}
-            onError={() => {
-              setImageLoading(false);
-              setImageError(true);
-            }}
-          />
-        ) : (
+            <div className="relative w-full aspect-square">
+              <video
+                src={item.url}
+                className="w-full h-full object-cover"
+                controls
+                preload="metadata"
+                playsInline
+                webkit-playsinline="true"
+                muted
+                poster=""
+                onLoadStart={() => setImageLoading(true)}
+                onLoadedMetadata={() => setImageLoading(false)}
+                onCanPlay={() => setImageLoading(false)}
+                onError={() => {
+                  setImageLoading(false);
+                  setImageError(true);
+                }}
+              />
+              
+              {/* Like Button for Videos - Top Right */}
+              <div className="absolute top-4 right-4 z-40">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleLike(item.id);
+                  }}
+                  className={`bg-black/60 backdrop-blur-sm rounded-full p-3 transition-all duration-300 transform hover:scale-110 shadow-lg ${
+                    isLiked ? 'text-red-500' : 'text-white hover:text-red-400'
+                  }`}
+                  title={isLiked ? 'Unlike' : 'Like'}
+                >
+                  <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
+                </button>
+              </div>
+
+              {/* Loading indicator for videos */}
+              {imageLoading && (
+                <div className={`absolute inset-0 flex items-center justify-center transition-colors duration-300 ${
+                  isDarkMode ? 'bg-gray-700/80' : 'bg-gray-100/80'
+                }`}>
+                  <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+            </div>
+          ) : (
           <div className="relative w-full aspect-square">
             {imageLoading && !item.isUnavailable && (
               <div className={`absolute inset-0 flex items-center justify-center transition-colors duration-300 ${
