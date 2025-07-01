@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Unlock, Settings, Download, Globe, Users, ExternalLink, Image, Video, MessageSquare, Gift, Heart, Star, Eye, Code, Music, Sparkles, Camera, Share2, X as XIcon } from 'lucide-react';
+import { Lock, Unlock, Settings, Download, Globe, Users, ExternalLink, Image, Video, MessageSquare, Gift, Heart, Star, Eye, Code, Music, Sparkles, Camera, Share2, X as XIcon, Menu } from 'lucide-react';
 import { MediaItem } from '../types';
 import { Gallery } from '../services/galleryService';
 import { downloadAllMedia } from '../services/downloadService';
@@ -41,6 +41,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [showSpotifyAdmin, setShowSpotifyAdmin] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showPlatformUserManagement, setShowPlatformUserManagement] = useState(false);
+  const [showBurgerMenu, setShowBurgerMenu] = useState(false);
 
   const handleAdminToggle = () => {
     onToggleAdmin(!isAdmin);
@@ -257,122 +258,71 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     <>
       
 
-      {/* Admin Controls - Instagram 2.0 Style */}
+      {/* Burger Menu Button */}
       {isAdmin && (
-        <div className="fixed bottom-16 left-4 flex flex-col gap-2 sm:gap-4 max-w-xs">
-
-
-          {/* USER MANAGEMENT BUTTON */}
+        <>
           <button
-            onClick={() => setShowUserManagement(true)}
-            className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
+            onClick={() => setShowBurgerMenu(!showBurgerMenu)}
+            className={`fixed bottom-4 left-4 p-3 rounded-xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border z-50 ${
               isDarkMode
-                ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-cyan-500/20'
-                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-cyan-500/20'
+                ? 'bg-gray-800/80 border-gray-700/50 hover:bg-gray-800/90 shadow-2xl'
+                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl'
             }`}
-            title="User Management"
+            title="Admin Menu"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 opacity-60"></div>
-            <div className="relative flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
-                isDarkMode ? 'bg-gradient-to-br from-cyan-600/30 to-blue-600/30' : 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20'
-              }`}>
-                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
-              </div>
-              <div className="flex-1 text-left">
-                <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  User Management
-                </div>
-                <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Benutzer verwalten
-                </div>
-              </div>
-            </div>
+            <Menu className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} />
           </button>
 
-          {/* PLATFORM USER MANAGEMENT BUTTON */}
-          <button
-            onClick={() => setShowPlatformUserManagement(true)}
-            className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
-              isDarkMode
-                ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-purple-500/20'
-                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-purple-500/20'
-            }`}
-            title="Platform User Management"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-violet-500/20 opacity-60"></div>
-            <div className="relative flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
-                isDarkMode ? 'bg-gradient-to-br from-purple-600/30 to-violet-600/30' : 'bg-gradient-to-br from-purple-500/20 to-violet-500/20'
-              }`}>
-                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
-              </div>
-              <div className="flex-1 text-left">
-                <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Platform Users
-                </div>
-                <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Abos verwalten
-                </div>
-              </div>
-            </div>
-          </button>
+          {/* Burger Menu Overlay */}
+          {showBurgerMenu && (
+            <div 
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+              onClick={() => setShowBurgerMenu(false)}
+            >
+              <div 
+                className={`fixed bottom-20 left-4 p-4 rounded-2xl backdrop-blur-xl border max-w-sm w-80 z-50 ${
+                  isDarkMode
+                    ? 'bg-gray-800/90 border-gray-700/50 shadow-2xl'
+                    : 'bg-white/90 border-gray-200/60 shadow-2xl'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  {/* USER MANAGEMENT BUTTON */}
+                  <button
+                    onClick={() => {
+                      setShowUserManagement(true);
+                      setShowBurgerMenu(false);
+                    }}
+                    className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 border ${
+                      isDarkMode
+                        ? 'bg-gray-700/50 border-gray-600/50 hover:bg-gray-700/70'
+                        : 'bg-white/50 border-gray-200/50 hover:bg-white/70'
+                    }`}
+                  >
+                    <Users className={`w-5 h-5 mx-auto mb-1 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`} />
+                    <div className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      User Management
+                    </div>
+                  </button>
 
-          {/* PRICING MODAL BUTTON */}
-          <button
-            onClick={() => setShowPricingModal(true)}
-            className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
-              isDarkMode
-                ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-orange-500/20'
-                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-orange-500/20'
-            }`}
-            title="Pricing Plans"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-amber-500/20 opacity-60"></div>
-            <div className="relative flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
-                isDarkMode ? 'bg-gradient-to-br from-orange-600/30 to-amber-600/30' : 'bg-gradient-to-br from-orange-500/20 to-amber-500/20'
-              }`}>
-                <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
-              </div>
-              <div className="flex-1 text-left">
-                <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Pricing Plans
-                </div>
-                <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Tarife anzeigen
-                </div>
-              </div>
-            </div>
-          </button>
-
-          {/* SPOTIFY ADMIN BUTTON */}
-          <button
-            onClick={() => setShowSpotifyAdmin(true)}
-            className={`relative p-2 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-300 hover:scale-105 border overflow-hidden ${
-              isDarkMode
-                ? 'bg-gray-800/60 border-gray-700/50 hover:bg-gray-800/80 shadow-2xl shadow-green-500/20'
-                : 'bg-white/80 border-gray-200/60 hover:bg-white/90 shadow-2xl shadow-green-500/20'
-            }`}
-            title="Spotify Admin"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 opacity-60"></div>
-            <div className="relative flex items-center gap-2 sm:gap-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${
-                isDarkMode ? 'bg-gradient-to-br from-green-600/30 to-emerald-600/30' : 'bg-gradient-to-br from-green-500/20 to-emerald-500/20'
-              }`}>
-                <Music className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
-              </div>
-              <div className="flex-1 text-left">
-                <div className={`font-semibold text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Spotify Admin
-                </div>
-                <div className={`text-xs hidden sm:block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Musik verwalten
-                </div>
-              </div>
-            </div>
-          </button>
+                  {/* SPOTIFY ADMIN BUTTON */}
+                  <button
+                    onClick={() => {
+                      setShowSpotifyAdmin(true);
+                      setShowBurgerMenu(false);
+                    }}
+                    className={`p-3 rounded-lg transition-all duration-200 hover:scale-105 border ${
+                      isDarkMode
+                        ? 'bg-gray-700/50 border-gray-600/50 hover:bg-gray-700/70'
+                        : 'bg-white/50 border-gray-200/50 hover:bg-white/70'
+                    }`}
+                  >
+                    <Music className={`w-5 h-5 mx-auto mb-1 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                    <div className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Spotify Admin
+                    </div>
+                  </button>
 
           {/* WHATSAPP SHARE BUTTON */}
           <button

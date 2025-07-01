@@ -4,7 +4,7 @@
   import { UploadSection } from './components/UploadSection';
   import { InstagramGallery } from './components/InstagramGallery';
   import { MediaModal } from './components/MediaModal';
-  import { AdminPanel } from './components/AdminPanel';
+  import { AdminPanelBurger } from './components/AdminPanelBurger';
   import { ProfileHeader } from './components/ProfileHeader';
   import { UnderConstructionPage } from './components/UnderConstructionPage';
   import { StoriesBar } from './components/StoriesBar';
@@ -1547,25 +1547,23 @@
           />
         )}
 
-        {/* Admin Panel with Feature Toggles - Only visible for admins */}
-        {isAdmin && (
-          <AdminPanel
-            isDarkMode={isDarkMode}
-            isAdmin={isAdmin}
-            onToggleAdmin={(newIsAdmin: boolean) => {
-              if (newIsAdmin) {
-                setShowAdminLogin(true);
-              } else {
-                handleAdminLogout();
-              }
-            }}
-            mediaItems={mediaItems}
-            siteStatus={siteStatus ?? undefined}
-            getUserAvatar={getUserAvatar}
-            getUserDisplayName={getUserDisplayName}
-            gallery={gallery}
-          />
-        )}
+        {/* Admin Panel Burger Menu - Only visible for admins */}
+        <AdminPanelBurger
+          isDarkMode={isDarkMode}
+          isAdmin={isAdmin}
+          onToggleAdmin={(newIsAdmin: boolean) => {
+            if (newIsAdmin) {
+              setShowAdminLogin(true);
+            } else {
+              handleAdminLogout();
+            }
+          }}
+          mediaItems={mediaItems}
+          siteStatus={siteStatus ?? undefined}
+          getUserAvatar={getUserAvatar}
+          getUserDisplayName={getUserDisplayName}
+          gallery={gallery}
+        />
 
 
 
@@ -1657,70 +1655,54 @@
           />
         )}
 
-        <AdminPanel 
-          isDarkMode={isDarkMode} 
-          isAdmin={isAdmin}
-          onToggleAdmin={(status) => {
-            if (status) {
-              setShowAdminLogin(true);
-            } else {
-              handleAdminLogout();
-            }
-          }}
-          mediaItems={mediaItems}
-          siteStatus={siteStatus ?? undefined}
-          getUserAvatar={getUserAvatar}
-          getUserDisplayName={getUserDisplayName}
-          gallery={gallery}
-        />
+
 
         <BackToTopButton isDarkMode={isDarkMode} galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'} />
 
-        {/* Floating Admin Controls */}
+        {/* Admin Login Toggle - Bottom Left */}
         {userName && (
-          <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
-            <button
-              onClick={() => {
-                if (isAdmin) {
-                  handleAdminLogout();
-                } else {
-                  setShowAdminLogin(true);
-                }
-              }}
-              className={`w-12 h-12 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ring-2 ${
-                isDarkMode 
-                  ? 'bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
-                  : 'bg-white/90 hover:bg-gray-50/90 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
-              }`}
-              title={isAdmin ? "Admin-Modus verlassen" : "Admin-Modus"}
-            >
-              {isAdmin ? (
-                <Unlock className={`w-5 h-5 transition-colors duration-300 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                }`} />
-              ) : (
-                <Lock className={`w-5 h-5 transition-colors duration-300 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                }`} />
-              )}
-            </button>
-
-            {isAdmin && (
-              <button
-                onClick={() => setShowProfileEditModal(true)}
-                className={`w-12 h-12 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ring-2 ${
-                  isDarkMode 
-                    ? 'bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
-                    : 'bg-white/90 hover:bg-gray-50/90 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
-                }`}
-                title="Galerie-Einstellungen"
-              >
-                <Settings className={`w-5 h-5 transition-colors duration-300 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                }`} />
-              </button>
+          <button
+            onClick={() => {
+              if (isAdmin) {
+                handleAdminLogout();
+              } else {
+                setShowAdminLogin(true);
+              }
+            }}
+            className={`fixed bottom-20 left-4 w-12 h-12 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ring-2 z-40 ${
+              isDarkMode 
+                ? 'bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
+                : 'bg-white/90 hover:bg-gray-50/90 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
+            }`}
+            title={isAdmin ? "Admin-Modus verlassen" : "Admin-Modus"}
+          >
+            {isAdmin ? (
+              <Unlock className={`w-5 h-5 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`} />
+            ) : (
+              <Lock className={`w-5 h-5 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`} />
             )}
-          </div>
+          </button>
+        )}
+
+        {/* Galerie Einstellungen Button - Top Right */}
+        {isAdmin && (
+          <button
+            onClick={() => setShowProfileEditModal(true)}
+            className={`fixed top-4 right-4 w-12 h-12 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ring-2 z-40 ${
+              isDarkMode 
+                ? 'bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
+                : 'bg-white/90 hover:bg-gray-50/90 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
+            }`}
+            title="Galerie-Einstellungen"
+          >
+            <Settings className={`w-5 h-5 transition-colors duration-300 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`} />
+          </button>
         )}
 
         {/* Gallery Tutorial */}

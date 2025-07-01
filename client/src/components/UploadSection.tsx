@@ -60,14 +60,14 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
 
   return (
     <>
-      <div className={`mx-4 mb-4 p-6 rounded-3xl transition-all duration-500 ${
+      <div className={`mx-3 mb-3 p-3 rounded-xl transition-all duration-500 ${
         isDarkMode 
-          ? `bg-gray-800/40 border border-gray-700/30 backdrop-blur-xl shadow-2xl shadow-${themeStyles?.primaryColor || 'pink-500'}/10` 
-          : `bg-white/60 border border-gray-200/40 backdrop-blur-xl shadow-2xl shadow-${themeStyles?.primaryColor || 'pink-500'}/10`
+          ? `bg-gray-800/40 border border-gray-700/30 backdrop-blur-xl shadow-xl shadow-${themeStyles?.primaryColor || 'pink-500'}/10` 
+          : `bg-white/60 border border-gray-200/40 backdrop-blur-xl shadow-xl shadow-${themeStyles?.primaryColor || 'pink-500'}/10`
       }`}>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           {/* Modern Upload Button */}
-          <div className={`w-16 h-16 border-2 border-dashed rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-300 group hover:scale-105 ${
+          <div className={`w-12 h-12 border-2 border-dashed rounded-xl flex items-center justify-center relative overflow-hidden transition-all duration-300 group hover:scale-105 ${
             isDarkMode 
               ? 'border-pink-500/50 bg-gray-700/30 hover:bg-pink-500/20 hover:border-pink-400' 
               : 'border-pink-400/50 bg-pink-500/10 hover:bg-pink-500/20 hover:border-pink-500'
@@ -76,7 +76,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
               onClick={() => setShowUploadOptions(true)}
               className="absolute inset-0 w-full h-full flex items-center justify-center cursor-pointer"
             >
-              <Plus className={`w-6 h-6 transition-all duration-300 ${
+              <Plus className={`w-5 h-5 transition-all duration-300 ${
                 isDarkMode 
                   ? `text-${themeStyles?.secondaryColor || 'pink-400'} group-hover:text-${themeStyles?.primaryColor || 'pink-300'}` 
                   : `text-${themeStyles?.primaryColor || 'pink-500'} group-hover:text-${themeStyles?.accentColor || 'pink-600'}`
@@ -86,7 +86,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
 
           {/* Modern Content Info */}
           <div className="flex-1">
-            <h3 className={`font-bold text-lg tracking-tight mb-2 transition-colors duration-300 ${
+            <h3 className={`font-semibold text-base tracking-tight mb-1 transition-colors duration-300 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
               Neuer Beitrag

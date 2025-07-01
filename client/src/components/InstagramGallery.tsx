@@ -73,27 +73,18 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
   return (
     <div>
       {/* Modern View Toggle */}
-      <div className={`mx-2 sm:mx-4 mb-4 sm:mb-6 p-2 rounded-3xl transition-all duration-500 overflow-hidden ${
+      <div className={`mx-3 mb-3 p-1 rounded-xl transition-all duration-500 overflow-hidden ${
         isDarkMode 
-          ? 'bg-gray-800/40 border border-gray-700/30 backdrop-blur-xl shadow-2xl shadow-purple-500/10' 
-          : 'bg-white/60 border border-gray-200/40 backdrop-blur-xl shadow-2xl shadow-pink-500/10'
+          ? 'bg-gray-800/40 border border-gray-700/30 backdrop-blur-xl shadow-lg' 
+          : 'bg-white/60 border border-gray-200/40 backdrop-blur-xl shadow-lg'
       }`}>
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 opacity-5 pointer-events-none">
-          <div className={`absolute top-0 right-0 w-16 h-16 rounded-full blur-xl ${
-            isDarkMode ? 'bg-pink-500' : 'bg-pink-300'
-          }`} style={{ transform: 'translate(30%, -30%)' }}></div>
-          <div className={`absolute bottom-0 left-0 w-12 h-12 rounded-full blur-xl ${
-            isDarkMode ? 'bg-purple-500' : 'bg-purple-300'
-          }`} style={{ transform: 'translate(-30%, 30%)' }}></div>
-        </div>
         <div className="flex items-center justify-center relative z-10">
-          <div className={`p-1 rounded-2xl transition-all duration-300 flex flex-row ${
+          <div className={`p-1 rounded-lg transition-all duration-300 flex flex-row ${
             isDarkMode ? 'bg-gray-700/30' : 'bg-white/50'
           }`}>
             <button
               onClick={() => setViewMode('feed')}
-              className={`flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl transition-all duration-300 transform hover:scale-105 touch-manipulation ${
+              className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 touch-manipulation ${
                 viewMode === 'feed'
                   ? isDarkMode
                     ? galleryTheme === 'hochzeit'
@@ -116,11 +107,11 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
               }`}
             >
               <List className="w-4 h-4" />
-              <span className="text-xs sm:text-sm font-medium">Feed</span>
+              <span className="text-xs font-medium">Feed</span>
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl transition-all duration-300 transform hover:scale-105 touch-manipulation ${
+              className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 touch-manipulation ${
                 viewMode === 'grid'
                   ? isDarkMode
                     ? galleryTheme === 'hochzeit'
@@ -143,7 +134,7 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
               }`}
             >
               <Grid className="w-4 h-4" />
-              <span className="text-xs sm:text-sm font-medium">Grid</span>
+              <span className="text-xs font-medium">Grid</span>
             </button>
           </div>
         </div>
