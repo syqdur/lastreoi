@@ -69,7 +69,6 @@ const MediaItemComponent = memo<{
             <video
               src={item.url}
               className="w-full h-full object-cover"
-              poster={item.thumbnailUrl}
               preload="metadata"
             />
             <div className="absolute inset-0 flex items-center justify-center">
@@ -87,7 +86,7 @@ const MediaItemComponent = memo<{
             <div className="text-center p-4">
               <div className="text-2xl mb-2">📝</div>
               <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                {item.text}
+                {item.noteText || item.note || 'Notiz'}
               </p>
             </div>
           </div>
@@ -259,9 +258,10 @@ export const FastGallery: React.FC<FastGalleryProps> = ({
         </button>
       </div>
 
-      {/* Virtual grid */}
+      {/* Virtual grid with improved width */}
       <List
         height={containerHeight}
+        width="100%"
         itemCount={gridRows.length}
         itemSize={gridConfig.itemHeight}
         onScroll={handleScroll}

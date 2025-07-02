@@ -31,10 +31,9 @@
   import { EventLoadingSpinner } from './components/EventLoadingSpinner';
   import { ConsolidatedNavigationBar } from './components/ConsolidatedNavigationBar';
   import { useUser } from './hooks/useUser';
-  import { useOptimizedGallery } from './hooks/useOptimizedGallery';
+  import { useSimpleGallery } from './hooks/useSimpleGallery';
   import { MediaItem, Comment, Like, TextTag, PersonTag, LocationTagWithPosition } from './types';
-  import { initializePerformanceOptimizations } from './services/performanceOptimizations';
-import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, perfLogger } from './utils/quickPerformanceFix';
+  import { initSimpleGalleryLoading } from './utils/simpleGalleryLoad';
   import { Gallery, galleryService } from './services/galleryService';
   import { getThemeConfig, getThemeTexts, getThemeStyles } from './config/themes';
   import { storage, db } from './config/firebase';
@@ -89,8 +88,7 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
     subscribeAllGalleryStories,
     markGalleryStoryAsViewed,
     deleteGalleryStory,
-    cleanupExpiredGalleryStories,
-    getGalleryUsers
+    cleanupExpiredGalleryStories
   } from './services/galleryFirebaseService';
 
   interface GalleryAppProps {
@@ -116,24 +114,19 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
     const { userName, deviceId, showNamePrompt, setUserName } = useUser();
 
-    // 🚀 PERFORMANCE FIX: Reduce initial state complexity
-    const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-    const [comments, setComments] = useState<Comment[]>([]);
-    const [likes, setLikes] = useState<Like[]>([]);
+    // Stories remain separate as they're not handled by the gallery hook
     const [stories, setStories] = useState<Story[]>([]);
 
-    // PERFORMANCE FIX: Single, simple loading state only
-    const [isLoading, setIsLoading] = useState(true);
+    // Upload states (separate from gallery loading)
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
 
     // UI states
     const [showUserProfileModal, setShowUserProfileModal] = useState(false);
     const [showProfileEditModal, setShowProfileEditModal] = useState(false);
-    const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
     const [galleryProfileData, setGalleryProfileData] = useState<any>(null);
     const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
-    const [galleryUsers, setGalleryUsers] = useState<any[]>([]);
+    // Gallery users now managed by useSimpleGallery hook
     const [modalOpen, setModalOpen] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [status, setStatus] = useState('');
@@ -151,38 +144,25 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
     const [pendingUploadFiles, setPendingUploadFiles] = useState<FileList | null>(null);
     const [pendingUploadUrl, setPendingUploadUrl] = useState<string>('');
 
-    // Initialize performance optimizations
+    // Initialize simple gallery loading
     useEffect(() => {
-      console.log('🚀 Initializing performance fixes for gallery:', gallery.id);
-      perfLogger.start('Performance Initialization');
-      initQuickFix();
-      initializePerformanceOptimizations();
-      perfLogger.end('Performance Initialization');
+      initSimpleGalleryLoading();
     }, [gallery.id]);
 
     // 🚀 PERFORMANCE FIX: Simplified gallery change handler
     useEffect(() => {
-      console.log('🔄 Gallery changed - resetting state for:', gallery.id);
-
       // Clear old data immediately - FASTER
       setGalleryProfileData(null);
-      setMediaItems([]);
-      setComments([]);
-      setLikes([]);
       setStories([]);
-      setUserProfiles([]);
       setCurrentUserProfile(null);
       setSiteStatus(null);
       setIsAdmin(false);
       setModalOpen(false);
       setActiveTab('gallery');
-      setIsLoading(true);
 
       // 🧹 CRITICAL: Clear localStorage profile data to prevent old data from loading
-      console.log('🧹 Clearing localStorage profile data for fresh start');
       const oldKeys = Object.keys(localStorage).filter(key => key.startsWith('gallery_profile_'));
       oldKeys.forEach(key => {
-        console.log('🗑️ Removing old localStorage key:', key);
         localStorage.removeItem(key);
       });
 
@@ -228,9 +208,9 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
       const initNotifications = async () => {
         try {
-          console.log('✅ Notification service ready');
+          // Notification service initialization
         } catch (error) {
-          console.log('⚠️ Push notifications not available:', error);
+          // Push notifications not available
         }
       };
 
@@ -273,54 +253,25 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       };
     }, [userName, deviceId, gallery.id, gallery.settings.allowStories, isAdmin]);
 
-    // PERFORMANCE FIX: Simplified data loading
-    useEffect(() => {
-      if (!userName) return;
-
-      console.log('Loading gallery data for:', gallery.id);
-
-      // Load media with simplified loading
-      const unsubscribeGallery = loadGalleryMedia(gallery.id, (items) => {
-        setMediaItems(items);
-        setIsLoading(false); // Simple: set loading false when media loads
-      });
-
-      // 2. DELAYED: Load other data to prevent blocking
-      const timeouts: any[] = [];
-
-      // Load comments with delay
-      timeouts.push(setTimeout(() => {
-        loadGalleryComments(gallery.id, (comments) => {
-          const limitedComments = comments.slice(0, FAST_LOAD_CONFIG.INITIAL_COMMENTS_LIMIT);
-          setComments(limitedComments);
-        });
-      }, 500));
-
-      // Load likes with delay  
-      timeouts.push(setTimeout(() => {
-        loadGalleryLikes(gallery.id, setLikes);
-      }, 750));
-
-      // Load user profiles with delay
-      timeouts.push(setTimeout(() => {
-        loadGalleryUserProfiles(gallery.id, setUserProfiles);
-      }, 1000));
-
-      // Load gallery users last (lowest priority)
-      timeouts.push(setTimeout(async () => {
-        try {
-          const users = await getGalleryUsers(gallery.id);
-          setGalleryUsers(users);
-        } catch (error) {
-          console.error('Error loading gallery users:', error);
-        }
-      }, 1250));
-
-      return () => {
-        unsubscribeGallery();
-        timeouts.forEach(timeout => clearTimeout(timeout));
-      };
-    }, [userName, gallery.id]);
+    // 🚀 OPTIMIZED: Use the optimized gallery hook with infinite scroll
+    // 🎯 CRITICAL FIX: Load gallery data ALWAYS, regardless of userName
+    // This ensures the gallery loads in the background while user is registering
+    const {
+      mediaItems,
+      comments,
+      likes,
+      userProfiles,
+      galleryUsers,
+      isLoading,
+      isLoadingMore,
+      hasMore,
+      loadMore,
+      refresh
+    } = useSimpleGallery({
+      galleryId: gallery.id,
+      userName: userName || '', // Empty string is fine for loading
+      deviceId: deviceId || ''
+    });
 
     // PERFORMANCE FIX: Removed redundant data loading checks
 
@@ -347,10 +298,9 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
     const handleUpload = async (files: FileList) => {
       if (!userName || !files || files.length === 0) return;
 
-      // Refresh gallery users before opening tagging modal
+      // Gallery users are now managed by useSimpleGallery hook
       try {
-        const users = await getGalleryUsers(gallery.id);
-        setGalleryUsers(users);
+        // Users are automatically loaded by the hook
       } catch (error) {
         console.error('Error refreshing gallery users:', error);
       }
@@ -377,6 +327,9 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
         await uploadGalleryFiles(pendingUploadFiles, userName, deviceId, gallery.id, setUploadProgress, tags);
 
         await createOrUpdateGalleryUserProfile(userName, deviceId, {}, gallery.id);
+
+        // FIXED: Refresh gallery after upload to show new images with tags
+        await refresh();
 
         setStatus('✅ Bilder erfolgreich hochgeladen!');
         setTimeout(() => setStatus(''), 3000);
@@ -418,6 +371,9 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
         await createOrUpdateGalleryUserProfile(userName, deviceId, {}, gallery.id);
 
+        // FIXED: Refresh gallery after video upload
+        await refresh();
+
         setStatus('✅ Video erfolgreich hochgeladen!');
         setTimeout(() => setStatus(''), 3000);
       } catch (error) {
@@ -440,6 +396,9 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
         await addGalleryNote(noteText, userName, deviceId, gallery.id);
 
         await createOrUpdateGalleryUserProfile(userName, deviceId, {}, gallery.id);
+
+        // FIXED: Refresh gallery after adding note
+        await refresh();
 
         setStatus('✅ Notiz erfolgreich hinterlassen!');
         setTimeout(() => setStatus(''), 3000);
@@ -486,6 +445,9 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
       try {
         await editTextTag(item.id, tagId, newText, gallery.id);
+        
+        // No refresh needed - InstagramPost handles local state updates
+        
         setStatus('✅ Text erfolgreich aktualisiert!');
         setTimeout(() => setStatus(''), 3000);
       } catch (error) {
@@ -565,7 +527,6 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
         const mediaItem = mediaItems.find(item => item.id === mediaId);
         if (mediaItem && mediaItem.uploadedBy !== userName) {
           // TODO: Implement comment notifications
-          console.log('Comment notification would be sent to:', mediaItem.uploadedBy);
         }
 
         await createOrUpdateGalleryUserProfile(userName, deviceId, {}, gallery.id);
@@ -591,7 +552,6 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
         const mediaItem = mediaItems.find(item => item.id === mediaId);
         if (mediaItem && mediaItem.uploadedBy !== userName) {
           // TODO: Implement like notifications
-          console.log('Like notification would be sent to:', mediaItem.uploadedBy);
         }
       } catch (error) {
         console.error('Error toggling like:', error);
@@ -649,8 +609,7 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       // Background refresh without blocking modal opening
       setTimeout(async () => {
         try {
-          const users = await getGalleryUsers(gallery.id);
-          setGalleryUsers(users);
+          // Gallery users automatically managed
         } catch (error) {
           console.error('Error refreshing gallery users for modal:', error);
         }
@@ -681,7 +640,6 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       localStorage.setItem(`admin_auth_${gallery.id}`, JSON.stringify(authData));
 
       setShowAdminLogin(false);
-      console.log('🔐 Admin logged in successfully');
 
       // Check if admin tutorial should be shown (first time admin access)
       const adminTutorialKey = `admin_tutorial_shown_${gallery.id}`;
@@ -714,10 +672,6 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
     const handleAdminCredentialsSetup = async (credentials: { username: string; password: string }) => {
       try {
-        console.log('🔧 Setting up admin credentials for gallery:', gallery.id);
-        console.log('🔧 Device ID:', deviceId);
-        console.log('🔧 Username:', credentials.username);
-
         // Hash the password (simple implementation for demo)
         const hashedPassword = btoa(credentials.password); // Base64 encoding for demo
 
@@ -728,28 +682,20 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
           createdBy: deviceId
         };
 
-        console.log('🔧 Attempting to save admin credentials...');
-        console.log('🔧 Document path:', `galleries/${gallery.id}/admin/credentials`);
-        console.log('🔧 Credentials data:', { username: credentials.username, createdBy: deviceId });
-
         // Skip Firestore and use localStorage directly for reliability
-        console.log('💾 Using localStorage for admin credentials storage');
-
+        
         // Store credentials in localStorage
         localStorage.setItem(`admin_credentials_${gallery.id}`, JSON.stringify(adminCredentials));
-        console.log('✅ Admin credentials saved to localStorage');
-
+        
         // Set admin session
         const authData = {
           username: credentials.username,
           timestamp: Date.now()
         };
         localStorage.setItem(`admin_auth_${gallery.id}`, JSON.stringify(authData));
-        console.log('✅ Admin session saved to localStorage');
 
         setIsAdmin(true);
         setShowAdminCredentialsSetup(false);
-        console.log('🔐 Admin credentials set up successfully');
 
         // Create default gallery profile with owner name when admin credentials are set up
         if (!galleryProfileData || !galleryProfileData.profilePicture) {
@@ -775,16 +721,8 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
     const handleProfileUpdated = (profile: UserProfile) => {
       setCurrentUserProfile(profile);
-      setUserProfiles(prev => {
-        const index = prev.findIndex(p => p.id === profile.id);
-        if (index >= 0) {
-          const updated = [...prev];
-          updated[index] = profile;
-          return updated;
-        } else {
-          return [...prev, profile];
-        }
-      });
+      // Note: userProfiles are now managed by useOptimizedGallery hook
+      // The hook will automatically sync profile changes from Firebase
     };
 
     const handleNavigateToMedia = (mediaId: string) => {
@@ -799,8 +737,6 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
     // Real-time profile synchronization using Firebase listener
     useEffect(() => {
       if (!userName || !deviceId) return;
-
-      console.log('🔄 Setting up real-time profile listener for:', userName);
 
       const profilesCollection = collection(db, 'galleries', gallery.id, 'userProfiles');
       const q = query(
@@ -820,22 +756,17 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
           // Only update if data actually changed
           if (JSON.stringify(latestProfile) !== JSON.stringify(currentUserProfile)) {
-            console.log('✅ Profile updated via listener:', latestProfile);
             setCurrentUserProfile(latestProfile);
           }
         } else {
           // Profile doesn't exist, set to null
           if (currentUserProfile !== null) {
-            console.log('📝 Profile not found, setting to null');
             setCurrentUserProfile(null);
           }
         }
-      }, (error: any) => {
-        console.error('Error in profile listener:', error);
       });
 
       return () => {
-        console.log('🔌 Cleaning up profile listener');
         unsubscribe();
       };
     }, [userName, deviceId, gallery.id]); // Removed currentUserProfile from dependencies to prevent loops
@@ -916,20 +847,15 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       const loadGalleryProfile = async () => {
         try {
           const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-          console.log('📡 Loading admin customizations from:', profileDocRef.path);
-
           const profileDoc = await getDoc(profileDocRef);
 
           if (profileDoc.exists()) {
             const firebaseData = profileDoc.data();
-            console.log('✅ Admin customizations found, updating to:', firebaseData.name);
             setGalleryProfileData(firebaseData);
           } else {
-            console.log('📝 No admin customizations found, keeping immediate profile');
             // Keep the immediate profile we already set
           }
         } catch (error) {
-          console.error('❌ Error loading admin customizations:', error);
           // Keep the immediate profile we already set
         }
       };
@@ -940,13 +866,10 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       // Setup real-time listener for admin customizations ONLY
       const realtimeProfileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
       const unsubscribe = onSnapshot(realtimeProfileDocRef, (docSnapshot: any) => {
-        console.log('📡 Admin customizations snapshot received for:', gallery.id);
         if (docSnapshot.exists()) {
           const firebaseData = docSnapshot.data();
-          console.log('✅ Firebase admin data found:', firebaseData.name);
-
+          
           // Always use Firebase data when it exists - it's the current admin settings
-          console.log('🎨 Applying current Firebase admin settings');
           setGalleryProfileData({ ...firebaseData });
 
           // Clear old localStorage to prevent stale data issues
@@ -954,23 +877,16 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
             key.startsWith('gallery_profile_') && key !== `gallery_profile_${gallery.id}`
           );
           oldKeys.forEach(key => {
-            console.log('🗑️ Clearing old gallery profile cache:', key);
             localStorage.removeItem(key);
           });
 
           // Save current data to localStorage
           localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(firebaseData));
-        } else {
-          console.log('📝 No Firebase admin settings found, keeping gallery defaults');
-          // Document doesn't exist - keep the default profile we already set above
         }
-      }, (error: any) => {
-        console.error('❌ Error in admin customizations listener:', error);
-        console.log('📋 Keeping current profile after error');
+        // Document doesn't exist - keep the default profile we already set above
       });
 
       return () => {
-        console.log('🧹 Cleaning up gallery profile listener for:', gallery.id);
         unsubscribe();
       };
     }, [gallery.id, gallery.eventName]);
@@ -1102,19 +1018,11 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       }
     }, [userName, gallery.slug]);
 
-    // Sync all user profiles
+    // Sync all user profiles - now handled by useOptimizedGallery hook
     useEffect(() => {
-      const syncAllUserProfiles = async () => {
-        try {
-          const allProfiles = await getAllGalleryUserProfiles(gallery.id);
-          setUserProfiles(allProfiles);
-        } catch (error) {
-          console.error('Error syncing user profiles:', error);
-        }
-      };
-
-      syncAllUserProfiles();
-
+      // The hook already handles user profile syncing
+      // This useEffect is kept for handling custom events only
+      
       const handleUserConnected = async (event: CustomEvent) => {
         const { userName, deviceId, profilePicture } = event.detail;
 
@@ -1164,17 +1072,8 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
             setCurrentUserProfile(newProfile);
           }
 
-          // Immediately update user profiles list
-          setUserProfiles(prev => {
-            const index = prev.findIndex(p => p.userName === userName && p.deviceId === deviceId);
-            if (index >= 0) {
-              const updated = [...prev];
-              updated[index] = newProfile;
-              return updated;
-            } else {
-              return [...prev, newProfile];
-            }
-          });
+          // Note: userProfiles are now managed by useOptimizedGallery hook
+          // The hook will automatically reload profiles from Firebase
 
           // Trigger a custom event to notify all components of profile update
           window.dispatchEvent(new CustomEvent('profilePictureUpdated', { 
@@ -1196,9 +1095,9 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
         // Refresh gallery users for tagging
         setTimeout(async () => {
           try {
-            const users = await getGalleryUsers(gallery.id);
-            setGalleryUsers(users);
-            syncAllUserProfiles();
+            // Gallery users managed by hook - no manual refresh needed
+            console.log('Gallery users automatically managed by hook');
+            // Note: userProfiles are now synced by useSimpleGallery hook
           } catch (error) {
             console.error('Error refreshing gallery users:', error);
           }
@@ -1233,108 +1132,10 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       return <SpotifyCallback isDarkMode={isDarkMode} />;
     }
 
-    // PERFORMANCE FIX: Show UserNamePrompt only once for new users
-    // Remove redundant gallery creator logic that causes multiple prompts
+    // 🎯 BETTER: Show UserNamePrompt with gallery loading in background
     if (showNamePrompt && !showAdminCredentialsSetup) {
-      return <UserNamePrompt 
-        onSubmit={async (name: string, profilePicture?: File) => {
-          console.log('👋 Starting user registration for gallery:', gallery.id);
-
-          // Set user name first (this triggers the useUser hook)
-          setUserName(name, profilePicture);
-
-          // Immediately register user in gallery-scoped collections
-          try {
-            const currentDeviceId = getDeviceId();
-            console.log('📝 Registering user in gallery collections:', { name, deviceId: currentDeviceId, galleryId: gallery.id });
-
-            // Create user profile in gallery-specific collection
-            let newProfile;
-            if (profilePicture && profilePicture instanceof File) {
-              console.log('🖼️ Uploading profile picture for new user');
-              const profilePictureUrl = await uploadGalleryUserProfilePicture(profilePicture, name, currentDeviceId, gallery.id);
-              newProfile = await createOrUpdateGalleryUserProfile(name, currentDeviceId, {
-                displayName: name,
-                profilePicture: profilePictureUrl
-              }, gallery.id);
-            } else {
-              newProfile = await createOrUpdateGalleryUserProfile(name, currentDeviceId, {
-                displayName: name
-              }, gallery.id);
-            }
-
-            // Register in live_users collection for gallery
-            const userDocRef = doc(db, 'galleries', gallery.id, 'live_users', currentDeviceId);
-            await setDoc(userDocRef, {
-              userName: name,
-              deviceId: currentDeviceId,
-              lastSeen: new Date().toISOString(),
-              isActive: true,
-              connectedAt: new Date().toISOString()
-            });
-
-            console.log('✅ User successfully registered in gallery:', gallery.id);
-
-            // Trigger user profiles refresh
-            setCurrentUserProfile(newProfile);
-            setUserProfiles(prev => {
-              const index = prev.findIndex(p => p.userName === name && p.deviceId === currentDeviceId);
-              if (index >= 0) {
-                const updated = [...prev];
-                updated[index] = newProfile;
-                return updated;
-              } else {
-                return [...prev, newProfile];
-              }
-            });
-
-            // Refresh gallery users for tagging
-            try {
-              const users = await getGalleryUsers(gallery.id);
-              setGalleryUsers(users);
-            } catch (error) {
-              console.error('Error refreshing gallery users:', error);
-            }
-
-            // Force refresh gallery profile data to ensure ProfileHeader shows correct Firebase admin settings
-            try {
-              console.log('🔄 Refreshing gallery profile data after user registration');
-              const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-              const profileDoc = await getDoc(profileDocRef);
-              
-              if (profileDoc.exists()) {
-                const firebaseData = profileDoc.data();
-                console.log('✅ Refreshed admin settings after registration:', firebaseData.name);
-                setGalleryProfileData(firebaseData);
-              } else {
-                console.log('📝 No admin settings found, using gallery defaults');
-                const defaultProfile = {
-                  name: gallery.eventName,
-                  bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-                  countdownDate: null,
-                  countdownEndMessage: 'Der große Tag ist da! 🎉',
-                  countdownMessageDismissed: false,
-                  profilePicture: null
-                };
-                setGalleryProfileData(defaultProfile);
-              }
-            } catch (error) {
-              console.error('❌ Error refreshing gallery profile data:', error);
-            }
-
-          } catch (error) {
-            console.error('❌ Error during user registration:', error);
-          }
-        }} 
-        isDarkMode={isDarkMode} 
-        galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
-      />;
-    }
-
-    // PERFORMANCE FIX: Single simple loading screen
-    if (isLoading) {
       return (
-        <div className={`min-h-screen flex items-center justify-center transition-all duration-500 ${
+        <div className={`min-h-screen relative transition-all duration-500 ${
           isDarkMode 
             ? 'bg-gray-900' 
             : gallery.theme === 'hochzeit'
@@ -1345,30 +1146,31 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
             ? 'bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/20'
             : 'bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20'
         }`}>
-          <div className="text-center space-y-6 px-4">
-            <EventLoadingSpinner 
-              theme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'} 
-              isDarkMode={isDarkMode} 
-              size="large"
-              text="Galerie wird geladen..."
-            />
-
-            <div className="space-y-2">
-              <h1 className={`text-2xl font-bold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
+          {/* Removed loading indicator - show content immediately */}
+          
+          {!isLoading && mediaItems.length > 0 && (
+            <div className="absolute top-4 right-4 z-10">
+              <div className={`text-xs px-3 py-1 rounded-full ${
+                isDarkMode ? 'bg-green-800 text-green-300' : 'bg-green-100 text-green-600'
               }`}>
-                {gallery.eventName}
-              </h1>
-              <p className={`text-sm ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Deine Momente werden vorbereitet...
-              </p>
+                ✅ {mediaItems.length} Bilder bereit
+              </div>
             </div>
-          </div>
+          )}
+          
+          <UserNamePrompt 
+            onSubmit={async (name: string, profilePicture?: File) => {
+              setUserName(name, profilePicture);
+            }}
+            isDarkMode={isDarkMode} 
+            galleryTheme={gallery.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'}
+          />
         </div>
       );
     }
+
+    // REMOVED: Loading screen - show gallery content immediately
+    // if (isLoading) { ... }
 
     return (
       <div className={`min-h-screen relative transition-all duration-500 ${
@@ -1571,6 +1373,10 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
                 galleryTheme={gallery.theme}
                 galleryId={gallery.id}
                 viewMode={viewMode}
+                loadMore={loadMore}
+                hasMore={hasMore}
+                isLoading={isLoading}
+                isLoadingMore={isLoadingMore}
               />
             </>
           ) : activeTab === 'timeline' ? (
@@ -1768,10 +1574,6 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
                 setGalleryProfileData(updatedGalleryProfile);
 
                 // The onSnapshot listener should automatically update galleryProfileData
-                // But let's log to verify
-                console.log('✅ Gallery profile saved to Firebase successfully');
-                console.log('⏳ Waiting for onSnapshot to update galleryProfileData...');
-
                 setShowProfileEditModal(false);
               } catch (error: any) {
                 console.error('❌ Error updating gallery profile:', error);

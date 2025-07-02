@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Heart, Camera, Image, X } from 'lucide-react';
-import { CameraCapture } from './CameraCapture';
 import { getThemeConfig } from '../config/themes';
+
+// PERFORMANCE: Lazy load camera component to reduce initial bundle size
+const CameraCapture = React.lazy(() => import('./CameraCapture').then(module => ({ default: module.CameraCapture })));
 
 interface UserNamePromptProps {
   onSubmit: (name: string, profilePicture?: File) => void;
@@ -14,11 +16,12 @@ export const UserNamePrompt: React.FC<UserNamePromptProps> = ({ onSubmit, isDark
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   
-  const themeConfig = getThemeConfig(galleryTheme);
+  // PERFORMANCE: Memoize theme calculations
+  const themeConfig = React.useMemo(() => getThemeConfig(galleryTheme), [galleryTheme]);
   const themeStyles = themeConfig.styles;
   
-  // Define theme-specific classes to ensure Tailwind compilation
-  const themeClasses = {
+  // PERFORMANCE: Memoize theme classes to prevent recalculation
+  const themeClasses = React.useMemo(() => ({
     iconBg: galleryTheme === 'hochzeit' ? 'bg-pink-500' :
             galleryTheme === 'geburtstag' ? 'bg-purple-500' :
             galleryTheme === 'urlaub' ? 'bg-blue-500' : 'bg-green-500',
@@ -34,7 +37,7 @@ export const UserNamePrompt: React.FC<UserNamePromptProps> = ({ onSubmit, isDark
     buttonColors: galleryTheme === 'hochzeit' ? 'bg-pink-500 hover:bg-pink-600' :
                   galleryTheme === 'geburtstag' ? 'bg-purple-500 hover:bg-purple-600' :
                   galleryTheme === 'urlaub' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600'
-  };
+  }), [galleryTheme]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,13 +190,19 @@ export const UserNamePrompt: React.FC<UserNamePromptProps> = ({ onSubmit, isDark
         </form>
       </div>
 
-      {/* Camera Modal */}
+      {/* PERFORMANCE: Lazy loaded Camera Modal with Suspense */}
       {showCamera && (
-        <CameraCapture
-          onCapture={handleCameraCapture}
-          onClose={() => setShowCamera(false)}
-          isDarkMode={isDarkMode}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="text-white">Kamera wird geladen...</div>
+          </div>
+        }>
+          <CameraCapture
+            onCapture={handleCameraCapture}
+            onClose={() => setShowCamera(false)}
+            isDarkMode={isDarkMode}
+          />
+        </Suspense>
       )}
     </div>
   );

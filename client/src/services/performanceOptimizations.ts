@@ -5,30 +5,30 @@
 
 import { debounce, throttle, memoize, BatchProcessor, PerformanceMonitor } from './performanceService';
 
-// PERFORMANCE CONFIGURATION - Optimized for speed
+// PERFORMANCE CONFIGURATION - ULTRA FAST SETTINGS
 export const PERF_CONFIG = {
-  // Reduce initial load significantly
-  INITIAL_MEDIA_LIMIT: 8,        // Reduced from 20
-  PAGINATION_SIZE: 6,            // Smaller chunks
-  COMMENTS_LIMIT: 20,            // Reduced from 50
+  // Ultra fast initial load
+  INITIAL_MEDIA_LIMIT: 3,        // REDUCED from 8 to 3
+  PAGINATION_SIZE: 3,            // REDUCED from 6 to 3
+  COMMENTS_LIMIT: 5,             // REDUCED from 20 to 5
   
-  // Image optimization
-  MAX_IMAGE_WIDTH: 600,          // Reduced from 800
-  MAX_IMAGE_HEIGHT: 400,         // Reduced from 600
-  IMAGE_QUALITY: 0.7,            // Reduced from 0.8
+  // Aggressive image optimization
+  MAX_IMAGE_WIDTH: 300,          // REDUCED from 600 to 300
+  MAX_IMAGE_HEIGHT: 300,         // REDUCED from 400 to 300
+  IMAGE_QUALITY: 0.5,            // REDUCED from 0.7 to 0.5
   
-  // Caching times
+  // Faster caching times
   CACHE_TTL: {
-    MEDIA: 15000,      // 15 seconds (reduced)
-    COMMENTS: 30000,   // 30 seconds (reduced)
-    LIKES: 20000,      // 20 seconds (reduced)
-    PROFILES: 60000    // 1 minute (reduced)
+    MEDIA: 60000,      // 60 seconds (increased for less requests)
+    COMMENTS: 60000,   // 60 seconds (increased)
+    LIKES: 30000,      // 30 seconds
+    PROFILES: 120000   // 2 minutes (increased)
   },
   
-  // Debounce for better responsiveness
-  SCROLL_DEBOUNCE: 50,     // Faster scroll response
-  SEARCH_DEBOUNCE: 200,    // Faster search
-  LOAD_DEBOUNCE: 100       // Faster loading
+  // Ultra fast debounce
+  SCROLL_DEBOUNCE: 16,     // 60fps scroll response
+  SEARCH_DEBOUNCE: 100,    // Fast search
+  LOAD_DEBOUNCE: 50        // Ultra fast loading
 };
 
 // 1. Optimized Firebase Query System

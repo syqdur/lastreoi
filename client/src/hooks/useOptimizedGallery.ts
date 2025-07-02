@@ -45,7 +45,7 @@ export const useOptimizedGallery = ({
   galleryId,
   userName,
   deviceId,
-  initialLimit = 20,
+  initialLimit = 2,                // ULTRA REDUCED: Only 2 items for instant loading
   enableInfiniteScroll = true
 }: UseOptimizedGalleryOptions): UseOptimizedGalleryReturn => {
   // State
@@ -55,8 +55,8 @@ export const useOptimizedGallery = ({
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
   const [galleryUsers, setGalleryUsers] = useState<any[]>([]);
   
-  // Loading states
-  const [isLoading, setIsLoading] = useState(true);
+  // Loading states - START AS FALSE for parallel loading
+  const [isLoading, setIsLoading] = useState(false); // 🚀 CRITICAL: Start as false!
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   
@@ -96,24 +96,65 @@ export const useOptimizedGallery = ({
     [galleryId, isLoadingMore, hasMore, enableInfiniteScroll, initialLimit]
   );
 
-  // Optimized data loading with caching
+  // 🚀 INSTANT CACHE CHECK: Try to load from cache first
+  useEffect(() => {
+    const checkInstantCache = async () => {
+      try {
+        const { getInstantGalleryCache, forceShowGalleryContent } = await import('../utils/quickPerformanceFix');
+        const cachedItems = getInstantGalleryCache(galleryId);
+        
+        if (cachedItems && cachedItems.length > 0) {
+          console.log('🚀 INSTANT CACHE: Using cached data for immediate display');
+          setMediaItems(cachedItems);
+          
+          // Force show content immediately
+          forceShowGalleryContent();
+        }
+      } catch (error) {
+        console.warn('Cache check failed:', error);
+      }
+    };
+    
+    checkInstantCache();
+  }, [galleryId]);
+
+  // 🚀 PARALLEL LOADING: Start immediately without blocking UI
   const loadGalleryData = useCallback(async () => {
     if (!userName || !galleryId) return;
     
-    setIsLoading(true);
+    // 🚀 CRITICAL: DON'T set loading to true - load in background!
+    console.log('🚀 PARALLEL: Starting background data load for gallery', galleryId);
     const endTime = performanceMonitor.time('initialLoad');
     
     try {
-      // Load data in parallel with caching
+      // Load data in parallel with caching - NO BLOCKING UI
       await Promise.all([
         // Media loading with real-time updates
-        new Promise<void>((resolve) => {
-          const unsubscribe = loadGalleryMedia(galleryId, (items) => {
+        new Promise<void>(async (resolve) => {
+          const unsubscribe = loadGalleryMedia(galleryId, async (items) => {
+            console.log('🚀 PARALLEL: Media items received:', items.length);
             setMediaItems(items);
-            if (items.length > 0) {
-              // Set lastDoc for pagination (assuming items are sorted by uploadedAt desc)
-              lastDocRef.current = { uploadedAt: items[items.length - 1].uploadedAt };
+            
+            // 🚀 CACHE: Save to instant cache for future loads
+            try {
+              const { setInstantGalleryCache, forceShowGalleryContent } = await import('../utils/quickPerformanceFix');
+              setInstantGalleryCache(galleryId, items);
+              
+              // Force show content immediately
+              if (items.length > 0) {
+                forceShowGalleryContent();
+              }
+            } catch (error) {
+              console.warn('Cache save failed:', error);
             }
+            
+            if (items.length > 0) {
+              // For initial load, we don't have the Firebase document
+              // so we'll use uploadedAt for pagination
+              const lastItem = items[items.length - 1];
+              lastDocRef.current = lastItem.uploadedAt;
+            }
+            // 🚀 INSTANT: Resolve immediately when first items arrive
             resolve();
           }, initialLimit);
           unsubscribersRef.current.push(unsubscribe);
@@ -154,10 +195,11 @@ export const useOptimizedGallery = ({
         }
       );
       
+      console.log('🚀 PARALLEL: Background loading completed successfully');
     } catch (error) {
       console.error('Error loading gallery data:', error);
     } finally {
-      setIsLoading(false);
+      // 🚀 CRITICAL: Don't set loading false here - we never set it true!
       endTime();
     }
   }, [galleryId, userName, deviceId, initialLimit]);
@@ -207,7 +249,7 @@ export const useOptimizedGallery = ({
       setLikes([]);
       setUserProfiles([]);
       setGalleryUsers([]);
-      setIsLoading(true);
+      // 🚀 PARALLEL: Don't block UI with loading state
       setHasMore(true);
       lastDocRef.current = null;
     };

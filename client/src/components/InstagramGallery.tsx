@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MediaItem, Comment, Like } from '../types';
 import { InstagramPost } from './InstagramPost';
@@ -25,7 +25,31 @@ interface InstagramGalleryProps {
   galleryTheme: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes';
   galleryId: string;
   viewMode?: 'feed' | 'grid';
+  // Infinite scroll props
+  loadMore?: () => void;
+  hasMore?: boolean;
+  isLoading?: boolean;
+  isLoadingMore?: boolean;
 }
+
+// 🚀 INSTANT VISUAL FEEDBACK: Skeleton component for gallery loading
+export const GallerySkeleton: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) => (
+  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 sm:gap-2 px-2 sm:px-3">
+    {[...Array(4)].map((_, i) => (
+      <div
+        key={i}
+        className={`aspect-square rounded-lg animate-pulse ${
+          isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+        }`}
+        style={{ minHeight: '120px' }}
+      >
+        <div className={`w-full h-full rounded-lg ${
+          isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+        }`} />
+      </div>
+    ))}
+  </div>
+);
 
 export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
   items,
@@ -46,12 +70,39 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
   deviceId,
   galleryTheme,
   galleryId,
-  viewMode = 'feed'
+  viewMode = 'feed',
+  loadMore,
+  hasMore,
+  isLoading,
+  isLoadingMore
 }) => {
   const [notesSliderIndex, setNotesSliderIndex] = useState(0);
 
-  const noteItems = (items || []).filter(item => item.type === 'note');
-  const mediaItems = (items || []).filter(item => item.type !== 'note');
+  // OPTIMIZED: Memoize expensive filtering operations
+  const { noteItems, mediaItems } = React.useMemo(() => {
+    const notes = (items || []).filter(item => item.type === 'note');
+    const media = (items || []).filter(item => item.type !== 'note');
+    return { noteItems: notes, mediaItems: media };
+  }, [items]);
+
+  // OPTIMIZED: Memoize comment and like maps for O(1) lookup instead of O(n) filtering
+  const commentsByMediaId = React.useMemo(() => {
+    const map = new Map<string, Comment[]>();
+    comments.forEach(comment => {
+      const existing = map.get(comment.mediaId) || [];
+      map.set(comment.mediaId, [...existing, comment]);
+    });
+    return map;
+  }, [comments]);
+
+  const likesByMediaId = React.useMemo(() => {
+    const map = new Map<string, Like[]>();
+    likes.forEach(like => {
+      const existing = map.get(like.mediaId) || [];
+      map.set(like.mediaId, [...existing, like]);
+    });
+    return map;
+  }, [likes]);
   
   // Get theme configuration with fallback
   const themeConfig = GALLERY_THEMES[galleryTheme] || GALLERY_THEMES.hochzeit;
@@ -73,6 +124,28 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
     setNotesSliderIndex(index);
   };
 
+  // Infinite scroll functionality
+  const handleScroll = useCallback(() => {
+    if (!loadMore || !hasMore || isLoading || isLoadingMore) return;
+
+    const scrollHeight = document.documentElement.scrollHeight;
+    const scrollTop = document.documentElement.scrollTop;
+    const clientHeight = document.documentElement.clientHeight;
+
+    // Trigger load more when 200px from bottom
+    if (scrollHeight - scrollTop <= clientHeight + 200) {
+      loadMore();
+    }
+  }, [loadMore, hasMore, isLoading, isLoadingMore]);
+
+  // Add scroll listener
+  useEffect(() => {
+    if (loadMore && hasMore) {
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll, loadMore, hasMore]);
+
   return (
     <div>
       {/* Content */}
@@ -84,8 +157,8 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
               <NotePost
                 key={item.id}
                 item={item}
-                comments={comments.filter(c => c.mediaId === item.id)}
-                likes={likes.filter(l => l.mediaId === item.id)}
+                comments={commentsByMediaId.get(item.id) || []}
+                likes={likesByMediaId.get(item.id) || []}
                 onAddComment={onAddComment}
                 onDeleteComment={onDeleteComment}
                 onToggleLike={onToggleLike}
@@ -103,8 +176,8 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
               <InstagramPost
                 key={item.id}
                 item={item}
-                comments={comments.filter(c => c.mediaId === item.id)}
-                likes={likes.filter(l => l.mediaId === item.id)}
+                comments={commentsByMediaId.get(item.id) || []}
+                likes={likesByMediaId.get(item.id) || []}
                 onAddComment={onAddComment}
                 onDeleteComment={onDeleteComment}
                 onToggleLike={onToggleLike}
@@ -127,6 +200,11 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
       ) : (
         // Grid View
         <div className="p-1">
+          {/* Show skeleton if loading and no items yet */}
+          {isLoading && items.length === 0 && (
+            <GallerySkeleton isDarkMode={isDarkMode} />
+          )}
+          
           {/* Notes Slider */}
           {noteItems.length > 0 && (
             <div className="mb-6">
@@ -414,7 +492,21 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
                             src={item.url}
                             alt={item.noteText || item.note || 'Uploaded media'}
                             className="w-full h-full object-cover"
-                            loading="lazy"
+                            loading={mediaIndex < 4 ? "eager" : "lazy"}
+                            decoding="async"
+                            style={{ 
+                              backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
+                              transition: 'opacity 0.2s ease-in-out'
+                            }}
+                            onLoad={(e) => {
+                              const img = e.target as HTMLImageElement;
+                              img.style.opacity = '1';
+                            }}
+                            onError={(e) => {
+                              const img = e.target as HTMLImageElement;
+                              img.style.opacity = '0.5';
+                              console.warn('Failed to load image:', item.url);
+                            }}
                           />
                         )}
                       </div>
@@ -441,22 +533,128 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
             </div>
           )}
 
-          {/* Empty State */}
+          {/* 🚀 INSTANT FEEDBACK: Show skeleton immediately if no items */}
           {items.length === 0 && (
-            <div className={`text-center py-12 transition-colors duration-300 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              <div className="text-6xl mb-4">📸</div>
-              <h3 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
+            <GallerySkeleton isDarkMode={isDarkMode} />
+          )}
+
+          {/* Media Grid */}
+          {mediaItems.length > 0 && (
+            <div>
+              <h3 className={`text-lg font-semibold mb-3 px-3 transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                Noch keine Beiträge
+                📸 Medien ({mediaItems.length})
               </h3>
-              <p className={`transition-colors duration-300 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>
-                Lade das erste Foto hoch oder hinterlasse eine Notiz!
-              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 sm:gap-2 px-2 sm:px-3">
+                {mediaItems.map((item, mediaIndex) => {
+                  // Find the original index in the full items array
+                  const originalIndex = items.findIndex(i => i.id === item.id);
+                  const itemLikes = likes.filter(l => l.mediaId === item.id);
+                  const itemComments = comments.filter(c => c.mediaId === item.id);
+                  
+                  return (
+                    <div
+                      key={item.id}
+                      className="relative aspect-square cursor-pointer group touch-manipulation"
+                      onClick={() => onItemClick(originalIndex)}
+                      style={{ minHeight: '120px' }}
+                    >
+                      {/* Media Content */}
+                      <div className="w-full h-full overflow-hidden">
+                        {item.type === 'video' ? (
+                          <div className="relative w-full h-full">
+                            <video
+                              src={item.url}
+                              className="w-full h-full object-cover"
+                              muted
+                              preload="metadata"
+                            />
+                            {/* Video indicator */}
+                            <div className="absolute top-2 right-2 bg-black/60 rounded-full p-1">
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={item.url}
+                            alt={item.noteText || item.note || 'Uploaded media'}
+                            className="w-full h-full object-cover"
+                            loading={mediaIndex < 4 ? "eager" : "lazy"}
+                            decoding="async"
+                            style={{ 
+                              backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
+                              transition: 'opacity 0.2s ease-in-out'
+                            }}
+                            onLoad={(e) => {
+                              const img = e.target as HTMLImageElement;
+                              img.style.opacity = '1';
+                            }}
+                            onError={(e) => {
+                              const img = e.target as HTMLImageElement;
+                              img.style.opacity = '0.5';
+                              console.warn('Failed to load image:', item.url);
+                            }}
+                          />
+                        )}
+                      </div>
+                      
+                      {/* Mobile optimized overlay - shows on touch devices */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center md:hover:opacity-100">
+                        <div className="text-white text-center">
+                          <div className="flex items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-medium">
+                            <span className="flex items-center gap-1 bg-black/30 px-2 py-1 rounded-full">
+                              <span>❤️</span>
+                              {itemLikes.length}
+                            </span>
+                            <span className="flex items-center gap-1 bg-black/30 px-2 py-1 rounded-full">
+                              <span>💬</span>
+                              {itemComments.length}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Loading indicator for more content */}
+          {isLoadingMore && items.length > 0 && (
+            <div className={`text-center py-8 transition-colors duration-300 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-t-transparent border-current"></div>
+              <p className="mt-2">Mehr Inhalte werden geladen...</p>
+            </div>
+          )}
+
+          {/* Load More Button */}
+          {loadMore && hasMore && !isLoading && !isLoadingMore && items.length > 0 && (
+            <div className="text-center py-6">
+              <button
+                onClick={loadMore}
+                className={`px-6 py-3 rounded-lg font-medium transition-colors duration-300 ${
+                  isDarkMode 
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                }`}
+              >
+                Mehr laden
+              </button>
+            </div>
+          )}
+
+          {/* End of content indicator */}
+          {loadMore && !hasMore && items.length > 0 && (
+            <div className={`text-center py-6 text-sm transition-colors duration-300 ${
+              isDarkMode ? 'text-gray-500' : 'text-gray-400'
+            }`}>
+              🎉 Du hast alle Inhalte gesehen!
             </div>
           )}
         </div>

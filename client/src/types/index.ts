@@ -10,6 +10,10 @@ export interface MediaItem {
   note?: string; // Legacy support
   isUnavailable?: boolean;
   tags?: (PersonTag | LocationTagWithPosition | TextTag)[]; // Tagged users, locations, and text in this media (Instagram-style tags)
+  // NEW: Structured tag fields for better organization
+  textTags?: TextTag[];
+  personTags?: PersonTag[];
+  locationTags?: LocationTagWithPosition[];
   location?: LocationTag; // Geographic location where media was taken
   galleryTheme?: 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes'; // Theme for event-based styling
 }

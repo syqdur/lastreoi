@@ -59,11 +59,11 @@ export const isUserDeleted = async (galleryId: string, deviceId: string): Promis
 export const loadGalleryMedia = (
   galleryId: string,
   setMediaItems: (items: MediaItem[]) => void,
-  initialLimit: number = 8  // 🚀 REDUCED from 20 to 8 for faster initial load
+  initialLimit: number = 1  // 🚀 INSTANT: Only 1 item for immediate feedback
 ): (() => void) => {
   const mediaCollection = `galleries/${galleryId}/media`;
   
-  // 🚀 PERFORMANCE: Much smaller initial query
+  // 🚀 PERFORMANCE: Ultra minimal query
   const q = query(
     collection(db, mediaCollection), 
     orderBy('uploadedAt', 'desc'), 
@@ -71,16 +71,28 @@ export const loadGalleryMedia = (
   );
   
   return onSnapshot(q, (snapshot) => {
-    console.log(`🚀 Loading ${snapshot.docs.length} media items for gallery ${galleryId}`);
+    const startTime = performance.now();
+    console.log(`🚀 Firebase callback: ${snapshot.docs.length} docs for gallery ${galleryId}`);
     
-    // 🚀 PERFORMANCE: Process items immediately without batching for speed
+    // 🚀 CRITICAL: Even if no docs, immediately callback with empty array
+    if (snapshot.docs.length === 0) {
+      console.log('🚀 No media found, setting empty array immediately');
+      setMediaItems([]);
+      return;
+    }
+    
+    // 🚀 PERFORMANCE: Process items with minimal processing
     const mediaList: MediaItem[] = snapshot.docs.map(docSnap => {
       const data = docSnap.data();
       let url = '';
       
       if (data.type !== 'note') {
-        // Prioritize existing URLs for fastest loading
-        url = data.mediaUrl || data.base64Data || '';
+        // SMART FALLBACK: Prefer mediaUrl, use base64 only if necessary
+        if (data.mediaUrl) {
+          url = data.mediaUrl;
+        } else if (data.base64Data) {
+          url = data.base64Data; // Fallback for images without URLs
+        }
       }
       
       return {
@@ -98,8 +110,15 @@ export const loadGalleryMedia = (
       };
     });
     
+    const endTime = performance.now();
+    console.log(`🚀 Processed ${mediaList.length} items in ${Math.round(endTime - startTime)}ms`);
+    
     // 🚀 PERFORMANCE: Set items immediately
     setMediaItems(mediaList);
+  }, (error) => {
+    console.error('🚀 Firebase error:', error);
+    // 🚀 CRITICAL: Even on error, stop loading state
+    setMediaItems([]);
   });
 };
 
@@ -198,7 +217,14 @@ export const uploadGalleryFiles = async (
       mediaUrl: mediaUrl,
       size: file.size,
       mimeType: file.type,
-      tags: tags || [], // Add tags field
+      // FIXED: Store tags in correct format for gallery display
+      textTags: tags?.filter(tag => tag.type === 'text') || [],
+      personTags: tags?.filter(tag => tag.type === 'person' || tag.type === 'user') || [],
+      locationTags: tags?.filter(tag => tag.type === 'location').map(tag => ({
+        ...tag,
+        locationName: (tag as any).name || (tag as any).locationName // Convert name to locationName for consistency
+      })) || [],
+      tags: tags || [], // Keep original tags for backwards compatibility
       ...(storageFileName && { fileName: storageFileName }) // Store Firebase Storage path for videos
     });
 
@@ -329,7 +355,11 @@ export const uploadGalleryVideoBlob = async (
       type: 'video',
       base64Data: base64Data,
       mimeType: videoBlob.type,
-      size: videoBlob.size
+      size: videoBlob.size,
+      // FIXED: Initialize empty tag arrays for consistency
+      textTags: [],
+      personTags: [],
+      locationTags: []
     });
     
     onProgress(100);
@@ -354,7 +384,11 @@ export const addGalleryNote = async (
     deviceId: deviceId,
     uploadedAt: new Date().toISOString(),
     type: 'note',
-    noteText: noteText
+    noteText: noteText,
+    // FIXED: Initialize empty tag arrays for consistency
+    textTags: [],
+    personTags: [],
+    locationTags: []
   });
 };
 
@@ -388,23 +422,51 @@ export const editTextTag = async (
   }
   
   const mediaData = mediaDoc.data();
-  const tags = mediaData.tags || [];
+  let updated = false;
+  const updates: any = {};
   
-  // Find and update the specific text tag
-  const updatedTags = tags.map((tag: any) => {
-    if (tag.id === tagId && tag.type === 'text') {
-      return {
-        ...tag,
-        text: newText
-      };
+  // Check and update new textTags format
+  if (mediaData.textTags && Array.isArray(mediaData.textTags)) {
+    const updatedTextTags = mediaData.textTags.map((tag: any) => {
+      if (tag.id === tagId) {
+        updated = true;
+        return {
+          ...tag,
+          text: newText
+        };
+      }
+      return tag;
+    });
+    
+    if (updated) {
+      updates.textTags = updatedTextTags;
     }
-    return tag;
-  });
+  }
+  
+  // Check and update legacy tags format if not found in textTags
+  if (!updated && mediaData.tags && Array.isArray(mediaData.tags)) {
+    const updatedLegacyTags = mediaData.tags.map((tag: any) => {
+      if (tag.id === tagId && tag.type === 'text') {
+        updated = true;
+        return {
+          ...tag,
+          text: newText
+        };
+      }
+      return tag;
+    });
+    
+    if (updated) {
+      updates.tags = updatedLegacyTags;
+    }
+  }
+  
+  if (!updated) {
+    throw new Error('Text tag not found');
+  }
   
   // Update the media document with modified tags
-  await updateDoc(mediaRef, {
-    tags: updatedTags
-  });
+  await updateDoc(mediaRef, updates);
 };
 
 // Update all tags for a media item (for admin text tag management)
@@ -1168,66 +1230,75 @@ export const getGalleryUsers = async (galleryId: string): Promise<any[]> => {
   }
 };
 
-// Load more media items for infinite scroll/pagination
+// 🚀 PERFORMANCE OPTIMIZED: Load more media for infinite scroll
 export const loadMoreGalleryMedia = async (
   galleryId: string,
-  lastDoc: any,
-  limitCount: number = 20
-): Promise<{ items: MediaItem[]; lastDoc: any }> => {
+  lastDocUploadedAt: string,
+  loadLimit: number = 6
+): Promise<{ items: MediaItem[], lastDoc: any }> => {
   const mediaCollection = `galleries/${galleryId}/media`;
-  const q = query(
-    collection(db, mediaCollection),
-    orderBy('uploadedAt', 'desc'),
-    startAfter(lastDoc),
-    limit(limitCount)
-  );
   
-  const snapshot = await getDocs(q);
-  const items: MediaItem[] = [];
+  console.log(`🔄 Loading more media for gallery ${galleryId}, limit: ${loadLimit}, after: ${lastDocUploadedAt}`);
+  const startTime = performance.now();
   
-  // Batch process for performance
-  const batchSize = 5;
-  const batches = [];
-  
-  for (let i = 0; i < snapshot.docs.length; i += batchSize) {
-    batches.push(snapshot.docs.slice(i, i + batchSize));
-  }
-  
-  const batchResults = await Promise.all(
-    batches.map(batch => 
-      Promise.all(batch.map(docSnap => {
-        const data = docSnap.data();
-        let url = '';
-        
-        if (data.type !== 'note') {
-          if (data.mediaUrl) {
-            url = data.mediaUrl;
-          } else if (data.base64Data) {
-            url = data.base64Data;
-          }
+  try {
+    // Query for items older than the last uploadedAt
+    const q = query(
+      collection(db, mediaCollection),
+      orderBy('uploadedAt', 'desc'),
+      where('uploadedAt', '<', lastDocUploadedAt),
+      limit(loadLimit)
+    );
+    
+    const snapshot = await getDocs(q);
+    const endTime = performance.now();
+    
+    console.log(`🔄 Loaded ${snapshot.docs.length} more items in ${Math.round(endTime - startTime)}ms`);
+    
+    const mediaList: MediaItem[] = snapshot.docs.map(docSnap => {
+      const data = docSnap.data();
+      let url = '';
+      
+      if (data.type !== 'note') {
+        // SMART FALLBACK: Prefer URLs, fallback to base64
+        if (data.mediaUrl) {
+          url = data.mediaUrl;
+        } else if (data.base64Data) {
+          url = data.base64Data;
         }
-        
-        return {
-          id: docSnap.id,
-          name: data.name,
-          url: url,
-          uploadedBy: data.uploadedBy,
-          uploadedAt: data.uploadedAt,
-          deviceId: data.deviceId,
-          type: data.type,
-          noteText: data.noteText,
-          note: data.note,
-          tags: data.tags || [],
-          isUnavailable: !url && data.type !== 'note'
-        };
-      }))
-    )
-  );
-  
-  const allItems = batchResults.flat();
-  
-  return {
-    items: allItems,
-    lastDoc: snapshot.docs[snapshot.docs.length - 1]
-  };
+      }
+      
+      return {
+        id: docSnap.id,
+        name: data.name,
+        url: url,
+        uploadedBy: data.uploadedBy,
+        uploadedAt: data.uploadedAt,
+        deviceId: data.deviceId,
+        type: data.type,
+        noteText: data.noteText,
+        note: data.note,
+        tags: data.tags || [],
+        isUnavailable: !url && data.type !== 'note'
+      };
+    });
+    
+    // Return the last uploadedAt for next pagination
+    const newLastDoc = mediaList.length > 0 
+      ? mediaList[mediaList.length - 1].uploadedAt
+      : null;
+    
+    return {
+      items: mediaList,
+      lastDoc: newLastDoc
+    };
+  } catch (error) {
+    console.error('🔄 Error loading more media:', error);
+    return {
+      items: [],
+      lastDoc: null
+    };
+  }
 };
+
+

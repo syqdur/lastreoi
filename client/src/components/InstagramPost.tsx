@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, MoreHorizontal, Trash2, Edit3, AlertTriangle, Users, MapPin } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Trash2, Edit3, AlertTriangle, Users, MapPin, Type, Edit2 } from 'lucide-react';
 import { MediaItem, Comment, Like, PersonTag, TextTag } from '../types';
 
 interface InstagramPostProps {
@@ -55,8 +55,18 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
   const [editTextTagText, setEditTextTagText] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [preloaded, setPreloaded] = useState(false);
+  const [localTextTags, setLocalTextTags] = useState(item.textTags || []);
+  const [localLegacyTags, setLocalLegacyTags] = useState(item.tags || []);
 
-  // 🚀 ZERO DELAY MODAL: Preload image immediately when component mounts
+  // OPTIMIZED: Memoize expensive calculations
+  const { isLiked, likeCount, canDeletePost, canEditNote } = React.useMemo(() => ({
+    isLiked: likes.some(like => like.userName === userName),
+    likeCount: likes.length,
+    canDeletePost: isAdmin || item.uploadedBy === userName,
+    canEditNote: item.type === 'note' && item.uploadedBy === userName
+  }), [likes, userName, isAdmin, item.uploadedBy, item.type]);
+
+  // OPTIMIZED: Simplified image preloading without DOM manipulation
   useEffect(() => {
     if (item.type === 'image' && item.url) {
       const img = new Image();
@@ -74,20 +84,11 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
     }
   }, [item.url, item.type]);
 
-  // Also preload in the browser cache for instant access
+  // Sync local state with props when item changes
   useEffect(() => {
-    if (item.type === 'image' && item.url) {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'image';
-      link.href = item.url;
-      document.head.appendChild(link);
-      
-      return () => {
-        document.head.removeChild(link);
-      };
-    }
-  }, [item.url, item.type]);
+    setLocalTextTags(item.textTags || []);
+    setLocalLegacyTags(item.tags || []);
+  }, [item.textTags, item.tags]);
 
   // Listen for profile picture updates
   useEffect(() => {
@@ -101,7 +102,6 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
       );
       
       if (isPostAuthorUpdated || isCommentAuthorUpdated) {
-        console.log('🔄 Refreshing InstagramPost due to profile picture update for:', updatedUserName);
         setRefreshKey(prev => prev + 1);
       }
     };
@@ -112,15 +112,6 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
       window.removeEventListener('profilePictureUpdated', handleProfilePictureUpdate as any);
     };
   }, [item.uploadedBy, item.deviceId, comments]);
-
-  const isLiked = likes.some(like => like.userName === userName);
-  const likeCount = likes.length;
-
-  // Check if current user can delete this post
-  const canDeletePost = isAdmin || item.uploadedBy === userName;
-  
-  // Check if current user can edit this note
-  const canEditNote = item.type === 'note' && item.uploadedBy === userName;
 
   const handleSubmitComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,9 +153,35 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
     setEditTextTagText(currentText);
   };
 
-  const handleSaveTextTag = () => {
+  const handleSaveTextTag = async () => {
     if (onEditTextTag && editingTextTagId && editTextTagText.trim()) {
-      onEditTextTag(item, editingTextTagId, editTextTagText.trim());
+      // Update local state immediately for instant UI update
+      const updatedText = editTextTagText.trim();
+      
+      // Update local textTags if editing new format
+      if (localTextTags.some(tag => tag.id === editingTextTagId)) {
+        setLocalTextTags(prev => 
+          prev.map(tag => 
+            tag.id === editingTextTagId 
+              ? { ...tag, text: updatedText }
+              : tag
+          )
+        );
+      }
+      
+      // Update local legacy tags if editing legacy format
+      if (localLegacyTags.some(tag => tag.id === editingTextTagId)) {
+        setLocalLegacyTags(prev => 
+          prev.map(tag => 
+            tag.id === editingTextTagId && tag.type === 'text'
+              ? { ...tag, text: updatedText }
+              : tag
+          )
+        );
+      }
+      
+      // Save to backend
+      await onEditTextTag(item, editingTextTagId, updatedText);
     }
     setEditingTextTagId(null);
     setEditTextTagText('');
@@ -188,7 +205,6 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
   const handleImageError = () => {
     setImageLoading(false);
     setImageError(true);
-    console.error(`❌ Image failed to load: ${item.url}`);
   };
 
   const formatDate = (dateString: string) => {
@@ -432,23 +448,23 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
             </div>
 
             {/* Bottom Badge Overlay - Persons (Bottom Left) and Location (Bottom Right) */}
-            {item.tags && item.tags.length > 0 && (
+            {((item.personTags && item.personTags.length > 0) || (item.tags && item.tags.filter(tag => tag.type === 'person').length > 0)) && (
               <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 flex justify-between items-end">
                 {/* Tagged Persons Badge - Bottom Left */}
-                {item.tags.filter(tag => tag.type === 'person').length > 0 && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-black/70 backdrop-blur-sm rounded-full text-white text-xs border border-white/20">
-                    <Users className="w-3 h-3" />
-                    <span className="hidden xs:inline">
-                      {item.tags.filter(tag => tag.type === 'person').length === 1 
-                        ? '1 Person' 
-                        : `${item.tags.filter(tag => tag.type === 'person').length} Personen`
-                      }
-                    </span>
-                    <span className="xs:hidden">
-                      {item.tags.filter(tag => tag.type === 'person').length}
-                    </span>
-                  </div>
-                )}
+                {(() => {
+                  const personCount = (item.personTags?.length || 0) + (item.tags?.filter(tag => tag.type === 'person').length || 0);
+                  return personCount > 0 && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-black/70 backdrop-blur-sm rounded-full text-white text-xs border border-white/20">
+                      <Users className="w-3 h-3" />
+                      <span className="hidden xs:inline">
+                        {personCount === 1 ? '1 Person' : `${personCount} Personen`}
+                      </span>
+                      <span className="xs:hidden">
+                        {personCount}
+                      </span>
+                    </div>
+                  );
+                })()}
 
 
               </div>
@@ -461,47 +477,60 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
         <div className="px-4 py-3">
 
 
-          {/* Text Tags Display */}
-          {item.tags && item.tags.filter(tag => tag.type === 'text').length > 0 && (
+          {/* Text Tags Display - REDESIGNED */}
+          {((localTextTags && localTextTags.length > 0) || (localLegacyTags && localLegacyTags.filter(tag => tag.type === 'text').length > 0)) && (
             <div className="mb-3">
-              {item.tags.filter(tag => tag.type === 'text').map((tag) => {
-                const textTag = tag as any; // TextTag interface
-                const canEdit = canEditTextTag();
-                const isEditing = editingTextTagId === tag.id;
-                
-                return (
-                  <div key={tag.id} className="mb-2">
-                    {isEditing ? (
-                      <div className={`p-3 rounded-lg transition-colors duration-300 ${
-                        isDarkMode ? 'bg-gray-700/30 border border-gray-600/50' : 'bg-blue-50/80 border border-blue-200/50'
-                      }`}>
-                        <h4 className={`font-semibold mb-2 transition-colors duration-300 ${
+              {/* Display new textTags */}
+              {localTextTags?.map((textTag) => (
+                <div key={textTag.id} className="mb-2">
+                  {editingTextTagId === textTag.id ? (
+                    <div className={`relative p-4 rounded-3xl border backdrop-blur-xl transition-all duration-500 ${
+                      isDarkMode 
+                        ? 'bg-gray-800/60 border-gray-600/40 shadow-2xl' 
+                        : 'bg-white/90 border-gray-200/60 shadow-2xl'
+                    }`}>
+                      {/* Decorative background elements */}
+                      <div className="absolute inset-0 opacity-5 rounded-3xl overflow-hidden">
+                        <div className={`absolute top-0 right-0 w-16 h-16 rounded-full blur-xl ${
+                          isDarkMode ? 'bg-blue-500' : 'bg-blue-300'
+                        }`} style={{ transform: 'translate(20%, -20%)' }}></div>
+                        <div className={`absolute bottom-0 left-0 w-12 h-12 rounded-full blur-xl ${
+                          isDarkMode ? 'bg-purple-500' : 'bg-purple-300'
+                        }`} style={{ transform: 'translate(-20%, 20%)' }}></div>
+                      </div>
+                      
+                      <div className="relative z-10">
+                        <h4 className={`font-semibold mb-3 flex items-center gap-2 transition-colors duration-300 ${
                           isDarkMode ? 'text-white' : 'text-gray-900'
                         }`}>
-                          Text bearbeiten:
+                          <Edit2 className="w-4 h-4" />
+                          Text bearbeiten
                         </h4>
                         <textarea
                           value={editTextTagText}
                           onChange={(e) => setEditTextTagText(e.target.value)}
-                          className={`w-full p-3 rounded-lg border resize-none transition-colors duration-300 ${
+                          className={`w-full p-4 rounded-2xl border resize-none transition-all duration-300 focus:ring-2 focus:ring-blue-500/50 ${
                             isDarkMode 
-                              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
-                              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                              ? 'bg-gray-900/50 border-gray-600/50 text-white placeholder-gray-400 backdrop-blur-sm' 
+                              : 'bg-white/80 border-gray-300/50 text-gray-900 placeholder-gray-500 backdrop-blur-sm'
                           }`}
-                          rows={2}
+                          rows={3}
                           maxLength={200}
                           placeholder="Text eingeben..."
+                          autoFocus
                         />
-                        <div className={`text-xs mt-1 transition-colors duration-300 ${
+                        <div className={`text-xs mt-2 transition-colors duration-300 ${
                           isDarkMode ? 'text-gray-400' : 'text-gray-500'
                         }`}>
-                          {editTextTagText.length}/200
+                          {editTextTagText.length}/200 Zeichen
                         </div>
-                        <div className="flex gap-2 mt-3">
+                        <div className="flex gap-3 mt-4">
                           <button
                             onClick={handleCancelTextEdit}
-                            className={`px-3 py-1 rounded text-sm transition-colors duration-300 ${
-                              isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                            className={`flex-1 px-4 py-2 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105 ${
+                              isDarkMode 
+                                ? 'bg-gray-700/80 hover:bg-gray-600/80 text-white' 
+                                : 'bg-gray-100/80 hover:bg-gray-200/80 text-gray-700'
                             }`}
                           >
                             Abbrechen
@@ -509,26 +538,130 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                           <button
                             onClick={handleSaveTextTag}
                             disabled={!editTextTagText.trim() || editTextTagText === textTag.text}
-                            className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                            className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 
+                                     disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded-2xl 
+                                     font-medium transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100 
+                                     shadow-lg disabled:shadow-none"
                           >
                             Speichern
                           </button>
                         </div>
                       </div>
-                    ) : (
-                      <div className={`flex items-start gap-2 text-lg font-medium transition-colors duration-300 ${
-                        isDarkMode ? 'text-white' : 'text-gray-900'
+                    </div>
+                  ) : (
+                    <div className={`text-base leading-relaxed text-center ${
+                      isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                    }`}>
+                      {textTag.text}
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditTextTag(textTag.id, textTag.text);
+                          }}
+                          className={`ml-2 p-1 rounded-lg transition-colors opacity-70 hover:opacity-100 ${
+                            isDarkMode 
+                              ? 'hover:bg-gray-700/50 text-gray-400 hover:text-gray-200' 
+                              : 'hover:bg-gray-100/50 text-gray-500 hover:text-gray-700'
+                          }`}
+                          title="Text bearbeiten (nur Admin)"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              {/* Display legacy tags with type 'text' */}
+              {localLegacyTags?.filter(tag => tag.type === 'text').map((tag) => {
+                const textTag = tag as any; // TextTag interface
+                const isEditing = editingTextTagId === tag.id;
+                
+                return (
+                  <div key={tag.id} className="mb-2">
+                    {isEditing ? (
+                      <div className={`relative p-4 rounded-3xl border backdrop-blur-xl transition-all duration-500 ${
+                        isDarkMode 
+                          ? 'bg-gray-800/60 border-gray-600/40 shadow-2xl' 
+                          : 'bg-white/90 border-gray-200/60 shadow-2xl'
                       }`}>
-                        <span className="flex-1">{textTag.text}</span>
-                        {canEdit && (
+                        {/* Decorative background elements */}
+                        <div className="absolute inset-0 opacity-5 rounded-3xl overflow-hidden">
+                          <div className={`absolute top-0 right-0 w-16 h-16 rounded-full blur-xl ${
+                            isDarkMode ? 'bg-blue-500' : 'bg-blue-300'
+                          }`} style={{ transform: 'translate(20%, -20%)' }}></div>
+                          <div className={`absolute bottom-0 left-0 w-12 h-12 rounded-full blur-xl ${
+                            isDarkMode ? 'bg-purple-500' : 'bg-purple-300'
+                          }`} style={{ transform: 'translate(-20%, 20%)' }}></div>
+                        </div>
+                        
+                        <div className="relative z-10">
+                          <h4 className={`font-semibold mb-3 flex items-center gap-2 transition-colors duration-300 ${
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            <Edit2 className="w-4 h-4" />
+                            Text bearbeiten
+                          </h4>
+                          <textarea
+                            value={editTextTagText}
+                            onChange={(e) => setEditTextTagText(e.target.value)}
+                            className={`w-full p-4 rounded-2xl border resize-none transition-all duration-300 focus:ring-2 focus:ring-blue-500/50 ${
+                              isDarkMode 
+                                ? 'bg-gray-900/50 border-gray-600/50 text-white placeholder-gray-400 backdrop-blur-sm' 
+                                : 'bg-white/80 border-gray-300/50 text-gray-900 placeholder-gray-500 backdrop-blur-sm'
+                            }`}
+                            rows={3}
+                            maxLength={200}
+                            placeholder="Text eingeben..."
+                            autoFocus
+                          />
+                          <div className={`text-xs mt-2 transition-colors duration-300 ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                          }`}>
+                            {editTextTagText.length}/200 Zeichen
+                          </div>
+                          <div className="flex gap-3 mt-4">
+                            <button
+                              onClick={handleCancelTextEdit}
+                              className={`flex-1 px-4 py-2 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105 ${
+                                isDarkMode 
+                                  ? 'bg-gray-700/80 hover:bg-gray-600/80 text-white' 
+                                  : 'bg-gray-100/80 hover:bg-gray-200/80 text-gray-700'
+                              }`}
+                            >
+                              Abbrechen
+                            </button>
+                            <button
+                              onClick={handleSaveTextTag}
+                              disabled={!editTextTagText.trim() || editTextTagText === textTag.text}
+                              className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 
+                                       disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded-2xl 
+                                       font-medium transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100 
+                                       shadow-lg disabled:shadow-none"
+                            >
+                              Speichern
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`text-base leading-relaxed text-center ${
+                        isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                      }`}>
+                        {textTag.text}
+                        {isAdmin && (
                           <button
                             onClick={() => handleEditTextTag(tag.id, textTag.text)}
-                            className={`p-1 rounded hover:bg-opacity-20 transition-colors ${
-                              isDarkMode ? 'text-gray-400 hover:text-white hover:bg-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-300'
+                            className={`ml-2 p-1 rounded-lg transition-colors opacity-70 hover:opacity-100 ${
+                              isDarkMode 
+                                ? 'hover:bg-gray-700/50 text-gray-400 hover:text-gray-200' 
+                                : 'hover:bg-gray-100/50 text-gray-500 hover:text-gray-700'
                             }`}
-                            title="Text bearbeiten"
+                            title="Text bearbeiten (nur Admin)"
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Edit2 className="w-3 h-3" />
                           </button>
                         )}
                       </div>
@@ -540,10 +673,41 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
           )}
 
           {/* Tagged People Display with Profile Pictures */}
-          {item.tags && item.tags.filter(tag => tag.type === 'person').length > 0 && (
+          {((item.personTags && item.personTags.length > 0) || (item.tags && item.tags.filter(tag => tag.type === 'person').length > 0)) && (
             <div className="mb-3">
               <div className="flex flex-wrap gap-2">
-                {item.tags.filter(tag => tag.type === 'person').map((tag) => {
+                {/* Display new personTags */}
+                {item.personTags?.map((personTag) => {
+                  const avatarUrl = getUserAvatar ? getUserAvatar(personTag.userName, personTag.deviceId) : null;
+                  const displayName = getUserDisplayName ? getUserDisplayName(personTag.userName, personTag.deviceId) : personTag.userName;
+                  
+                  return (
+                    <span
+                      key={personTag.id}
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-300 ${
+                        isDarkMode 
+                          ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' 
+                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                      }`}
+                    >
+                      <div className="w-5 h-5 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs">
+                        {avatarUrl ? (
+                          <img 
+                            src={avatarUrl} 
+                            alt={displayName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          displayName.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      {displayName}
+                    </span>
+                  );
+                })}
+                
+                {/* Display legacy tags with type 'person' */}
+                {item.tags?.filter(tag => tag.type === 'person').map((tag) => {
                   const personTag = tag as PersonTag;
                   const avatarUrl = getUserAvatar ? getUserAvatar(personTag.userName, personTag.deviceId) : null;
                   const displayName = getUserDisplayName ? getUserDisplayName(personTag.userName, personTag.deviceId) : personTag.userName;
@@ -572,7 +736,24 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                     </span>
                   );
                 })}
-                {item.tags.filter(tag => tag.type === 'location').map((tag) => (
+                
+                {/* Display location tags */}
+                {item.locationTags?.map((locationTag) => (
+                  <span
+                    key={locationTag.id}
+                    className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-300 ${
+                      isDarkMode 
+                        ? 'bg-green-600/20 text-green-300 border border-green-500/30' 
+                        : 'bg-green-50 text-green-700 border border-green-200'
+                    }`}
+                  >
+                    <MapPin className="w-4 h-4 mr-1.5" />
+                    {locationTag.locationName || (locationTag as any).name}
+                  </span>
+                ))}
+                
+                {/* Display legacy location tags */}
+                {item.tags?.filter(tag => tag.type === 'location').map((tag) => (
                   <span
                     key={tag.id}
                     className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-300 ${
@@ -582,7 +763,7 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                     }`}
                   >
                     <MapPin className="w-4 h-4 mr-1.5" />
-                    {(tag as any).locationName}
+                    {(tag as any).locationName || (tag as any).name}
                   </span>
                 ))}
               </div>

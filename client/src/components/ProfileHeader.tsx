@@ -34,14 +34,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onEditGalleryProfile,
   gallery
 }) => {
-  // DEBUG: ProfileHeader data monitoring (can be removed in production)
-  console.log('✅ ProfileHeader rendering with:', {
-    hasGalleryProfileData: !!galleryProfileData,
-    galleryName: galleryProfileData?.name || 'Using fallback',
-    profileSource: galleryProfileData ? 'Firebase data' : 'Fallback data'
-  });
-
+  // State management
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const [countdown, setCountdown] = useState<{
     days: number;
     hours: number;
@@ -50,36 +45,93 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   } | null>(null);
   const [countdownEnded, setCountdownEnded] = useState(false);
 
-  // Get theme configuration for event-specific styling
-  const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
-  
-  // WAIT FOR FIREBASE DATA: Don't show anything until we know if Firebase has data
-  const displayData = React.useMemo(() => {
-    console.log('🔍 ProfileHeader building display data:', {
-      galleryId: gallery?.id,
-      galleryName: gallery?.eventName,
-      hasGalleryProfileData: !!galleryProfileData,
-      galleryProfileDataName: galleryProfileData?.name
-    });
+  // SIMPLIFIED LOADING: Show animation briefly, then show available data
+  useEffect(() => {
+    setIsDataLoading(true);
+    
+    // Show loading for 1.5 seconds, then show whatever data we have
+    const timer = setTimeout(() => {
+      setIsDataLoading(false);
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, []); // Only run once on mount
 
-    // If we have galleryProfileData (either from Firebase or explicitly set as defaults), use it
-    if (galleryProfileData) {
-      console.log('✅ Using gallery profile data:', galleryProfileData.name);
-      return galleryProfileData;
+  // OPTIMIZED: Memoize theme configuration to prevent recalculation
+  const themeConfig = React.useMemo(() => 
+    getThemeConfig(gallery?.theme || 'hochzeit'), 
+    [gallery?.theme]
+  );
+
+  // OPTIMIZED: Memoize complex theme-based styles to prevent recalculation
+  const themeStyles = React.useMemo(() => {
+    const theme = gallery?.theme || 'hochzeit';
+    const baseStyles = {
+      hochzeit: {
+        ring: 'ring-pink-500/40 hover:ring-pink-400/60 shadow-pink-500/25',
+        gradient: isDarkMode ? 'from-pink-600 to-rose-600 text-white' : 'from-pink-500 to-rose-500 text-white',
+        emoji: '💍',
+        button: isDarkMode 
+          ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-pink-500/40 hover:ring-pink-400/60'
+          : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-pink-500/40 hover:ring-pink-400/60'
+      },
+      geburtstag: {
+        ring: 'ring-purple-500/40 hover:ring-purple-400/60 shadow-purple-500/25',
+        gradient: isDarkMode ? 'from-purple-600 to-violet-600 text-white' : 'from-purple-500 to-violet-500 text-white',
+        emoji: '🎂',
+        button: isDarkMode 
+          ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-purple-500/40 hover:ring-purple-400/60'
+          : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-purple-500/40 hover:ring-purple-400/60'
+      },
+      urlaub: {
+        ring: 'ring-blue-500/40 hover:ring-blue-400/60 shadow-blue-500/25',
+        gradient: isDarkMode ? 'from-blue-600 to-cyan-600 text-white' : 'from-blue-500 to-cyan-500 text-white',
+        emoji: '🏖️',
+        button: isDarkMode 
+          ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-blue-500/40 hover:ring-blue-400/60'
+          : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-blue-500/40 hover:ring-blue-400/60'
+      },
+      eigenes: {
+        ring: 'ring-green-500/40 hover:ring-green-400/60 shadow-green-500/25',
+        gradient: isDarkMode ? 'from-green-600 to-emerald-600 text-white' : 'from-green-500 to-emerald-500 text-white',
+        emoji: '🎊',
+        button: isDarkMode 
+          ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-green-500/40 hover:ring-green-400/60'
+          : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-green-500/40 hover:ring-green-400/60'
+      }
+    };
+    return baseStyles[theme as keyof typeof baseStyles] || baseStyles.hochzeit;
+  }, [gallery?.theme, isDarkMode]);
+  
+  // ENHANCED DATA DISPLAY: Always show meaningful information
+  const displayData = React.useMemo(() => {
+    // If we have actual gallery profile data, use it
+    if (galleryProfileData && galleryProfileData.name) {
+      return {
+        ...galleryProfileData,
+        // Ensure we have good defaults even with profile data
+        bio: galleryProfileData.bio || `Willkommen in der ${gallery?.eventName || 'Event'} Galerie! 📸`
+      };
     }
 
-    // If no galleryProfileData yet, return null to show loading state
-    console.log('⏳ No gallery profile data yet, showing loading state');
-    return null;
-  }, [galleryProfileData, gallery?.id]);
+    // Create rich default data from gallery information
+    const eventName = gallery?.eventName || 'Galerie';
+    const themeEmojis: Record<string, string> = {
+      'hochzeit': '💍💖',
+      'geburtstag': '🎂🎉', 
+      'urlaub': '🏖️✈️',
+      'eigenes': '🎊✨'
+    };
+    const themeEmoji = themeEmojis[gallery?.theme || 'hochzeit'] || '📸';
 
-  console.log('🟢 PROFILEHEADER COMPONENT IS RENDERING:', {
-    galleryId: gallery?.id,
-    galleryName: gallery?.eventName,
-    source: galleryProfileData ? 'Firebase-Admin-Einstellungen' : 'Waiting-For-Data',
-    displayingName: displayData?.name || 'null',
-    hasGalleryProfileData: !!galleryProfileData
-  });
+    return {
+      name: eventName,
+      bio: `${themeEmoji} ${eventName} ${themeEmoji}\n\nTeilt eure schönsten Momente mit uns!\nHier entstehen unvergessliche Erinnerungen. 📷`,
+      profilePicture: null,
+      countdownDate: gallery?.eventDate || null,
+      countdownEndMessage: 'Der große Tag ist da! 🎉'
+    };
+  }, [galleryProfileData, gallery?.eventName, gallery?.theme, gallery?.eventDate]);
 
   // Countdown timer effect with memoized calculation
   useEffect(() => {
@@ -126,28 +178,76 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return () => clearInterval(interval);
   }, [displayData?.countdownDate]);
 
-  // Show loading state if no data is available yet (AFTER all hooks)
-  if (!displayData) {
-    console.log('⏳ ProfileHeader showing loading state - no gallery profile data yet');
+  // LOADING ANIMATION: Show elegant loading state while data loads
+  if (isDataLoading) {
     return (
-      <div className={`backdrop-blur-sm border-b transition-all duration-300 ${
+      <div className={`mx-2 sm:mx-4 my-4 sm:my-6 p-4 sm:p-6 rounded-3xl transition-all duration-500 ${
         isDarkMode 
-          ? 'bg-gray-900/50 border-gray-800/50' 
-          : 'bg-white/50 border-gray-200/50'
+          ? 'bg-gray-800/40 border border-gray-700/30 backdrop-blur-xl shadow-2xl shadow-purple-500/10' 
+          : 'bg-white/60 border border-gray-200/40 backdrop-blur-xl shadow-2xl shadow-pink-500/10'
       }`}>
-        <div className="px-4 py-6">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-gray-300/50 animate-pulse"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-6 bg-gray-300/50 rounded animate-pulse w-3/4"></div>
-              <div className="h-4 bg-gray-300/50 rounded animate-pulse w-1/2"></div>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div className="flex items-center gap-4 sm:gap-6">
+            {/* Animated Profile Picture Skeleton */}
+            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full relative ring-4 overflow-hidden ${themeStyles.ring}`}>
+              <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 animate-pulse">
+                <div className="w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+              </div>
+            </div>
+            
+            {/* Animated Text Skeleton */}
+            <div className="flex-1">
+              <div className={`h-6 w-32 rounded-lg mb-3 animate-pulse ${
+                isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+              }`}>
+                <div className="w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+              </div>
+              <div className="flex gap-6 sm:gap-8">
+                <div className="flex flex-col items-center">
+                  <div className={`h-5 w-8 rounded mb-1 animate-pulse ${
+                    isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+                  }`}></div>
+                  <div className={`h-3 w-12 rounded animate-pulse ${
+                    isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                  }`}></div>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className={`h-5 w-8 rounded mb-1 animate-pulse ${
+                    isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+                  }`}></div>
+                  <div className={`h-3 w-12 rounded animate-pulse ${
+                    isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                  }`}></div>
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Loading Controls Skeleton */}
+          {showTopBarControls && (
+            <div className="flex gap-2">
+              <div className={`w-10 h-10 rounded-full animate-pulse ${
+                isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+              }`}></div>
+              <div className={`w-10 h-10 rounded-full animate-pulse ${
+                isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+              }`}></div>
+            </div>
+          )}
         </div>
+
+        {/* Loading Bio Skeleton */}
+        <div className={`h-4 w-3/4 rounded mb-2 animate-pulse ${
+          isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+        }`}></div>
+        <div className={`h-4 w-1/2 rounded animate-pulse ${
+          isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+        }`}></div>
       </div>
     );
   }
 
+  // NORMAL CONTENT: Show after loading completes
   return (
     <>
       
@@ -159,16 +259,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div className="flex items-center gap-4 sm:gap-6">
             <div
-              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden relative ring-4 transition-all duration-300 animate-pulse shadow-xl ${
-                gallery?.theme === 'hochzeit' ? 'ring-pink-500/40 hover:ring-pink-400/60 shadow-pink-500/25' :
-                gallery?.theme === 'geburtstag' ? 'ring-purple-500/40 hover:ring-purple-400/60 shadow-purple-500/25' :
-                gallery?.theme === 'urlaub' ? 'ring-blue-500/40 hover:ring-blue-400/60 shadow-blue-500/25' :
-                gallery?.theme === 'eigenes' ? 'ring-green-500/40 hover:ring-green-400/60 shadow-green-500/25' :
-                'ring-pink-500/40 hover:ring-pink-400/60 shadow-pink-500/25'
-              }`}
-              style={{
-                animation: 'pulse 2s ease-in-out infinite, ring-glow 3s ease-in-out infinite'
-              }}
+              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden relative ring-4 transition-all duration-300 shadow-xl ${themeStyles.ring}`}
             >
               {displayData?.profilePicture ? (
                 <img 
@@ -177,31 +268,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className={`w-full h-full bg-gradient-to-br flex items-center justify-center text-3xl sm:text-4xl ${
-                  gallery?.theme === 'hochzeit' 
-                    ? isDarkMode 
-                      ? 'from-pink-600 to-rose-600 text-white' 
-                      : 'from-pink-500 to-rose-500 text-white'
-                    : gallery?.theme === 'geburtstag'
-                    ? isDarkMode 
-                      ? 'from-purple-600 to-violet-600 text-white' 
-                      : 'from-purple-500 to-violet-500 text-white'
-                    : gallery?.theme === 'urlaub'
-                    ? isDarkMode 
-                      ? 'from-blue-600 to-cyan-600 text-white' 
-                      : 'from-blue-500 to-cyan-500 text-white'
-                    : gallery?.theme === 'eigenes'
-                    ? isDarkMode 
-                      ? 'from-green-600 to-emerald-600 text-white' 
-                      : 'from-green-500 to-emerald-500 text-white'
-                    : isDarkMode 
-                      ? 'from-purple-600 to-pink-600 text-white' 
-                      : 'from-pink-500 to-purple-500 text-white'
-                }`}>
-                  {gallery?.theme === 'hochzeit' ? '💍' :
-                   gallery?.theme === 'geburtstag' ? '🎂' :
-                   gallery?.theme === 'urlaub' ? '🏖️' :
-                   gallery?.theme === 'eigenes' ? '🎊' : '💍'}
+                <div className={`w-full h-full bg-gradient-to-br flex items-center justify-center text-3xl sm:text-4xl ${themeStyles.gradient}`}>
+                  {themeStyles.emoji}
                 </div>
               )}
             </div>
@@ -231,27 +299,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => onEditGalleryProfile?.()}
-                className={`w-8 h-8 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center ring-2 ${
-                  gallery?.theme === 'hochzeit' 
-                    ? isDarkMode 
-                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-pink-500/40 hover:ring-pink-400/60' 
-                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-pink-500/40 hover:ring-pink-400/60'
-                    : gallery?.theme === 'geburtstag'
-                    ? isDarkMode 
-                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-purple-500/40 hover:ring-purple-400/60' 
-                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-purple-500/40 hover:ring-purple-400/60'
-                    : gallery?.theme === 'urlaub'
-                    ? isDarkMode 
-                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-blue-500/40 hover:ring-blue-400/60' 
-                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-blue-500/40 hover:ring-blue-400/60'
-                    : gallery?.theme === 'eigenes'
-                    ? isDarkMode 
-                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-green-500/40 hover:ring-green-400/60' 
-                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-green-500/40 hover:ring-green-400/60'
-                    : isDarkMode 
-                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-pink-500/40 hover:ring-pink-400/60' 
-                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-pink-500/40 hover:ring-pink-400/60'
-                }`}
+                className={`w-8 h-8 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center ring-2 ${themeStyles.button}`}
                 title="Galerie-Profil bearbeiten"
               >
                 <Settings className={`w-4 h-4 transition-colors duration-300 ${
@@ -302,7 +350,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 {/* Header */}
                 <div className="text-center mb-8">
                   <div className="flex items-center justify-center gap-4 mb-4">
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 animate-pulse ${
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 ${
                       isDarkMode 
                         ? 'bg-pink-600/20 border border-pink-500/30' 
                         : 'bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-pink-200/50'
