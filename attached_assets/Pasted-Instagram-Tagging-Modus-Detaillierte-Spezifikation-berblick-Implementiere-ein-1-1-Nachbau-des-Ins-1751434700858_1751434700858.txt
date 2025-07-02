@@ -1,0 +1,200 @@
+Instagram Tagging Modus - Detaillierte Spezifikation
+Überblick
+Implementiere ein 1:1 Nachbau des Instagram Tagging-Systems mit der Modifikation, dass Galerie-Besucher als taggbare Personen angezeigt werden.
+UI-Layout und Design
+Hauptcontainer
+
+Vollbild-Overlay über dem Bild
+Hintergrund: Halbtransparentes Schwarz (rgba(0,0,0,0.8))
+Z-Index: Höchste Ebene
+Touch/Click-Verhalten: Tap außerhalb schließt den Modus
+
+Header-Bereich
+┌─────────────────────────────────────┐
+│ ←  Personen taggen           ✓      │
+└─────────────────────────────────────┘
+
+Höhe: 56px
+Hintergrund: Transparent
+Links: Zurück-Pfeil (weiß, 24px)
+Titel: "Personen taggen" (weiß, zentriert, 16px, medium weight)
+Rechts: Häkchen-Button (weiß, 24px) - nur sichtbar wenn Tags gesetzt
+
+Bild-Container
+
+Position: Zentriert horizontal
+Maximale Breite: 100vw - 40px (20px Padding links/rechts)
+Maximale Höhe: 70vh
+Aspect Ratio: Original beibehalten
+Hintergrund: Schwarz
+Border Radius: 8px
+
+Tag-Punkte auf dem Bild
+
+Erscheinung: Weißer Kreis mit blauem Rand
+Größe: 24px Durchmesser
+Border: 2px solid #0095F6 (Instagram Blau)
+Hintergrund: Weiß
+Animation: Fade-in (0.2s ease)
+Position: Absolute, basierend auf Tap-Koordinaten
+Hover-Effekt: Leichtes Pulsieren
+
+Namenslabel an Tags
+
+Container: Weißes Rechteck mit abgerundeten Ecken
+Border Radius: 8px
+Padding: 8px 12px
+Hintergrund: rgba(255,255,255,0.95)
+Text: Schwarz, 14px, medium weight
+Position: Oberhalb des Tag-Punktes, zentriert
+Pfeil: Kleiner weißer Pfeil nach unten zum Tag-Punkt
+Max-Width: 150px, Text wird abgeschnitten mit "..."
+
+Suchbereich (Unterer Bereich)
+Layout
+┌─────────────────────────────────────┐
+│                                     │
+│  🔍 Personen suchen...              │
+│                                     │
+│ ┌─────────────────────────────────┐ │
+│ │ 👤 Max Mustermann               │ │
+│ │    @maxmuster                   │ │
+│ ├─────────────────────────────────┤ │
+│ │ 👤 Anna Schmidt                 │ │
+│ │    @annaschmidt                 │ │
+│ └─────────────────────────────────┘ │
+└─────────────────────────────────────┘
+Suchfeld
+
+Container: Weißer Hintergrund, abgerundete Ecken
+Höhe: 44px
+Margin: 16px horizontal, 12px vertikal
+Border Radius: 22px
+Placeholder: "Personen suchen..." (grau)
+Icon: Lupe-Symbol links (grau, 20px)
+Padding: 12px 16px 12px 44px
+
+Personen-Liste
+
+Container: Weiß, scrollbar
+Max-Height: 40vh
+Overflow: scroll (aber versteckte Scrollbar)
+
+Personen-Listeneintrag
+┌─────────────────────────────────────┐
+│ ●  Name der Person                  │
+│    @username • vor 2 Std.           │
+└─────────────────────────────────────┘
+
+Höhe: 68px
+Padding: 12px 16px
+Border-Bottom: 1px solid #F0F0F0
+Hover/Active: Hintergrund #F8F8F8
+
+Avatar
+
+Größe: 44px Durchmesser
+Border Radius: 50%
+Position: Links, vertikal zentriert
+Fallback: Grauer Kreis mit Person-Icon (weiß)
+
+Text-Bereich
+
+Position: Rechts vom Avatar, 12px Abstand
+Name: 16px, medium weight, schwarz
+Username + Zeitstempel: 14px, normal weight, grau (#8E8E8E)
+Format: "@username • vor X Min/Std/Tagen"
+
+Funktionalität
+Tagging-Prozess
+
+Bild-Tap: Zeige Fadenkreuz-Cursor
+Koordinaten erfassen: Relative Position zum Bild (0-1)
+Tag-Punkt erstellen: Animation einblenden
+Suchfeld fokussieren: Automatisch Keyboard öffnen
+Person auswählen: Liste filtern, Auswahl bestätigen
+Label anzeigen: Name über dem Tag-Punkt
+
+Datenstruktur für Tags
+javascript{
+  id: "unique_tag_id",
+  x: 0.5,        // Relative X-Position (0-1)
+  y: 0.3,        // Relative Y-Position (0-1)
+  user: {
+    id: "user_id",
+    name: "Max Mustermann",
+    username: "maxmuster",
+    avatar: "avatar_url",
+    lastVisited: "2024-01-15T10:30:00Z"
+  }
+}
+Galerie-Besucher Integration
+Datenquelle: Ersetze Instagram-Freunde durch Galerie-Besucher
+
+API-Endpoint: /api/gallery/visitors
+Sortierung: Nach letztem Besuch (neueste zuerst)
+Zeitstempel: "vor X Min/Std/Tagen" Format
+Filter: Nur Besucher mit öffentlichem Profil
+
+Suchfunktionalität
+
+Echtzeit-Filter: Suche in Name und Username
+Debounce: 300ms Verzögerung
+Highlighting: Suchbegriff in Ergebnissen hervorheben
+Keine Ergebnisse: "Keine Personen gefunden" Nachricht
+
+Responsive Verhalten
+Mobile (< 768px)
+
+Suchbereich: Fixed am unteren Bildschirmrand
+Bild: Maximale Höhe 60vh
+Touch-Optimierung: Mindest-Touch-Target 44px
+
+Tablet/Desktop (≥ 768px)
+
+Layout: Suchbereich als Seitenleiste rechts
+Bild: Größer, mehr Platz für Tags
+Hover-Effekte: Aktiviert für bessere UX
+
+Animationen
+Tag-Erstellung
+css@keyframes tagAppear {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+Liste-Einträge
+css@keyframes slideIn {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+Technische Anforderungen
+Performance
+
+Lazy Loading: Avatar-Bilder
+Virtualisierung: Bei >100 Besuchern
+Debounced Search: Reduziere API-Calls
+
+Accessibility
+
+ARIA-Labels: Für alle interaktiven Elemente
+Tastatur-Navigation: Tab-Reihenfolge logisch
+Screen Reader: Beschreibende Alt-Texte
+
+Browser-Kompatibilität
+
+Modern Browsers: Chrome 80+, Firefox 75+, Safari 13+
+Touch-Support: iOS/Android optimiert
+Fallbacks: Für ältere Browser
+
+API-Integration
+Endpunkte
+GET /api/gallery/visitors
+GET /api/gallery/visitors/search?q={query}
+POST /api/posts/{id}/tags
+DELETE /api/posts/{id}/tags/{tagId}
+Error Handling
+
+Netzwerk-Fehler: Retry-Mechanismus
+Leere Listen: Benutzerfreundliche Nachrichten
+Rate Limiting: Graceful Degradation

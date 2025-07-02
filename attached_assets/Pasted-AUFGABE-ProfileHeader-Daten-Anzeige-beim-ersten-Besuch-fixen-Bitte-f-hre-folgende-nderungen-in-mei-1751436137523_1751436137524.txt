@@ -1,0 +1,142 @@
+AUFGABE: ProfileHeader Daten-Anzeige beim ersten Besuch fixen
+Bitte führe folgende Änderungen in meinem React-Code durch:
+DATEI 1: ProfileHeader.tsx
+Änderung 1.1:
+FINDE diesen Code-Block:
+javascript// Use gallery profile data from admin panel "Galerie Einstellungen"
+// Wait for real galleryProfileData to load - don't show old gallery creation data
+const displayData = React.useMemo(() => {
+  // Only show data when we have actual gallery profile data loaded
+  if (galleryProfileData) {
+    return galleryProfileData;
+  }
+  // Return null to show loading state until real data arrives
+  return null;
+}, [galleryProfileData]);
+ERSETZE mit:
+javascript// Use gallery profile data from admin panel "Galerie Einstellungen"
+// Provide default data immediately while waiting for Firebase data
+const displayData = React.useMemo(() => {
+  console.log('🔍 ProfileHeader displayData memo:', {
+    galleryProfileData,
+    galleryName: gallery?.eventName,
+    hasGalleryProfileData: !!galleryProfileData
+  });
+  
+  // If we have gallery profile data from Firebase, use it
+  if (galleryProfileData) {
+    console.log('✅ Using Firebase gallery profile data:', galleryProfileData);
+    return galleryProfileData;
+  }
+  
+  // Otherwise, provide default data based on gallery info
+  // This ensures the header is always visible, even on first load
+  const fallbackData = {
+    name: gallery?.eventName || 'Gallery',
+    bio: gallery ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : '',
+    countdownDate: gallery?.eventDate || null,
+    countdownEndMessage: 'Der große Tag ist da! 🎉',
+    countdownMessageDismissed: false,
+    profilePicture: null
+  };
+  console.log('📋 Using fallback data:', fallbackData);
+  return fallbackData;
+}, [galleryProfileData, gallery]);
+Änderung 1.2:
+LÖSCHE diese Zeilen komplett:
+javascript// Show loading state while waiting for real gallery profile data
+if (!displayData) {
+  return <HeaderLoadingSkeleton isDarkMode={isDarkMode} />;
+}
+DATEI 2: GalleryApp.tsx
+Änderung 2.1:
+FINDE den onSnapshot Listener Block (suche nach "Gallery profile snapshot received"):
+javascriptconst unsubscribe = onSnapshot(profileDocRef, (docSnapshot: any) => {
+  console.log('📡 Gallery profile snapshot received for:', gallery.id);
+  if (docSnapshot.exists()) {
+    const firebaseData = docSnapshot.data();
+    console.log('✅ Gallery profile updated via real-time listener:', firebaseData);
+    console.log('🔍 Current gallery name:', gallery.eventName);
+    console.log('🔍 Firebase profile name:', firebaseData.name);
+
+    // Always apply Firebase data if it exists - this contains customized gallery settings
+    console.log('🔄 Applying real-time Firebase profile data from Gallery Settings');
+    setGalleryProfileData(firebaseData);
+  } else {
+    console.log('📝 No Firebase profile found, creating default gallery profile');
+    // Create default profile if none exists
+    const defaultProfile = {
+      name: gallery.eventName,
+      bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+      countdownDate: null, // Disabled by default
+      countdownEndMessage: 'Der große Tag ist da! 🎉',
+      countdownMessageDismissed: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    console.log('📋 Setting default profile:', defaultProfile);
+    setGalleryProfileData(defaultProfile);
+  }
+}, (error: any) => {
+  console.error('❌ Error in gallery profile listener:', error);
+  // Set default profile on error
+  const defaultProfile = {
+    name: gallery.eventName,
+    bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+    countdownDate: null,
+    countdownEndMessage: 'Der große Tag ist da! 🎉',
+    countdownMessageDismissed: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  console.log('📋 Setting default profile after error:', defaultProfile);
+  setGalleryProfileData(defaultProfile);
+});
+ERSETZE den GESAMTEN onSnapshot Block mit:
+javascriptconst unsubscribe = onSnapshot(profileDocRef, (docSnapshot: any) => {
+  console.log('📡 Gallery profile snapshot received for:', gallery.id);
+  if (docSnapshot.exists()) {
+    const firebaseData = docSnapshot.data();
+    console.log('✅ Gallery profile updated via real-time listener:', firebaseData);
+    console.log('🔍 Current gallery name:', gallery.eventName);
+    console.log('🔍 Firebase profile name:', firebaseData.name);
+    console.log('🎯 Setting galleryProfileData state with Firebase data');
+
+    // Always apply Firebase data if it exists - this contains customized gallery settings
+    setGalleryProfileData(firebaseData);
+    
+    // Force re-render to ensure ProfileHeader gets the update
+    setTimeout(() => {
+      console.log('🔄 Verifying galleryProfileData was set:', firebaseData);
+    }, 100);
+  } else {
+    console.log('📝 No Firebase profile found, will keep immediate profile');
+    // Don't override the immediate profile if no Firebase data exists
+    // The immediate profile was already set above
+  }
+}, (error: any) => {
+  console.error('❌ Error in gallery profile listener:', error);
+  // Don't set default profile on error - keep the immediate profile
+  console.log('📋 Keeping immediate profile after error');
+});
+Änderung 2.2:
+FINDE in der ProfileEditModal onSave Funktion diese Zeilen:
+javascriptawait setDoc(profileDocRef, updatedGalleryProfile, { merge: true });
+
+setGalleryProfileData(updatedGalleryProfile);
+setShowProfileEditModal(false);
+console.log('✅ Gallery profile updated successfully');
+ERSETZE mit:
+javascriptawait setDoc(profileDocRef, updatedGalleryProfile, { merge: true });
+
+// Update local state immediately for better UX
+// The onSnapshot listener will also update it, but this prevents delay
+setGalleryProfileData(updatedGalleryProfile);
+
+// The onSnapshot listener should automatically update galleryProfileData
+// But let's log to verify
+console.log('✅ Gallery profile saved to Firebase successfully');
+console.log('⏳ Waiting for onSnapshot to update galleryProfileData...');
+
+setShowProfileEditModal(false);
+ZIEL: Nach diesen Änderungen soll der ProfileHeader beim ersten Besuch nach der User-Registrierung sofort die Gallery-Daten anzeigen, anstatt einen Loading-State zu zeigen.
