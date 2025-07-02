@@ -87,6 +87,13 @@ This is a comprehensive wedding gallery application with the following architect
 
 ## Recent Changes
 
+### July 2, 2025 (ProfileHeader Data Loading Critical Fix & App Startup Fix - COMPLETED)
+- **App Startup Error Fixed**: Resolved critical import error preventing app from running - fixed missing InstagramTaggingModal component import by correcting to InstagramTagging component and updating notification service imports for successful application startup
+- **ProfileHeader Firebase Data Loading Fixed**: Fixed critical issue where ProfileHeader was showing default gallery data instead of Firebase admin settings when new users completed registration in UserNamePrompt - ProfileHeader now properly displays customized gallery names, bios, and profile pictures from "Galerie Profil bearbeiten" Firebase settings
+- **User Registration Gallery Profile Refresh**: Added explicit gallery profile data refresh after user registration to ensure ProfileHeader immediately displays current Firebase admin customizations rather than falling back to default gallery creation data
+- **Firebase Data Prioritization Logic Enhanced**: Improved ProfileHeader data merging logic to properly combine gallery defaults with Firebase customizations, ensuring admin settings always take precedence over base gallery information
+- **Real-time Profile Synchronization Fixed**: Enhanced gallery profile data loading to properly fetch and display Firebase admin settings during user onboarding flow, eliminating cases where ProfileHeader would show outdated or default information
+
 ### July 2, 2025 (Complete Tagging System Rebuild & Migration Success - COMPLETED)
 - **Successful Migration from Replit Agent**: Completed migration from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
 - **Complete Tagging System Rebuild**: Completely rebuilt tagging system from scratch with modern Instagram 2.0 design, removing all old tagging modules (SimpleTaggingModal, MediaTaggingModal, InstagramTaggingModal, UploadTaggingModal) and replacing with unified InstagramTagging component

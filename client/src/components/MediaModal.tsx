@@ -56,15 +56,15 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [newTextContent, setNewTextContent] = useState('');
   const [textPosition, setTextPosition] = useState<{ x: number; y: number } | null>(null);
 
-  const currentItem = items[currentIndex];
-  const currentComments = comments.filter(c => c.mediaId === currentItem?.id);
-  const currentLikes = likes.filter(l => l.mediaId === currentItem?.id);
+  const currentItem = (items || [])[currentIndex];
+  const currentComments = (comments || []).filter(c => c.mediaId === currentItem?.id);
+  const currentLikes = (likes || []).filter(l => l.mediaId === currentItem?.id);
   const isLiked = currentLikes.some(like => like.userName === userName);
   const likeCount = currentLikes.length;
 
   // 🚀 LIGHTNING FAST: Preload ALL images immediately when modal opens
   useEffect(() => {
-    if (!isOpen || !items.length) return;
+    if (!isOpen || !items || !items.length) return;
 
     const preloadImage = (url: string) => {
       if (preloadedImages.includes(url)) return;
@@ -80,7 +80,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
     };
 
     // INSTANT PERFORMANCE: Preload ALL images immediately
-    items.forEach(item => {
+    (items || []).forEach(item => {
       if (item.type === 'image' && item.url) {
         preloadImage(item.url);
       }

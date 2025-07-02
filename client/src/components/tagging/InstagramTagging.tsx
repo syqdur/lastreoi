@@ -329,51 +329,51 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
         <div className="grid grid-cols-4 gap-3">
           <button
             onClick={() => setMode(mode === 'person' ? 'idle' : 'person')}
-            className={`flex flex-col items-center p-3 rounded-xl transition-all ${
+            className={`flex flex-col items-center px-4 py-3 rounded-2xl backdrop-blur-sm transition-all duration-300 ${
               mode === 'person' 
-                ? 'bg-purple-600 text-white scale-105' 
-                : 'bg-white/10 text-white/80 hover:bg-white/20'
+                ? 'bg-gradient-to-br from-purple-500/90 to-pink-500/90 text-white shadow-lg shadow-purple-500/30 scale-105 border border-white/20' 
+                : 'bg-white/15 text-white/90 hover:bg-white/25 border border-white/10 hover:scale-105'
             }`}
           >
-            <Users className="w-5 h-5 mb-1" />
-            <span className="text-xs">Personen</span>
+            <Users className="w-5 h-5 mb-2" />
+            <span className="text-xs font-medium">Personen</span>
           </button>
 
           <button
             onClick={() => setMode(mode === 'location' ? 'idle' : 'location')}
-            className={`flex flex-col items-center p-3 rounded-xl transition-all ${
+            className={`flex flex-col items-center px-4 py-3 rounded-2xl backdrop-blur-sm transition-all duration-300 ${
               mode === 'location' 
-                ? 'bg-green-600 text-white scale-105' 
-                : 'bg-white/10 text-white/80 hover:bg-white/20'
+                ? 'bg-gradient-to-br from-green-500/90 to-emerald-500/90 text-white shadow-lg shadow-green-500/30 scale-105 border border-white/20' 
+                : 'bg-white/15 text-white/90 hover:bg-white/25 border border-white/10 hover:scale-105'
             }`}
           >
-            <MapPin className="w-5 h-5 mb-1" />
-            <span className="text-xs">Ort</span>
+            <MapPin className="w-5 h-5 mb-2" />
+            <span className="text-xs font-medium">Ort</span>
           </button>
 
           <button
             onClick={() => setMode(mode === 'text' ? 'idle' : 'text')}
-            className={`flex flex-col items-center p-3 rounded-xl transition-all ${
+            className={`flex flex-col items-center px-4 py-3 rounded-2xl backdrop-blur-sm transition-all duration-300 ${
               mode === 'text' 
-                ? 'bg-blue-600 text-white scale-105' 
-                : 'bg-white/10 text-white/80 hover:bg-white/20'
+                ? 'bg-gradient-to-br from-blue-500/90 to-cyan-500/90 text-white shadow-lg shadow-blue-500/30 scale-105 border border-white/20' 
+                : 'bg-white/15 text-white/90 hover:bg-white/25 border border-white/10 hover:scale-105'
             }`}
           >
-            <Type className="w-5 h-5 mb-1" />
-            <span className="text-xs">Text</span>
+            <Type className="w-5 h-5 mb-2" />
+            <span className="text-xs font-medium">Text</span>
           </button>
 
           <button
             onClick={clearAllTags}
             disabled={tags.length === 0}
-            className={`flex flex-col items-center p-3 rounded-xl transition-all ${
+            className={`flex flex-col items-center px-4 py-3 rounded-2xl backdrop-blur-sm transition-all duration-300 ${
               tags.length > 0
-                ? 'bg-red-600 text-white hover:bg-red-700' 
-                : 'bg-white/5 text-white/40 cursor-not-allowed'
+                ? 'bg-gradient-to-br from-red-500/90 to-rose-500/90 text-white hover:from-red-600/90 hover:to-rose-600/90 shadow-lg shadow-red-500/30 border border-white/20 hover:scale-105' 
+                : 'bg-white/10 text-white/40 cursor-not-allowed border border-white/5'
             }`}
           >
-            <Trash2 className="w-5 h-5 mb-1" />
-            <span className="text-xs">Löschen</span>
+            <Trash2 className="w-5 h-5 mb-2" />
+            <span className="text-xs font-medium">Löschen</span>
           </button>
         </div>
 
@@ -397,16 +397,16 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
 
       {/* User Selection Modal */}
       {showUserList && (
-        <div className="absolute inset-0 bg-black/50 flex items-end md:items-center justify-center z-20">
-          <div className="bg-white rounded-t-2xl md:rounded-2xl w-full md:max-w-md max-h-[70vh] overflow-hidden">
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Person markieren</h3>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center z-20">
+          <div className="bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl rounded-t-3xl md:rounded-3xl w-full md:max-w-md max-h-[70vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-100/50">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-gray-900">Person markieren</h3>
                 <button 
                   onClick={() => setShowUserList(false)}
-                  className="p-1 hover:bg-gray-100 rounded"
+                  className="p-2 hover:bg-gray-100/50 rounded-full transition-colors duration-200"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 text-gray-500" />
                 </button>
               </div>
               <input
@@ -414,7 +414,7 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
                 placeholder="Person suchen..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-4 py-3 bg-gray-50/80 border border-gray-200/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-300 transition-all duration-200 placeholder-gray-400"
                 autoFocus
               />
             </div>
@@ -422,25 +422,25 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
             <div className="overflow-y-auto max-h-80">
               {/* Recent Users */}
               {!searchQuery && recentUsers.length > 0 && (
-                <div className="p-4">
-                  <h4 className="text-sm font-medium text-gray-500 mb-2">Kürzlich markiert</h4>
-                  <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="p-6">
+                  <h4 className="text-sm font-medium text-gray-600 mb-3">Kürzlich markiert</h4>
+                  <div className="flex gap-4 overflow-x-auto pb-3">
                     {recentUsers.map(user => (
                       <button
                         key={user.deviceId}
                         onClick={() => addPersonTag(user)}
-                        className="flex flex-col items-center min-w-0 p-2 hover:bg-gray-50 rounded-lg"
+                        className="flex flex-col items-center min-w-0 p-3 hover:bg-gray-50/80 rounded-2xl transition-all duration-200 hover:scale-105"
                       >
-                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-1 overflow-hidden">
+                        <div className="w-14 h-14 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mb-2 overflow-hidden shadow-sm">
                           {user.profilePicture ? (
                             <img src={user.profilePicture} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-purple-600 font-medium">
+                            <span className="text-purple-600 font-medium text-lg">
                               {(user.displayName || user.userName).charAt(0).toUpperCase()}
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-center truncate w-full">
+                        <span className="text-xs text-center truncate w-full font-medium text-gray-700">
                           {user.displayName || user.userName}
                         </span>
                       </button>
@@ -450,17 +450,17 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
               )}
 
               {/* All Users */}
-              <div className="p-4">
-                <h4 className="text-sm font-medium text-gray-500 mb-2">
+              <div className="p-6">
+                <h4 className="text-sm font-medium text-gray-600 mb-3">
                   {searchQuery ? 'Suchergebnisse' : 'Alle Personen'}
                 </h4>
                 {filteredUsers.map(user => (
                   <button
                     key={user.deviceId}
                     onClick={() => addPersonTag(user)}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg"
+                    className="w-full flex items-center gap-4 p-4 hover:bg-gray-50/80 rounded-2xl transition-all duration-200 mb-2 hover:scale-[1.02]"
                   >
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center overflow-hidden shadow-sm">
                       {user.profilePicture ? (
                         <img src={user.profilePicture} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -470,19 +470,19 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
                       )}
                     </div>
                     <div className="flex-1 text-left">
-                      <div className="font-medium">{user.displayName || user.userName}</div>
+                      <div className="font-medium text-gray-900">{user.displayName || user.userName}</div>
                       {user.displayName && (
                         <div className="text-sm text-gray-500">@{user.userName}</div>
                       )}
                     </div>
                     {user.isOnline && (
-                      <div className="w-2 h-2 bg-green-500 rounded-full" />
+                      <div className="w-3 h-3 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full shadow-sm" />
                     )}
                   </button>
                 ))}
                 
                 {filteredUsers.length === 0 && (
-                  <p className="text-gray-500 text-center py-4">
+                  <p className="text-gray-500 text-center py-8 text-sm">
                     {searchQuery ? 'Keine Personen gefunden' : 'Alle Personen bereits markiert'}
                   </p>
                 )}
@@ -494,16 +494,16 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
 
       {/* Location Input Modal */}
       {showLocationInput && (
-        <div className="absolute inset-0 bg-black/50 flex items-end md:items-center justify-center z-20">
-          <div className="bg-white rounded-t-2xl md:rounded-2xl w-full md:max-w-md max-h-[70vh] overflow-hidden">
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Ort hinzufügen</h3>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center z-20">
+          <div className="bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl rounded-t-3xl md:rounded-3xl w-full md:max-w-md max-h-[70vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-100/50">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-gray-900">Ort hinzufügen</h3>
                 <button 
                   onClick={() => setShowLocationInput(false)}
-                  className="p-1 hover:bg-gray-100 rounded"
+                  className="p-2 hover:bg-gray-100/50 rounded-full transition-colors duration-200"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 text-gray-500" />
                 </button>
               </div>
               
@@ -511,10 +511,10 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
                 <button
                   onClick={handleGPSLocation}
                   disabled={isLoadingLocation}
-                  className="w-full flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg disabled:opacity-50"
+                  className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-green-50/80 to-emerald-50/80 hover:from-green-100/80 hover:to-emerald-100/80 rounded-2xl disabled:opacity-50 transition-all duration-200 border border-green-100/30"
                 >
-                  <MapPin className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium text-blue-600">
+                  <MapPin className="w-5 h-5 text-green-600" />
+                  <span className="font-medium text-green-700">
                     {isLoadingLocation ? 'Standort wird ermittelt...' : 'Aktueller Standort'}
                   </span>
                 </button>
@@ -524,7 +524,7 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
                   placeholder="Ort suchen..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-4 py-3 bg-gray-50/80 border border-gray-200/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-300 transition-all duration-200 placeholder-gray-400"
                 />
               </div>
             </div>
@@ -535,14 +535,14 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
                   <button
                     key={index}
                     onClick={() => addLocationTag(location)}
-                    className="w-full flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg text-left"
+                    className="w-full flex items-start gap-4 p-4 hover:bg-gray-50/60 rounded-2xl text-left transition-all duration-200 mb-2"
                   >
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mt-1">
+                    <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mt-1 shadow-sm">
                       <MapPin className="w-4 h-4 text-green-600" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium">{location.name}</div>
-                      <div className="text-sm text-gray-500 line-clamp-2">{location.address}</div>
+                      <div className="font-medium text-gray-900">{location.name}</div>
+                      <div className="text-sm text-gray-500 line-clamp-2 mt-1">{location.address}</div>
                     </div>
                   </button>
                 ))}
@@ -554,16 +554,16 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
 
       {/* Text Input Modal */}
       {showTextInput && (
-        <div className="absolute inset-0 bg-black/50 flex items-end md:items-center justify-center z-20">
-          <div className="bg-white rounded-t-2xl md:rounded-2xl w-full md:max-w-md">
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Text hinzufügen</h3>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center z-20">
+          <div className="bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl rounded-t-3xl md:rounded-3xl w-full md:max-w-md">
+            <div className="p-6 border-b border-gray-100/50">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-gray-900">Text hinzufügen</h3>
                 <button 
                   onClick={() => setShowTextInput(false)}
-                  className="p-1 hover:bg-gray-100 rounded"
+                  className="p-2 hover:bg-gray-100/50 rounded-full transition-colors duration-200"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 text-gray-500" />
                 </button>
               </div>
               <p className="text-sm text-gray-500">
@@ -571,22 +571,22 @@ const InstagramTagging: React.FC<InstagramTaggingProps> = ({
               </p>
             </div>
             
-            <div className="p-4">
+            <div className="p-6">
               <textarea
                 placeholder="Text eingeben..."
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg resize-none"
+                className="w-full px-4 py-3 bg-gray-50/80 border border-gray-200/50 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-300 transition-all duration-200 placeholder-gray-400"
                 rows={3}
                 maxLength={100}
                 autoFocus
               />
-              <div className="flex items-center justify-between mt-3">
-                <span className="text-sm text-gray-500">{textInput.length}/100</span>
+              <div className="flex items-center justify-between mt-4">
+                <span className="text-sm text-gray-400">{textInput.length}/100</span>
                 <button
                   onClick={addTextTag}
                   disabled={!textInput.trim()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg shadow-purple-500/25"
                 >
                   Hinzufügen
                 </button>

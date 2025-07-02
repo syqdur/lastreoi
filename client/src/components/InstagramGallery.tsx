@@ -50,8 +50,8 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
 }) => {
   const [notesSliderIndex, setNotesSliderIndex] = useState(0);
 
-  const noteItems = items.filter(item => item.type === 'note');
-  const mediaItems = items.filter(item => item.type !== 'note');
+  const noteItems = (items || []).filter(item => item.type === 'note');
+  const mediaItems = (items || []).filter(item => item.type !== 'note');
   
   // Get theme configuration with fallback
   const themeConfig = GALLERY_THEMES[galleryTheme] || GALLERY_THEMES.hochzeit;
@@ -79,7 +79,7 @@ export const InstagramGallery: React.FC<InstagramGalleryProps> = ({
       {viewMode === 'feed' ? (
         // Feed View
         <div className="space-y-0">
-          {items.map((item, index) => (
+          {(items || []).map((item, index) => (
             item.type === 'note' ? (
               <NotePost
                 key={item.id}

@@ -53,8 +53,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-  // IMMEDIATE DATA DISPLAY: Always show current gallery information 
-  // This ensures we never show old gallery data from previous galleries
+  // WAIT FOR FIREBASE DATA: Don't show anything until we know if Firebase has data
   const displayData = React.useMemo(() => {
     console.log('🔍 ProfileHeader building display data:', {
       galleryId: gallery?.id,
@@ -63,31 +62,22 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       galleryProfileDataName: galleryProfileData?.name
     });
 
-    // ALWAYS start with current gallery data to prevent old data from showing
-    const currentGalleryData = {
-      name: gallery?.eventName || 'Gallery',
-      bio: gallery ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : '',
-      countdownDate: gallery?.eventDate || null,
-      countdownEndMessage: 'Der große Tag ist da! 🎉',
-      countdownMessageDismissed: false,
-      profilePicture: null
-    };
-
-    // Only use galleryProfileData if it exists AND matches the current gallery
-    if (galleryProfileData && galleryProfileData.name) {
-      console.log('✅ Using Firebase admin settings:', galleryProfileData.name);
+    // If we have galleryProfileData (either from Firebase or explicitly set as defaults), use it
+    if (galleryProfileData) {
+      console.log('✅ Using gallery profile data:', galleryProfileData.name);
       return galleryProfileData;
-    } else {
-      console.log('📝 Using current gallery data:', currentGalleryData.name);
-      return currentGalleryData;
     }
-  }, [galleryProfileData, gallery?.eventName, gallery?.eventDate, gallery?.id]);
+
+    // If no galleryProfileData yet, return null to show loading state
+    console.log('⏳ No gallery profile data yet, showing loading state');
+    return null;
+  }, [galleryProfileData, gallery?.id]);
 
   console.log('🟢 PROFILEHEADER COMPONENT IS RENDERING:', {
     galleryId: gallery?.id,
     galleryName: gallery?.eventName,
-    source: galleryProfileData ? 'Firebase-Admin-Einstellungen' : 'Aktuelle-Galerie-Daten',
-    displayingName: displayData.name,
+    source: galleryProfileData ? 'Firebase-Admin-Einstellungen' : 'Waiting-For-Data',
+    displayingName: displayData?.name || 'null',
     hasGalleryProfileData: !!galleryProfileData
   });
 
@@ -136,7 +126,27 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return () => clearInterval(interval);
   }, [displayData?.countdownDate]);
 
-
+  // Show loading state if no data is available yet (AFTER all hooks)
+  if (!displayData) {
+    console.log('⏳ ProfileHeader showing loading state - no gallery profile data yet');
+    return (
+      <div className={`backdrop-blur-sm border-b transition-all duration-300 ${
+        isDarkMode 
+          ? 'bg-gray-900/50 border-gray-800/50' 
+          : 'bg-white/50 border-gray-200/50'
+      }`}>
+        <div className="px-4 py-6">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 rounded-2xl bg-gray-300/50 animate-pulse"></div>
+            <div className="flex-1 space-y-2">
+              <div className="h-6 bg-gray-300/50 rounded animate-pulse w-3/4"></div>
+              <div className="h-4 bg-gray-300/50 rounded animate-pulse w-1/2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
