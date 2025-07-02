@@ -658,17 +658,20 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       }
     };
 
-    const openModal = async (index: number) => {
-      // Refresh gallery users before opening modal (in case user wants to tag)
-      try {
-        const users = await getGalleryUsers(gallery.id);
-        setGalleryUsers(users);
-      } catch (error) {
-        console.error('Error refreshing gallery users for modal:', error);
-      }
-
+    const openModal = (index: number) => {
+      // 🚀 INSTANT MODAL: Open immediately, load users in background
       setCurrentImageIndex(index);
       setModalOpen(true);
+
+      // Background refresh without blocking modal opening
+      setTimeout(async () => {
+        try {
+          const users = await getGalleryUsers(gallery.id);
+          setGalleryUsers(users);
+        } catch (error) {
+          console.error('Error refreshing gallery users for modal:', error);
+        }
+      }, 0);
     };
 
     const nextImage = () => {
@@ -1192,6 +1195,13 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
           window.dispatchEvent(new CustomEvent('profilePictureUpdated', { 
             detail: { userName, deviceId, profile: newProfile } 
           }));
+
+          // 🔄 PROFILE HEADER UPDATE: Force ProfileHeader refresh after username setup
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('forceProfileHeaderRefresh', { 
+              detail: { userName, deviceId, profile: newProfile } 
+            }));
+          }, 100);
 
           console.log('✅ New visitor fully registered as user without page reload');
         } catch (error) {

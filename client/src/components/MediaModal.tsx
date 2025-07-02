@@ -62,7 +62,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const isLiked = currentLikes.some(like => like.userName === userName);
   const likeCount = currentLikes.length;
 
-  // 🚀 PERFORMANCE FIX: Intelligent preloading for instant media viewing
+  // 🚀 LIGHTNING FAST: Preload ALL images immediately when modal opens
   useEffect(() => {
     if (!isOpen || !items.length) return;
 
@@ -73,29 +73,33 @@ export const MediaModal: React.FC<MediaModalProps> = ({
       img.onload = () => {
         setPreloadedImages(prev => [...prev, url]);
       };
+      img.onerror = () => {
+        console.log('❌ Failed to preload:', url);
+      };
       img.src = url;
     };
 
-    // Preload current, previous, and next images for instant navigation
-    const imagesToPreload = [
-      currentIndex > 0 ? items[currentIndex - 1] : null,
-      items[currentIndex],
-      currentIndex < items.length - 1 ? items[currentIndex + 1] : null
-    ].filter(item => item && item.type === 'image').map(item => item!.url);
+    // INSTANT PERFORMANCE: Preload ALL images immediately
+    items.forEach(item => {
+      if (item.type === 'image' && item.url) {
+        preloadImage(item.url);
+      }
+    });
+  }, [isOpen, items]);
 
-    imagesToPreload.forEach(preloadImage);
-  }, [currentIndex, items, isOpen, preloadedImages]);
-
-  // Reset loading states when item changes - with preload optimization
+  // INSTANT LOADING: Skip loading state if already preloaded
   useEffect(() => {
     if (currentItem) {
       setImageError(false);
       
-      // Check if image is already preloaded for instant display
+      // INSTANT DISPLAY: If already preloaded, show immediately
       if (currentItem.type === 'image' && preloadedImages.includes(currentItem.url)) {
         setImageLoading(false);
-      } else {
+      } else if (currentItem.type === 'image') {
         setImageLoading(true);
+      } else {
+        // Videos and notes load instantly
+        setImageLoading(false);
       }
     }
   }, [currentItem?.id, preloadedImages]);
@@ -368,12 +372,10 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               </div>
             ) : (
               <div className="relative w-full h-full flex items-center justify-center">
+                {/* INSTANT DISPLAY: Only show loading if not preloaded */}
                 {imageLoading && !preloadedImages.includes(currentItem.url) && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-6 h-6 border-3 border-pink-400 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-white/80 text-sm">Wird geladen...</span>
-                    </div>
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <div className="w-4 h-4 border-2 border-pink-400 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 )}
                 

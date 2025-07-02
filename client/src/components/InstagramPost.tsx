@@ -54,6 +54,40 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
   const [editingTextTagId, setEditingTextTagId] = useState<string | null>(null);
   const [editTextTagText, setEditTextTagText] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [preloaded, setPreloaded] = useState(false);
+
+  // 🚀 ZERO DELAY MODAL: Preload image immediately when component mounts
+  useEffect(() => {
+    if (item.type === 'image' && item.url) {
+      const img = new Image();
+      img.onload = () => {
+        setPreloaded(true);
+        setImageLoading(false);
+      };
+      img.onerror = () => {
+        setImageError(true);
+        setImageLoading(false);
+      };
+      img.src = item.url;
+    } else {
+      setImageLoading(false);
+    }
+  }, [item.url, item.type]);
+
+  // Also preload in the browser cache for instant access
+  useEffect(() => {
+    if (item.type === 'image' && item.url) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = item.url;
+      document.head.appendChild(link);
+      
+      return () => {
+        document.head.removeChild(link);
+      };
+    }
+  }, [item.url, item.type]);
 
   // Listen for profile picture updates
   useEffect(() => {

@@ -422,13 +422,13 @@ const SearchPopup: React.FC<SearchPopupProps> = ({
                 Kürzlich markiert
               </h4>
               <div className="flex gap-2 overflow-x-auto pb-2">
-                {recentUsers.map((user) => (
+                {recentUsers.map((user, index) => (
                   <button
-                    key={user.deviceId}
+                    key={`recent-${user.deviceId}-${user.userName}-${index}`}
                     onClick={() => onSelectPerson(user)}
                     className="flex-shrink-0 flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gray-400 to-gray-500 flex items-center justify-center text-white font-medium text-xs">
                       {user.profilePicture ? (
                         <img 
                           src={user.profilePicture} 
@@ -439,7 +439,7 @@ const SearchPopup: React.FC<SearchPopupProps> = ({
                         <span>{(user.displayName || user.userName).charAt(0).toUpperCase()}</span>
                       )}
                     </div>
-                    <span className={`text-xs text-center max-w-16 truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <span className={`text-xs text-center max-w-14 truncate font-normal ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       {user.displayName || user.userName}
                     </span>
                   </button>
@@ -451,13 +451,13 @@ const SearchPopup: React.FC<SearchPopupProps> = ({
           <div className="space-y-2">
             {filteredUsers.map((user) => (
               <button
-                key={user.deviceId}
+                key={`${user.deviceId}-${user.userName}`}
                 onClick={() => onSelectPerson(user)}
                 className={`w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 ${
                   isDarkMode ? 'hover:bg-gray-800' : ''
                 } transition-colors`}
               >
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gray-400 to-gray-500 flex items-center justify-center text-white font-medium flex-shrink-0">
                   {user.profilePicture ? (
                     <img 
                       src={user.profilePicture} 
@@ -465,15 +465,15 @@ const SearchPopup: React.FC<SearchPopupProps> = ({
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <span>{(user.displayName || user.userName).charAt(0).toUpperCase()}</span>
+                    <span className="text-sm">{(user.displayName || user.userName).charAt(0).toUpperCase()}</span>
                   )}
                 </div>
                 <div className="flex-1 text-left">
-                  <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <p className={`font-normal text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     {user.displayName || user.userName}
                   </p>
                   {user.displayName && (
-                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                       @{user.userName}
                     </p>
                   )}
@@ -642,20 +642,19 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[2147483647]">
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4">
+    <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[2147483647]">
+      {/* Minimalist Header */}
+      <div className="absolute top-0 left-0 right-0 z-10 p-3">
         <div className="flex items-center justify-between">
           <button
             onClick={onClose}
-            className="p-2 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 transition-colors"
+            className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
-          <h2 className="text-white text-lg font-semibold">Markieren</h2>
           <button
             onClick={handleConfirm}
-            className="px-4 py-2 bg-blue-500 text-white rounded-full font-medium hover:bg-blue-600 transition-colors"
+            className="px-4 py-2 bg-blue-500 text-white rounded-full text-sm font-medium hover:bg-blue-600 transition-colors"
           >
             Fertig
           </button>
@@ -736,56 +735,32 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
         )}
       </div>
 
-      {/* Bottom Interface */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
-        <div className="max-w-md mx-auto space-y-4">
-          {/* Tag Mode Toggle */}
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <button
-              onClick={() => setTagsVisible(!tagsVisible)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                tagsVisible 
-                  ? 'bg-white/20 text-white' 
-                  : 'bg-white/10 text-white/70'
-              }`}
-            >
-              {tagsVisible ? 'Tags ausblenden' : 'Tags einblenden'}
-            </button>
-          </div>
+      {/* Compact Bottom Interface */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-4">
+        <div className="max-w-sm mx-auto space-y-3">
+          {/* Inline Tag Count */}
+          {tags.length > 0 && (
+            <div className="flex justify-center gap-2 text-xs text-white/80">
+              {getPersonTagCount() > 0 && <span>{getPersonTagCount()} Personen</span>}
+              {getLocationTagCount() > 0 && <span>{getLocationTagCount()} Orte</span>}
+              {getTextTagCount() > 0 && <span>{getTextTagCount()} Text</span>}
+            </div>
+          )}
 
-          {/* Tag Counters */}
-          <div className="flex justify-center gap-4 text-white text-sm">
-            {getPersonTagCount() > 0 && (
-              <span className="bg-purple-500/20 px-3 py-1 rounded-full">
-                {getPersonTagCount()} {getPersonTagCount() === 1 ? 'Person' : 'Personen'}
-              </span>
-            )}
-            {getLocationTagCount() > 0 && (
-              <span className="bg-green-500/20 px-3 py-1 rounded-full">
-                {getLocationTagCount()} {getLocationTagCount() === 1 ? 'Ort' : 'Orte'}
-              </span>
-            )}
-            {getTextTagCount() > 0 && (
-              <span className="bg-blue-500/20 px-3 py-1 rounded-full">
-                {getTextTagCount()} Text{getTextTagCount() > 1 ? 'e' : ''}
-              </span>
-            )}
-          </div>
-
-          {/* Main Control Buttons Grid */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Compact 3-Button Grid */}
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => {
                 setTagModeType('person');
                 setIsTagMode(true);
               }}
-              className={`flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all duration-300 ${
+              className={`flex flex-col items-center gap-1 py-3 rounded-xl font-medium text-xs transition-all ${
                 isTagMode && tagModeType === 'person'
-                  ? 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 text-white shadow-2xl scale-105'
-                  : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-md border border-white/20'
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-white/15 text-white hover:bg-white/25'
               }`}
             >
-              <Users className="w-5 h-5" />
+              <Users className="w-4 h-4" />
               Personen
             </button>
             
@@ -794,13 +769,13 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
                 setTagModeType('location');
                 setIsTagMode(true);
               }}
-              className={`flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all duration-300 ${
+              className={`flex flex-col items-center gap-1 py-3 rounded-xl font-medium text-xs transition-all ${
                 isTagMode && tagModeType === 'location'
-                  ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 text-white shadow-2xl scale-105'
-                  : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-md border border-white/20'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-white/15 text-white hover:bg-white/25'
               }`}
             >
-              <MapPin className="w-5 h-5" />
+              <MapPin className="w-4 h-4" />
               Ort
             </button>
 
@@ -809,36 +784,26 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
                 setTagModeType('text');
                 setIsTagMode(true);
               }}
-              className={`flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all duration-300 ${
+              className={`flex flex-col items-center gap-1 py-3 rounded-xl font-medium text-xs transition-all ${
                 isTagMode && tagModeType === 'text'
-                  ? 'bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 text-white shadow-2xl scale-105'
-                  : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-md border border-white/20'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white/15 text-white hover:bg-white/25'
               }`}
             >
-              <Type className="w-5 h-5" />
+              <Type className="w-4 h-4" />
               Text
             </button>
           </div>
 
-          {/* Clear Tags Button */}
+          {/* Clear Tags (Compact) */}
           {tags.length > 0 && (
             <button
               onClick={() => setTags([])}
-              className="w-full py-3 text-red-400 hover:text-red-300 text-sm font-medium transition-colors backdrop-blur-md bg-red-500/10 rounded-xl border border-red-500/20"
+              className="w-full py-2 text-red-400 hover:text-red-300 text-xs transition-colors"
             >
-              Alle Markierungen entfernen ({tags.length})
+              Alle entfernen
             </button>
           )}
-
-          {/* Instructions */}
-          <div className="text-center">
-            <p className="text-white/70 text-sm">
-              {isTagMode 
-                ? `Tippe auf das Bild, um ${tagModeType === 'person' ? 'Personen' : tagModeType === 'location' ? 'Orte' : 'Text'} zu markieren`
-                : 'Wähle einen Markierungsmodus aus'
-              }
-            </p>
-          </div>
         </div>
       </div>
 
