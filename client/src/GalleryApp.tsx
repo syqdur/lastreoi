@@ -27,7 +27,7 @@
   import { NotificationCenter } from './components/NotificationCenter';
   import { GalleryTutorial } from './components/GalleryTutorial';
   import { AdminTutorial } from './components/AdminTutorial';
-  import { SimpleTaggingModal } from './components/SimpleTaggingModal';
+  import { InstagramTaggingModal } from './components/InstagramTaggingModal';
   import { EventLoadingSpinner } from './components/EventLoadingSpinner';
   import { ConsolidatedNavigationBar } from './components/ConsolidatedNavigationBar';
   import { useUser } from './hooks/useUser';
@@ -177,6 +177,14 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       setModalOpen(false);
       setActiveTab('gallery');
       setIsLoading(true);
+
+      // 🧹 CRITICAL: Clear localStorage profile data to prevent old data from loading
+      console.log('🧹 Clearing localStorage profile data for fresh start');
+      const oldKeys = Object.keys(localStorage).filter(key => key.startsWith('gallery_profile_'));
+      oldKeys.forEach(key => {
+        console.log('🗑️ Removing old localStorage key:', key);
+        localStorage.removeItem(key);
+      });
 
       // Check tutorial only once
       const tutorialKey = `tutorial_shown_${gallery.id}`;
@@ -896,65 +904,76 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
     // Real-time gallery profile data synchronization
     useEffect(() => {
       console.log('🔄 Gallery profile listener starting for:', gallery.id);
+      console.log('🎯 Current gallery name:', gallery.eventName);
       
       if (!gallery.id) {
         console.log('❌ No gallery ID available for profile listener');
         return;
       }
 
-      // IMMEDIATE: Load Firebase profile data
+      // IMMEDIATE: Clear old data and set current gallery defaults
+      console.log('🧹 Clearing old gallery profile data');
+      const immediateDefaultProfile = {
+        name: gallery.eventName,
+        bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+        countdownDate: null,
+        countdownEndMessage: 'Der große Tag ist da! 🎉',
+        countdownMessageDismissed: false,
+        profilePicture: null
+      };
+      setGalleryProfileData(immediateDefaultProfile);
+      console.log('✅ Set immediate default profile:', immediateDefaultProfile.name);
+
+      // THEN: Try to load Firebase customizations (admin settings)
       const loadGalleryProfile = async () => {
         try {
           const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-          console.log('📡 Loading gallery profile from:', profileDocRef.path);
+          console.log('📡 Loading admin customizations from:', profileDocRef.path);
           
           const profileDoc = await getDoc(profileDocRef);
           
           if (profileDoc.exists()) {
             const firebaseData = profileDoc.data();
-            console.log('✅ Firebase profile loaded:', firebaseData.name);
+            console.log('✅ Admin customizations found:', firebaseData.name);
             setGalleryProfileData(firebaseData);
           } else {
-            console.log('📝 No Firebase profile found, using gallery defaults');
-            // Only use defaults if NO Firebase data exists
-            const defaultProfile = {
-              name: gallery.eventName,
-              bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-              countdownDate: null,
-              countdownEndMessage: 'Der große Tag ist da! 🎉',
-              countdownMessageDismissed: false,
-              profilePicture: null
-            };
-            setGalleryProfileData(defaultProfile);
+            console.log('📝 No admin customizations found, keeping current gallery defaults');
+            // Keep the default profile we already set above
           }
         } catch (error) {
-          console.error('❌ Error loading gallery profile:', error);
+          console.error('❌ Error loading admin customizations:', error);
+          // Keep the default profile we already set on error
         }
       };
 
-      // Load immediately
+      // Load Firebase customizations after setting defaults
       loadGalleryProfile();
 
-      // Setup real-time listener with same path as save function
+      // Setup real-time listener for admin customizations ONLY
       const realtimeProfileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
       const unsubscribe = onSnapshot(realtimeProfileDocRef, (docSnapshot: any) => {
-        console.log('📡 Gallery profile snapshot received for:', gallery.id);
+        console.log('📡 Admin customizations snapshot received for:', gallery.id);
         if (docSnapshot.exists()) {
           const firebaseData = docSnapshot.data();
-          console.log('✅ Loading customized gallery profile from Firebase:', firebaseData.name);
+          console.log('✅ Admin customizations updated:', firebaseData.name);
 
-          // Always apply Firebase data if it exists - this contains customized gallery settings
-          setGalleryProfileData({ ...firebaseData });
-          
-          // Save to localStorage for faster loading next time
-          localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(firebaseData));
+          // Only update if this is actual admin customizations data
+          if (firebaseData.name && firebaseData.name !== gallery.eventName) {
+            console.log('🎨 Applying admin customizations');
+            setGalleryProfileData({ ...firebaseData });
+            
+            // Save to localStorage for faster loading next time
+            localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(firebaseData));
+          } else {
+            console.log('📝 Firebase data matches gallery defaults, keeping current profile');
+          }
         } else {
-          console.log('📝 No custom gallery profile found, keeping default profile');
-          // Document doesn't exist - default profile was already set above
+          console.log('📝 No admin customizations found, keeping gallery defaults');
+          // Document doesn't exist - keep the default profile we already set above
         }
       }, (error: any) => {
-        console.error('❌ Error in gallery profile listener:', error);
-        console.log('📋 Keeping default profile after error');
+        console.error('❌ Error in admin customizations listener:', error);
+        console.log('📋 Keeping current profile after error');
       });
 
       return () => {
@@ -1794,9 +1813,9 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
           galleryTheme={gallery.theme || 'hochzeit'}
         />
 
-        {/* Simple Tagging Modal */}
+        {/* Instagram 2.0 Tagging Modal */}
         {showTaggingModal && pendingUploadUrl && (
-          <SimpleTaggingModal
+          <InstagramTaggingModal
             isOpen={showTaggingModal}
             onClose={handleTaggingCancel}
             onConfirm={handleTaggingConfirm}

@@ -589,6 +589,8 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
   const [isTagMode, setIsTagMode] = useState(true); // Start with tagging enabled by default
   const [pendingTag, setPendingTag] = useState<{ position: TagPosition } | null>(null);
   const [tagsVisible, setTagsVisible] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showBottomInterface, setShowBottomInterface] = useState(false);
   const mediaRef = useRef<HTMLDivElement>(null);
 
   const handleMediaClick = useCallback((event: React.MouseEvent) => {
@@ -605,6 +607,7 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
     const boundedY = Math.max(5, Math.min(95, y));
 
     setPendingTag({ position: { x: boundedX, y: boundedY } });
+    setShowBottomInterface(true);
   }, [isTagMode]);
 
   const handlePersonSelect = useCallback((user: GalleryUser) => {
@@ -620,6 +623,7 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
     if (isAlreadyTagged) {
       console.log('🚫 User already tagged, preventing duplicate:', user.userName);
       setPendingTag(null);
+      setShowBottomInterface(false);
       return;
     }
 
@@ -634,6 +638,8 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
 
     setTags(prev => [...prev, newTag]);
     setPendingTag(null);
+    setShowBottomInterface(false);
+    setSearchTerm('');
   }, [pendingTag, tags]);
 
   const [showLocationSearch, setShowLocationSearch] = useState(false);
@@ -689,66 +695,92 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
     onClose();
   }, [tags, onConfirm, onClose]);
 
+  // Filter users for suggestions  
+  const filteredUsers = React.useMemo(() => {
+    if (!searchTerm) {
+      // Show recent users (first 6)
+      return galleryUsers.slice(0, 6);
+    }
+    return galleryUsers.filter(user => 
+      (user.displayName || user.userName).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.userName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [galleryUsers, searchTerm]);
+
   if (!isOpen) return null;
 
   const personTags = tags.filter(tag => tag.type === 'person') as PersonTag[];
 
   return (
-    <div className="fixed inset-0 z-[2147483646] bg-black/95 backdrop-blur-sm flex items-center justify-center">
-      <div className="relative w-full h-full max-w-md mx-auto flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 text-white border-b border-white/10">
-          <button
-            onClick={onClose}
-            className="p-2.5 rounded-full hover:bg-white/10 transition-all hover:scale-110"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <div className="text-center">
-            <h1 className="text-lg font-bold">Markierungen</h1>
-            <p className="text-xs text-white/60 mt-0.5">
-              {isTagMode ? 'Tippe auf das Bild zum markieren' : 'Verwende die Buttons unten'}
-            </p>
+    <div className="fixed inset-0 z-[2147483647] bg-gradient-to-b from-black/95 via-black/90 to-black/95 backdrop-blur-lg flex items-center justify-center">
+      <div className="relative w-full h-full max-w-sm mx-auto flex flex-col">
+        {/* Instagram 2.0 Header */}
+        <div className="relative">
+          {/* Background Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-transparent rounded-t-3xl" />
+          
+          <div className="relative flex items-center justify-between p-6 text-white">
+            <button
+              onClick={onClose}
+              className="p-3 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all duration-200 hover:scale-110 border border-white/20"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            <div className="text-center">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent">
+                Markierungen
+              </h1>
+              <p className="text-sm text-white/70 mt-1 font-medium">
+                {isTagMode ? 'Tippe zum Markieren' : 'Aktiviere Markierungen'}
+              </p>
+            </div>
+            
+            <button
+              onClick={handleConfirm}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 hover:from-purple-600 hover:via-pink-600 hover:to-purple-700 rounded-2xl font-bold transition-all duration-200 shadow-xl hover:shadow-2xl hover:scale-105 border border-white/20"
+            >
+              Fertig
+            </button>
           </div>
-          <button
-            onClick={handleConfirm}
-            className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-xl font-bold transition-all shadow-lg hover:scale-105"
-          >
-            Fertig
-          </button>
         </div>
 
-        {/* Media Container */}
-        <div className="flex-1 flex items-center justify-center p-4">
+        {/* Instagram 2.0 Media Container */}
+        <div className="flex-1 flex items-center justify-center p-4 relative">
+          {/* Media Display */}
           <div
             ref={mediaRef}
-            className={`relative max-w-full max-h-full rounded-lg overflow-hidden ${
+            className={`relative max-w-full max-h-full rounded-3xl overflow-hidden shadow-2xl border border-white/10 ${
               isTagMode ? 'cursor-crosshair' : 'cursor-default'
             }`}
             onClick={handleMediaClick}
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+              backdropFilter: 'blur(20px)'
+            }}
           >
             {mediaType === 'image' ? (
               <img
                 src={mediaUrl}
                 alt="Media zum Markieren"
-                className="max-w-full max-h-full object-contain select-none"
+                className="max-w-full max-h-full object-contain select-none rounded-3xl"
                 draggable={false}
               />
             ) : (
               <video
                 src={mediaUrl}
-                className="max-w-full max-h-full object-contain"
+                className="max-w-full max-h-full object-contain rounded-3xl"
                 controls={!isTagMode}
                 playsInline
                 muted
               />
             )}
 
-            {/* Existing Tags */}
+            {/* Instagram-Style Tags */}
             {tagsVisible && tags.map((tag) => (
               <div
                 key={tag.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer"
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer z-20"
                 style={{
                   left: `${tag.position.x}%`,
                   top: `${tag.position.y}%`
@@ -760,167 +792,176 @@ export const InstagramTaggingModal: React.FC<InstagramTaggingModalProps> = ({
                   }
                 }}
               >
-                {/* Tag Dot or Text */}
-                {tag.type === 'text' ? (
-                  <div 
-                    className="bg-transparent text-white font-bold text-lg shadow-lg cursor-pointer select-none"
-                    style={{ 
-                      fontSize: `${(tag as TextTag).fontSize || 18}px`,
-                      color: (tag as TextTag).color || '#ffffff',
-                      textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
-                    }}
-                  >
-                    {(tag as TextTag).text}
+                {/* Instagram Authentic Tag Dot */}
+                <div className="relative">
+                  <div className="w-8 h-8 bg-white rounded-full border-3 border-blue-500 shadow-xl animate-pulse relative overflow-hidden">
+                    {/* Pulsing Animation Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 animate-ping opacity-30 rounded-full" />
                   </div>
-                ) : (
-                  <>
-                    <div className="w-6 h-6 bg-white rounded-full border-2 border-purple-500 animate-pulse shadow-lg" />
-                    
-                    {/* Tag Label */}
-                    <div className={`absolute mt-2 px-3 py-1.5 bg-black/90 text-white text-xs font-medium rounded-full whitespace-nowrap transform -translate-x-1/2 backdrop-blur-sm ${
-                      tag.position.y > 80 ? 'bottom-8' : 'top-8'
-                    }`}>
-                      {tag.type === 'person' 
-                        ? (tag as PersonTag).displayName || (tag as PersonTag).userName
-                        : tag.type === 'location'
-                        ? (tag as LocationTag).locationName
-                        : ''
-                      }
-                    </div>
-                  </>
-                )}
+                  
+                  {/* Hover-to-Show Tag Label */}
+                  <div className={`absolute opacity-0 group-hover:opacity-100 transition-all duration-300 px-4 py-2 bg-black/95 text-white text-sm font-medium rounded-2xl whitespace-nowrap transform -translate-x-1/2 backdrop-blur-xl border border-white/20 shadow-2xl ${
+                    tag.position.y > 80 ? 'bottom-12' : 'top-12'
+                  } ${
+                    tag.position.x > 80 ? 'right-4' : tag.position.x < 20 ? 'left-4' : ''
+                  }`}>
+                    {tag.type === 'person' 
+                      ? (tag as PersonTag).displayName || (tag as PersonTag).userName
+                      : tag.type === 'location'
+                      ? (tag as LocationTag).locationName
+                      : ''
+                    }
+                    {/* Arrow pointing to tag */}
+                    <div className={`absolute w-3 h-3 bg-black/95 transform rotate-45 ${
+                      tag.position.y > 80 ? 'top-full -mt-1.5' : 'bottom-full -mb-1.5'
+                    } left-1/2 -translate-x-1/2`} />
+                  </div>
+                </div>
               </div>
             ))}
 
-            {/* Pending Tag Search Popup */}
-            {pendingTag && (
-              <SearchPopup
-                position={pendingTag.position}
-                onSelectPerson={handlePersonSelect}
-                onCancel={() => setPendingTag(null)}
-                galleryUsers={galleryUsers}
-                isDarkMode={isDarkMode}
-                tags={tags}
-              />
-            )}
-
-            {/* Location Search Popup */}
-            {showLocationSearch && (
-              <LocationSearchPopup
-                position={{ x: 50, y: 50 }}
-                onSelectLocation={handleLocationSelect}
-                onCancel={() => setShowLocationSearch(false)}
-                isDarkMode={isDarkMode}
-              />
-            )}
-
-            {/* Text Input Popup */}
-            {showTextInput && pendingTextPosition && (
-              <TextInputPopup
-                position={pendingTextPosition}
-                onConfirm={handleTextConfirm}
-                onCancel={() => {
-                  setShowTextInput(false);
-                  setPendingTextPosition(null);
-                }}
-                isDarkMode={isDarkMode}
-              />
-            )}
           </div>
         </div>
 
-        {/* Bottom Controls */}
-        <div className="p-4 space-y-4 border-t border-white/10">
-          {/* Tag Status Indicator */}
-          {tags.length > 0 && (
-            <div className="flex items-center justify-center gap-2 py-2">
-              <div className="flex items-center gap-2">
-                {personTags.length > 0 && (
-                  <div className="flex items-center gap-1 px-3 py-1 bg-purple-500/20 rounded-full">
-                    <Users className="w-4 h-4 text-purple-400" />
-                    <span className="text-white text-sm font-medium">
-                      {personTags.length}
-                    </span>
-                  </div>
-                )}
-                {tags.filter(t => t.type === 'location').length > 0 && (
-                  <div className="flex items-center gap-1 px-3 py-1 bg-green-500/20 rounded-full">
-                    <MapPin className="w-4 h-4 text-green-400" />
-                    <span className="text-white text-sm font-medium">
-                      {tags.filter(t => t.type === 'location').length}
-                    </span>
-                  </div>
-                )}
-                {tags.filter(t => t.type === 'text').length > 0 && (
-                  <div className="flex items-center gap-1 px-3 py-1 bg-blue-500/20 rounded-full">
-                    <Type className="w-4 h-4 text-blue-400" />
-                    <span className="text-white text-sm font-medium">
-                      {tags.filter(t => t.type === 'text').length}
-                    </span>
-                  </div>
-                )}
+        {/* Instagram 2.0 Bottom Interface */}
+        <div className="relative border-t border-white/10">
+          {/* Glassmorphism Background */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent backdrop-blur-xl" />
+          
+          <div className="relative p-6 space-y-4">
+            {/* Tag Status Pills */}
+            {personTags.length > 0 && (
+              <div className="flex items-center justify-center">
+                <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 rounded-full backdrop-blur-xl border border-white/20">
+                  <Users className="w-5 h-5 text-purple-300" />
+                  <span className="text-white font-semibold text-sm">
+                    {personTags.length} {personTags.length === 1 ? 'Person markiert' : 'Personen markiert'}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Main Control Button */}
+            <div className="space-y-3">
+              <button
+                onClick={() => setIsTagMode(!isTagMode)}
+                className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-lg transition-all duration-300 ${
+                  isTagMode
+                    ? 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 text-white shadow-2xl scale-105'
+                    : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-md border border-white/20'
+                }`}
+              >
+                <Users className="w-6 h-6" />
+                {isTagMode ? 'Markierungen aktiv' : 'Personen markieren'}
+              </button>
+
+              {/* Clear Tags Button */}
+              {tags.length > 0 && (
+                <button
+                  onClick={() => setTags([])}
+                  className="w-full py-3 text-red-400 hover:text-red-300 text-sm font-medium transition-colors backdrop-blur-md bg-red-500/10 rounded-xl border border-red-500/20"
+                >
+                  Alle Markierungen entfernen ({tags.length})
+                </button>
+              )}
+            </div>
+
+            {/* Instructions */}
+            <div className="text-center">
+              <p className="text-white/70 text-sm font-medium">
+                {isTagMode 
+                  ? '✨ Tippe auf das Bild um Personen zu markieren'
+                  : 'Aktiviere Markierungen um zu beginnen'
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Instagram 2.0 Bottom User Selection */}
+        {showBottomInterface && pendingTag && (
+          <div className="fixed inset-x-0 bottom-0 z-[2147483648] bg-gradient-to-t from-black via-black/95 to-black/80 backdrop-blur-2xl rounded-t-3xl border-t border-white/20 shadow-2xl">
+            {/* Handle Bar */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-12 h-1.5 bg-white/30 rounded-full" />
+            </div>
+            
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 pb-4">
+              <h3 className="text-white font-bold text-xl">Wen möchtest du markieren?</h3>
+              <button
+                onClick={() => {
+                  setPendingTag(null);
+                  setShowBottomInterface(false);
+                  setSearchTerm('');
+                }}
+                className="p-2 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all border border-white/20"
+              >
+                <X className="w-6 h-6 text-white" />
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="px-6 pb-4">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                <input
+                  type="text"
+                  placeholder="Nach Person suchen..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 bg-white/10 text-white placeholder-white/60 rounded-2xl border border-white/20 focus:border-purple-400 focus:outline-none backdrop-blur-md text-base"
+                />
               </div>
             </div>
-          )}
 
-          {/* Control Buttons Row */}
-          <div className="grid grid-cols-4 gap-2">
-            {/* Person Tagging Toggle */}
-            <button
-              onClick={() => setIsTagMode(!isTagMode)}
-              className={`flex flex-col items-center justify-center p-3 rounded-xl font-medium transition-all ${
-                isTagMode
-                  ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg scale-105'
-                  : 'bg-white/10 text-white hover:bg-white/20 hover:scale-105'
-              }`}
-            >
-              <Users className="w-6 h-6 mb-1" />
-              <span className="text-xs font-bold">Personen</span>
-            </button>
+            {/* User Grid */}
+            <div className="px-6 pb-8 max-h-80 overflow-y-auto">
+              {!searchTerm && (
+                <div className="mb-4">
+                  <p className="text-white/60 text-sm font-medium mb-3">Kürzlich markiert</p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-3">
+                {filteredUsers.map((user) => (
+                  <button
+                    key={`${user.userName}_${user.deviceId}`}
+                    onClick={() => handlePersonSelect(user)}
+                    className="flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-all duration-200 hover:scale-105 backdrop-blur-md border border-white/10"
+                  >
+                    {user.profilePicture ? (
+                      <img
+                        src={user.profilePicture}
+                        alt={user.displayName || user.userName}
+                        className="w-12 h-12 rounded-full object-cover border-2 border-white/20"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-400 via-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg border-2 border-white/20">
+                        {(user.displayName || user.userName)[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="text-white font-semibold text-base truncate">
+                        {user.displayName || user.userName}
+                      </div>
+                      {user.displayName && (
+                        <div className="text-white/60 text-sm truncate">@{user.userName}</div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
 
-            {/* Location Tagging Button */}
-            <button
-              onClick={handleAddLocation}
-              className="flex flex-col items-center justify-center p-3 rounded-xl font-medium transition-all bg-white/10 text-white hover:bg-white/20 hover:scale-105"
-            >
-              <MapPin className="w-6 h-6 mb-1" />
-              <span className="text-xs font-bold">Ort</span>
-            </button>
-
-            {/* Text Tagging Button */}
-            <button
-              onClick={handleAddText}
-              className="flex flex-col items-center justify-center p-3 rounded-xl font-medium transition-all bg-white/10 text-white hover:bg-white/20 hover:scale-105"
-            >
-              <Type className="w-6 h-6 mb-1" />
-              <span className="text-xs font-bold">Text</span>
-            </button>
-
-            {/* Clear All Tags */}
-            <button
-              onClick={() => setTags([])}
-              disabled={tags.length === 0}
-              className={`flex flex-col items-center justify-center p-3 rounded-xl font-medium transition-all ${
-                tags.length > 0
-                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:scale-105'
-                  : 'bg-white/5 text-white/30 cursor-not-allowed'
-              }`}
-            >
-              <Hash className="w-6 h-6 mb-1 rotate-45" />
-              <span className="text-xs font-bold">Löschen</span>
-            </button>
+              {filteredUsers.length === 0 && searchTerm && (
+                <div className="text-center py-8">
+                  <p className="text-white/60 text-base">Keine Personen gefunden</p>
+                  <p className="text-white/40 text-sm mt-1">Versuche einen anderen Suchbegriff</p>
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Instructions */}
-          <div className="text-center">
-            <p className="text-white/60 text-xs">
-              {isTagMode 
-                ? '✨ Tippe auf das Bild um Personen zu markieren'
-                : '👆 Aktiviere "Personen" zum Markieren'
-              }
-            </p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

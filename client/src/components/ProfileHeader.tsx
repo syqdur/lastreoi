@@ -53,20 +53,42 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-  // ALWAYS prioritize galleryProfileData over gallery defaults
-  // Only show gallery defaults if NO galleryProfileData exists at all
-  const displayData = galleryProfileData ? galleryProfileData : {
-    name: gallery?.eventName || 'Gallery',
-    bio: gallery ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : '',
-    countdownDate: gallery?.eventDate || null,
-    countdownEndMessage: 'Der große Tag ist da! 🎉',
-    countdownMessageDismissed: false,
-    profilePicture: null
-  };
+  // IMMEDIATE DATA DISPLAY: Always show current gallery information 
+  // This ensures we never show old gallery data from previous galleries
+  const displayData = React.useMemo(() => {
+    console.log('🔍 ProfileHeader building display data:', {
+      galleryId: gallery?.id,
+      galleryName: gallery?.eventName,
+      hasGalleryProfileData: !!galleryProfileData,
+      galleryProfileDataName: galleryProfileData?.name
+    });
 
-  console.log('🟢 ProfileHeader displaying:', {
-    source: galleryProfileData ? 'Firebase-Profildaten' : 'Standard-Galerie-Daten',
-    name: displayData.name
+    // ALWAYS start with current gallery data to prevent old data from showing
+    const currentGalleryData = {
+      name: gallery?.eventName || 'Gallery',
+      bio: gallery ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : '',
+      countdownDate: gallery?.eventDate || null,
+      countdownEndMessage: 'Der große Tag ist da! 🎉',
+      countdownMessageDismissed: false,
+      profilePicture: null
+    };
+
+    // Only use galleryProfileData if it exists AND matches the current gallery
+    if (galleryProfileData && galleryProfileData.name) {
+      console.log('✅ Using Firebase admin settings:', galleryProfileData.name);
+      return galleryProfileData;
+    } else {
+      console.log('📝 Using current gallery data:', currentGalleryData.name);
+      return currentGalleryData;
+    }
+  }, [galleryProfileData, gallery?.eventName, gallery?.eventDate, gallery?.id]);
+
+  console.log('🟢 PROFILEHEADER COMPONENT IS RENDERING:', {
+    galleryId: gallery?.id,
+    galleryName: gallery?.eventName,
+    source: galleryProfileData ? 'Firebase-Admin-Einstellungen' : 'Aktuelle-Galerie-Daten',
+    displayingName: displayData.name,
+    hasGalleryProfileData: !!galleryProfileData
   });
 
   // Countdown timer effect with memoized calculation
@@ -224,12 +246,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           )}
           
           <div className="mt-4">
-            <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
+            <span className={`inline-block px-2 py-1 rounded-md text-xs font-medium transition-all duration-300 opacity-60 hover:opacity-80 ${
               isDarkMode 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' 
-                : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
+                ? 'bg-gray-800/50 text-gray-400 border border-gray-700/30' 
+                : 'bg-gray-100/70 text-gray-500 border border-gray-200/50'
             }`}>
-              💻 coded by Mauro
+              coded by Mauro
             </span>
           </div>
 
