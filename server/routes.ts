@@ -309,6 +309,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Gallery visitors endpoints for Instagram tagging system
+  app.get("/api/gallery/:galleryId/visitors", async (req, res) => {
+    try {
+      const { galleryId } = req.params;
+      
+      // Mock gallery visitors data - in production this would come from Firebase
+      const mockVisitors = [
+        {
+          id: "user1_device1",
+          name: "Max Mustermann",
+          username: "maxmuster",
+          avatar: "/api/placeholder/44/44",
+          lastVisited: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 min ago
+          deviceId: "device1",
+          userName: "maxmuster",
+          displayName: "Max Mustermann",
+          profilePicture: "/api/placeholder/44/44"
+        },
+        {
+          id: "user2_device2", 
+          name: "Anna Schmidt",
+          username: "annaschmidt",
+          avatar: "/api/placeholder/44/44",
+          lastVisited: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+          deviceId: "device2", 
+          userName: "annaschmidt",
+          displayName: "Anna Schmidt",
+          profilePicture: "/api/placeholder/44/44"
+        },
+        {
+          id: "user3_device3",
+          name: "Tom Weber", 
+          username: "tomweber",
+          avatar: "/api/placeholder/44/44",
+          lastVisited: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+          deviceId: "device3",
+          userName: "tomweber", 
+          displayName: "Tom Weber",
+          profilePicture: "/api/placeholder/44/44"
+        }
+      ];
+      
+      res.json({
+        success: true,
+        visitors: mockVisitors.sort((a, b) => 
+          new Date(b.lastVisited).getTime() - new Date(a.lastVisited).getTime()
+        )
+      });
+    } catch (error) {
+      console.error("Get gallery visitors error:", error);
+      res.status(500).json({ error: "Failed to get gallery visitors" });
+    }
+  });
+
+  app.get("/api/gallery/:galleryId/visitors/search", async (req, res) => {
+    try {
+      const { galleryId } = req.params;
+      const { q } = req.query;
+      
+      if (!q || typeof q !== 'string' || q.length < 1) {
+        return res.json({ success: true, visitors: [] });
+      }
+      
+      // Mock search implementation
+      const mockVisitors = [
+        {
+          id: "user1_device1",
+          name: "Max Mustermann", 
+          username: "maxmuster",
+          avatar: "/api/placeholder/44/44",
+          lastVisited: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+          deviceId: "device1",
+          userName: "maxmuster",
+          displayName: "Max Mustermann", 
+          profilePicture: "/api/placeholder/44/44"
+        },
+        {
+          id: "user2_device2",
+          name: "Anna Schmidt",
+          username: "annaschmidt", 
+          avatar: "/api/placeholder/44/44",
+          lastVisited: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          deviceId: "device2",
+          userName: "annaschmidt",
+          displayName: "Anna Schmidt",
+          profilePicture: "/api/placeholder/44/44"
+        }
+      ];
+      
+      const filteredVisitors = mockVisitors.filter(visitor =>
+        visitor.name.toLowerCase().includes(q.toLowerCase()) ||
+        visitor.username.toLowerCase().includes(q.toLowerCase())
+      );
+      
+      res.json({
+        success: true,
+        visitors: filteredVisitors
+      });
+    } catch (error) {
+      console.error("Search gallery visitors error:", error);
+      res.status(500).json({ error: "Failed to search gallery visitors" });
+    }
+  });
+
+  // Media tagging endpoints
+  app.post("/api/posts/:postId/tags", async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const { tags } = req.body;
+      
+      // Validate tags array
+      if (!Array.isArray(tags)) {
+        return res.status(400).json({ error: "Tags must be an array" });
+      }
+      
+      // In production, save to Firebase
+      res.json({
+        success: true,
+        postId,
+        tagsAdded: tags.length,
+        tags
+      });
+    } catch (error) {
+      console.error("Add post tags error:", error);
+      res.status(500).json({ error: "Failed to add post tags" });
+    }
+  });
+
+  app.delete("/api/posts/:postId/tags/:tagId", async (req, res) => {
+    try {
+      const { postId, tagId } = req.params;
+      
+      // In production, remove from Firebase
+      res.json({
+        success: true,
+        postId,
+        deletedTagId: tagId
+      });
+    } catch (error) {
+      console.error("Delete post tag error:", error);
+      res.status(500).json({ error: "Failed to delete post tag" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

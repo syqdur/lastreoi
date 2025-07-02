@@ -8,6 +8,7 @@ import { EventLoadingSpinner } from './EventLoadingSpinner';
 import { galleryService, Gallery } from '../services/galleryService';
 import { subscriptionService } from '../services/subscriptionService';
 import { getUserName, getDeviceId } from '../utils/deviceId';
+import InstagramTaggingTest from './InstagramTaggingTest';
 
 // Import the main App component (we'll rename the current one to GalleryApp)
 import { GalleryApp } from '../GalleryApp';
@@ -31,6 +32,7 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
   // Check if we're on the landing page
   const isLandingPage = location === '/' || location === '';
   const isRootAdminPage = location === '/root-admin';
+  const isTaggingTestPage = location === '/tagging-test';
   
   // Check if we're handling a Spotify callback
   const urlParams = new URLSearchParams(window.location.search);
@@ -47,10 +49,13 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
     if (match && params?.slug) {
       if (params.slug === 'root-admin') {
         setShowRootAdmin(true);
+      } else if (params.slug === 'tagging-test') {
+        // Handle tagging test page
+        return;
       } else {
         loadGallery(params.slug);
       }
-    } else if (!isLandingPage) {
+    } else if (!isLandingPage && !isTaggingTestPage) {
       // Invalid route, redirect to landing
       setLocation('/');
     }
@@ -200,23 +205,7 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
     setLocation('/');
   };
 
-  // Render loading state
-  if (isLoading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${
-        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
-      }`}>
-        <div className="text-center">
-          <EventLoadingSpinner 
-            theme={currentGallery?.theme as 'hochzeit' | 'geburtstag' | 'urlaub' | 'eigenes' || 'hochzeit'} 
-            isDarkMode={isDarkMode} 
-            size="large"
-            text="Galerie wird geladen..."
-          />
-        </div>
-      </div>
-    );
-  }
+  // PERFORMANCE FIX: Removed first loading screen - direct loading into gallery
 
   // Render error state
   if (error) {
@@ -279,6 +268,11 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
         }}
       />
     );
+  }
+
+  // Render tagging test page
+  if (isTaggingTestPage) {
+    return <InstagramTaggingTest />;
   }
 
   // Render landing page

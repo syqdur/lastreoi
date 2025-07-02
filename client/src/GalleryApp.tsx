@@ -34,6 +34,7 @@
   import { useOptimizedGallery } from './hooks/useOptimizedGallery';
   import { MediaItem, Comment, Like, TextTag, PersonTag, LocationTagWithPosition } from './types';
   import { initializePerformanceOptimizations } from './services/performanceOptimizations';
+import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, perfLogger } from './utils/quickPerformanceFix';
   import { Gallery, galleryService } from './services/galleryService';
   import { getThemeConfig, getThemeTexts, getThemeStyles } from './config/themes';
   import { storage, db } from './config/firebase';
@@ -114,25 +115,30 @@
     const themeStyles = getThemeStyles(gallery.theme || 'hochzeit');
 
     const { userName, deviceId, showNamePrompt, setUserName } = useUser();
+    
+    // 🚀 PERFORMANCE FIX: Reduce initial state complexity
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
     const [comments, setComments] = useState<Comment[]>([]);
     const [likes, setLikes] = useState<Like[]>([]);
     const [stories, setStories] = useState<Story[]>([]);
+    
+    // PERFORMANCE FIX: Single, simple loading state only
+    const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    
+    // UI states
     const [showUserProfileModal, setShowUserProfileModal] = useState(false);
     const [showProfileEditModal, setShowProfileEditModal] = useState(false);
     const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
     const [galleryProfileData, setGalleryProfileData] = useState<any>(null);
-    const [profileDataLoaded, setProfileDataLoaded] = useState(false);
-    const [profileListenerInitialized, setProfileListenerInitialized] = useState(false);
     const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
     const [galleryUsers, setGalleryUsers] = useState<any[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [status, setStatus] = useState('');
     const [siteStatus, setSiteStatus] = useState<SiteStatus | null>(null);
-    const [isAdmin, setIsAdmin] = useState(false); // Always start with false - admin mode requires credentials
+    const [isAdmin, setIsAdmin] = useState(false);
     const [showAdminCredentialsSetup, setShowAdminCredentialsSetup] = useState(false);
     const [showStoriesViewer, setShowStoriesViewer] = useState(false);
     const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -145,30 +151,20 @@
     const [pendingUploadFiles, setPendingUploadFiles] = useState<FileList | null>(null);
     const [pendingUploadUrl, setPendingUploadUrl] = useState<string>('');
     
-    // New loading states to fix pink loading ring
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
-    const [galleryDataLoaded, setGalleryDataLoaded] = useState(false);
-    
     // Initialize performance optimizations
     useEffect(() => {
-      const optimizations = initializePerformanceOptimizations();
-      console.log('🚀 Performance optimizations initialized for gallery:', gallery.id);
-      
-      return () => {
-        // Cleanup optimizations on unmount
-        optimizations.memory.executeCleanup();
-      };
+      console.log('🚀 Initializing performance fixes for gallery:', gallery.id);
+      perfLogger.start('Performance Initialization');
+      initQuickFix();
+      initializePerformanceOptimizations();
+      perfLogger.end('Performance Initialization');
     }, [gallery.id]);
 
-    // Reset state when gallery changes to fix data isolation
+    // 🚀 PERFORMANCE FIX: Simplified gallery change handler
     useEffect(() => {
-      console.log('🔄 Gallery changed - resetting all state for:', gallery.id, gallery.eventName);
+      console.log('🔄 Gallery changed - resetting state for:', gallery.id);
 
-      // New loading states
-      setIsInitialLoading(true);
-      setGalleryDataLoaded(false);
-
-      // Clear old data immediately
+      // Clear old data immediately - FASTER
       setGalleryProfileData(null);
       setMediaItems([]);
       setComments([]);
@@ -180,11 +176,11 @@
       setIsAdmin(false);
       setModalOpen(false);
       setActiveTab('gallery');
+      setIsLoading(true);
 
-      // Check if tutorial should be shown for this gallery
+      // Check tutorial only once
       const tutorialKey = `tutorial_shown_${gallery.id}`;
-      const tutorialShown = localStorage.getItem(tutorialKey);
-      if (!tutorialShown && userName) {
+      if (!localStorage.getItem(tutorialKey) && userName) {
         setShowTutorial(true);
       }
     }, [gallery.id, userName]);
@@ -275,69 +271,56 @@
       };
     }, [userName, deviceId, gallery.id, gallery.settings.allowStories, isAdmin]);
 
+    // PERFORMANCE FIX: Simplified data loading
     useEffect(() => {
       if (!userName) return;
 
-      const unsubscribeGallery = loadGalleryMedia(gallery.id, setMediaItems);
-      const unsubscribeComments = loadGalleryComments(gallery.id, setComments);
-      const unsubscribeLikes = loadGalleryLikes(gallery.id, setLikes);
-      const unsubscribeUserProfiles = loadGalleryUserProfiles(gallery.id, setUserProfiles);
+      console.log('Loading gallery data for:', gallery.id);
+      
+      // Load media with simplified loading
+      const unsubscribeGallery = loadGalleryMedia(gallery.id, (items) => {
+        setMediaItems(items);
+        setIsLoading(false); // Simple: set loading false when media loads
+      });
 
-      // Load gallery users for tagging
-      const loadUsers = async () => {
+      // 2. DELAYED: Load other data to prevent blocking
+      const timeouts: any[] = [];
+      
+      // Load comments with delay
+      timeouts.push(setTimeout(() => {
+        loadGalleryComments(gallery.id, (comments) => {
+          const limitedComments = comments.slice(0, FAST_LOAD_CONFIG.INITIAL_COMMENTS_LIMIT);
+          setComments(limitedComments);
+        });
+      }, 500));
+
+      // Load likes with delay  
+      timeouts.push(setTimeout(() => {
+        loadGalleryLikes(gallery.id, setLikes);
+      }, 750));
+
+      // Load user profiles with delay
+      timeouts.push(setTimeout(() => {
+        loadGalleryUserProfiles(gallery.id, setUserProfiles);
+      }, 1000));
+
+      // Load gallery users last (lowest priority)
+      timeouts.push(setTimeout(async () => {
         try {
           const users = await getGalleryUsers(gallery.id);
           setGalleryUsers(users);
         } catch (error) {
           console.error('Error loading gallery users:', error);
         }
-      };
-
-      loadUsers();
+      }, 1250));
 
       return () => {
         unsubscribeGallery();
-        unsubscribeComments();
-        unsubscribeLikes();
-        unsubscribeUserProfiles();
+        timeouts.forEach(timeout => clearTimeout(timeout));
       };
     }, [userName, gallery.id]);
 
-    // New data check useEffect to handle loading completion
-    useEffect(() => {
-      if (!userName || !gallery.id) return;
-
-      console.log('🔍 Checking if all data is loaded...');
-
-      const checkDataLoaded = () => {
-        const hasProfile = profileDataLoaded; // Use existing profileDataLoaded state
-        const hasMediaData = mediaItems !== undefined;
-        const hasSiteStatus = siteStatus !== null;
-
-        if (hasProfile && hasMediaData && hasSiteStatus) {
-          setGalleryDataLoaded(true);
-          setIsInitialLoading(false);
-        }
-      };
-
-      // Check immediately
-      checkDataLoaded();
-
-      // Check less frequently for better performance
-      const interval = setInterval(checkDataLoaded, 1000);
-
-      // Timeout after 3 seconds for faster loading
-      const timeout = setTimeout(() => {
-        setGalleryDataLoaded(true);
-        setIsInitialLoading(false);
-        clearInterval(interval);
-      }, 3000);
-
-      return () => {
-        clearInterval(interval);
-        clearTimeout(timeout);
-      };
-    }, [userName, gallery.id, profileDataLoaded, mediaItems, siteStatus]);
+    // PERFORMANCE FIX: Removed redundant data loading checks
 
     // Auto-logout when window/tab is closed
     useEffect(() => {
@@ -917,9 +900,7 @@
         return;
       }
 
-      // Reset loading state when gallery changes
-      setProfileDataLoaded(false);
-      setProfileListenerInitialized(false);
+      // PERFORMANCE FIX: Removed redundant loading state resets
       
       // Immediately set fallback data based on current gallery
       const immediateProfile = {
@@ -946,45 +927,24 @@
           console.log('✅ Gallery profile updated via real-time listener:', firebaseData);
           console.log('🔍 Current gallery name:', gallery.eventName);
           console.log('🔍 Firebase profile name:', firebaseData.name);
+          console.log('🎯 Setting galleryProfileData state with Firebase data');
 
           // Always apply Firebase data if it exists - this contains customized gallery settings
-          console.log('🔄 Applying real-time Firebase profile data from Gallery Settings');
           setGalleryProfileData(firebaseData);
-          setProfileDataLoaded(true);
-          setProfileListenerInitialized(true);
+          
+          // Force re-render to ensure ProfileHeader gets the update
+          setTimeout(() => {
+            console.log('🔄 Verifying galleryProfileData was set:', firebaseData);
+          }, 100);
         } else {
-          console.log('📝 No Firebase profile found, creating default gallery profile');
-          // Create default profile if none exists
-          const defaultProfile = {
-            name: gallery.eventName,
-            bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-            countdownDate: null, // Disabled by default
-            countdownEndMessage: 'Der große Tag ist da! 🎉',
-            countdownMessageDismissed: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          console.log('📋 Setting default profile:', defaultProfile);
-          setGalleryProfileData(defaultProfile);
-          setProfileDataLoaded(true);
-          setProfileListenerInitialized(true);
+          console.log('📝 No Firebase profile found, will keep immediate profile');
+          // Don't override the immediate profile if no Firebase data exists
+          // The immediate profile was already set above
         }
       }, (error: any) => {
         console.error('❌ Error in gallery profile listener:', error);
-        // Set default profile on error
-        const defaultProfile = {
-          name: gallery.eventName,
-          bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-          countdownDate: null,
-          countdownEndMessage: 'Der große Tag ist da! 🎉',
-          countdownMessageDismissed: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        console.log('📋 Setting default profile after error:', defaultProfile);
-        setGalleryProfileData(defaultProfile);
-        setProfileDataLoaded(true);
-        setProfileListenerInitialized(true);
+        // Don't set default profile on error - keep the immediate profile
+        console.log('📋 Keeping immediate profile after error');
       });
 
       return () => {
@@ -1224,14 +1184,9 @@
       return <SpotifyCallback isDarkMode={isDarkMode} />;
     }
 
-    // Force gallery creators through visitor registration process
-    const isGalleryOwner = localStorage.getItem(`gallery_owner_${gallery.slug}`) === 'true';
-    const galleryCreatedFlag = localStorage.getItem(`gallery_just_created_${gallery.slug}`);
-    const needsVisitorRegistration = isGalleryOwner && galleryCreatedFlag === 'true';
-    
-    // Show UserNamePrompt for new users or gallery creators who need to register as visitors
-    // Admin setup should NEVER show during visitor registration
-    if ((showNamePrompt || needsVisitorRegistration) && !showAdminCredentialsSetup) {
+    // PERFORMANCE FIX: Show UserNamePrompt only once for new users
+    // Remove redundant gallery creator logic that causes multiple prompts
+    if (showNamePrompt && !showAdminCredentialsSetup) {
       return <UserNamePrompt 
         onSubmit={async (name: string, profilePicture?: File) => {
           console.log('👋 Starting user registration for gallery:', gallery.id);
@@ -1301,8 +1256,8 @@
       />;
     }
 
-    // Loading Screen - Show while initial data is loading
-    if (isInitialLoading && !galleryDataLoaded) {
+    // PERFORMANCE FIX: Single simple loading screen
+    if (isLoading) {
       return (
         <div className={`min-h-screen flex items-center justify-center transition-all duration-500 ${
           isDarkMode 
@@ -1461,7 +1416,7 @@
             onToggleAdmin={setIsAdmin}
             currentUserProfile={currentUserProfile}
             onOpenUserProfile={() => setShowUserProfileModal(true)}
-            showTopBarControls={false}
+            showTopBarControls={true}
             galleryProfileData={galleryProfileData}
             onEditGalleryProfile={() => setShowProfileEditModal(true)}
             gallery={gallery}
@@ -1725,9 +1680,16 @@
 
                 await setDoc(profileDocRef, updatedGalleryProfile, { merge: true });
 
+                // Update local state immediately for better UX
+                // The onSnapshot listener will also update it, but this prevents delay
                 setGalleryProfileData(updatedGalleryProfile);
+
+                // The onSnapshot listener should automatically update galleryProfileData
+                // But let's log to verify
+                console.log('✅ Gallery profile saved to Firebase successfully');
+                console.log('⏳ Waiting for onSnapshot to update galleryProfileData...');
+
                 setShowProfileEditModal(false);
-                console.log('✅ Gallery profile updated successfully');
               } catch (error: any) {
                 console.error('❌ Error updating gallery profile:', error);
                 console.error('❌ Error message:', error.message);

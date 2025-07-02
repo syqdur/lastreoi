@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Users, MapPin, Search, ChevronLeft, ChevronRight, Loader2, Navigation, UserPlus, Copy } from 'lucide-react';
 import { addNotification } from '../services/firebaseService';
+import InstagramTaggingSystem from './InstagramTaggingSystem';
 // Location services using browser APIs
 
 interface TagPosition {

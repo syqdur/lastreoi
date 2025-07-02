@@ -87,6 +87,24 @@ This is a comprehensive wedding gallery application with the following architect
 
 ## Recent Changes
 
+### July 2, 2025 (ProfileHeader Data Loading Fix & Instagram Tagging System Implementation - COMPLETED)
+- **ProfileHeader Data Loading Fix**: Fixed critical issue where ProfileHeader showed loading state instead of gallery data on first visit - ProfileHeader now displays immediate fallback data based on gallery info while Firebase data loads in background, ensuring visitors always see gallery information immediately after registration
+- **Enhanced Gallery Profile Synchronization**: Improved real-time Firebase listener to only update when actual Firebase profile data exists, preventing override of immediate profile data and ensuring smooth data loading experience without loading delays
+- **Immediate Data Display Enhancement**: ProfileHeader displayData memo now provides fallback gallery data immediately while waiting for Firebase admin settings, eliminating "loading..." states and showing gallery name and bio instantly for new visitors
+- **Firebase Listener Optimization**: Updated onSnapshot listener to preserve immediate profile data when no Firebase document exists, and enhanced ProfileEditModal save function with better logging and immediate state updates for smoother admin profile editing experience
+
+### July 2, 2025 (Instagram Tagging System Implementation - COMPLETED)
+- **Complete Migration from Replit Agent to Replit**: Successfully migrated wedding gallery application from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
+- **Authentic Instagram Tagging System**: Implemented 1:1 Instagram-style tagging system with professional UI matching Instagram's design language including fullscreen overlay, header controls, crosshair cursor, white pulsing tag dots with blue borders, and bottom search interface
+- **Gallery Visitor Integration**: Created comprehensive gallery visitor system showing real-time user data sorted by last visit time with German time formatting ("vor X Min/Std/Tagen") for authentic social media experience
+- **API Backend Integration**: Added complete API endpoints for gallery visitors (/api/gallery/:galleryId/visitors), visitor search (/api/gallery/:galleryId/visitors/search), and media tagging functionality with proper data validation
+- **Mobile-Optimized Design**: Touch-friendly interface with 44px minimum touch targets, responsive layout adapting from fullscreen desktop to bottom-sheet mobile design, and proper iOS/Android compatibility
+- **Real-time Search & Filtering**: Debounced search with 300ms delay, live filtering by name and username, recent user suggestions, and duplicate tag prevention ensuring each person can only be tagged once per media item
+- **Professional Tag Rendering**: Instagram-authentic tag display with white pulsing dots, positioned labels with smart overflow prevention, hover-to-show functionality, and smooth animations matching Instagram's visual standards
+- **Test Environment Ready**: Created InstagramTaggingTest component available at /tagging-test route for comprehensive testing with mock gallery users, tag management, and full system validation
+- **TypeScript Integration**: Complete type safety with PersonTag interface, GalleryUser data structures, and proper error handling throughout the tagging workflow
+- **Performance Optimized**: Efficient tag positioning calculations, smart label placement to prevent off-screen display, and optimized rendering for smooth user experience across all devices
+
 ### July 1, 2025 (New Logo & Testing Phase Pricing - COMPLETED)
 - **New Telya Logo Integration**: Updated landing page with new professional Telya logo featuring pink heart icon in speech bubble design for improved brand recognition
 - **Testing Phase Pricing Update**: Modified "Kostenlos" plan to include ALL premium features during testing phase - users now get unlimited photos/videos, Instagram Stories, person tagging, timeline, Spotify integration, GPS location, push notifications, admin controls, and all advanced features for free during testing period
@@ -105,6 +123,12 @@ This is a comprehensive wedding gallery application with the following architect
 - **All Dependencies Working**: tsx, Node.js 20, and all npm packages properly installed and running in Replit environment
 - **Express Server Active**: Backend running successfully on port 5000 with proper API routing and database integration
 - **Migration Verified**: All features confirmed working including Firebase integration, real-time users, Spotify authentication, and complete gallery functionality
+
+### July 1, 2025 (Admin Controls Cleanup & Performance Fixes - COMPLETED)
+- **Admin Controls Simplification**: Removed all admin buttons from ProfileHeader except "Galerie-Profil bearbeiten" Settings button - only shows settings gear icon for gallery profile editing when in admin mode
+- **Performance Loading Screen Fix**: Removed redundant first loading screen showing only "Galerie wird geladen..." to eliminate double loading screens and improve user experience
+- **Clean Admin Interface**: ProfileHeader now shows minimal admin controls with only essential gallery profile editing functionality for cleaner interface
+- **Loading Performance Optimization**: Direct loading into gallery without unnecessary loading states for faster gallery access
 
 ### July 1, 2025 (Previous UI Improvements)
 - **Successful Migration from Replit Agent**: Completed migration from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration

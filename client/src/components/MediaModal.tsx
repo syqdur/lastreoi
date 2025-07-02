@@ -50,6 +50,7 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const [commentText, setCommentText] = useState('');
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [preloadedImages, setPreloadedImages] = useState<string[]>([]);
   const [isEditingText, setIsEditingText] = useState(false);
   const [selectedTextTag, setSelectedTextTag] = useState<TextTag | null>(null);
   const [newTextContent, setNewTextContent] = useState('');
@@ -61,13 +62,43 @@ export const MediaModal: React.FC<MediaModalProps> = ({
   const isLiked = currentLikes.some(like => like.userName === userName);
   const likeCount = currentLikes.length;
 
-  // Reset loading states when item changes
+  // 🚀 PERFORMANCE FIX: Intelligent preloading for instant media viewing
+  useEffect(() => {
+    if (!isOpen || !items.length) return;
+
+    const preloadImage = (url: string) => {
+      if (preloadedImages.includes(url)) return;
+      
+      const img = new Image();
+      img.onload = () => {
+        setPreloadedImages(prev => [...prev, url]);
+      };
+      img.src = url;
+    };
+
+    // Preload current, previous, and next images for instant navigation
+    const imagesToPreload = [
+      currentIndex > 0 ? items[currentIndex - 1] : null,
+      items[currentIndex],
+      currentIndex < items.length - 1 ? items[currentIndex + 1] : null
+    ].filter(item => item && item.type === 'image').map(item => item!.url);
+
+    imagesToPreload.forEach(preloadImage);
+  }, [currentIndex, items, isOpen, preloadedImages]);
+
+  // Reset loading states when item changes - with preload optimization
   useEffect(() => {
     if (currentItem) {
       setImageError(false);
-      setImageLoading(true);
+      
+      // Check if image is already preloaded for instant display
+      if (currentItem.type === 'image' && preloadedImages.includes(currentItem.url)) {
+        setImageLoading(false);
+      } else {
+        setImageLoading(true);
+      }
     }
-  }, [currentItem?.id]);
+  }, [currentItem?.id, preloadedImages]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -337,9 +368,12 @@ export const MediaModal: React.FC<MediaModalProps> = ({
               </div>
             ) : (
               <div className="relative w-full h-full flex items-center justify-center">
-                {imageLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black">
-                    <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                {imageLoading && !preloadedImages.includes(currentItem.url) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-6 h-6 border-3 border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-white/80 text-sm">Wird geladen...</span>
+                    </div>
                   </div>
                 )}
                 
