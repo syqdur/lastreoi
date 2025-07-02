@@ -825,73 +825,87 @@
 
     // Real-time gallery profile data synchronization
     useEffect(() => {
-      console.log('🔄 Gallery profile listener starting for:', gallery.id);
-      console.log('🎯 Current gallery name:', gallery.eventName);
+      console.log('🔄 GalleryApp: Initializing gallery profile listener for gallery ID:', gallery.id);
+      let localProfileSet = false; // Flag to see if we set from localStorage
 
-      if (!gallery.id) {
-        console.log('❌ No gallery ID available for profile listener');
-        return;
+      const cachedProfile = localStorage.getItem(`gallery_profile_${gallery.id}`);
+      if (cachedProfile) {
+        try {
+          console.log('⚡ GalleryApp: Using cached profile data from localStorage.');
+          setGalleryProfileData(JSON.parse(cachedProfile));
+          localProfileSet = true;
+        } catch (e) {
+          console.warn('GalleryApp: Failed to parse cached profile. Initializing galleryProfileData to null.', e);
+          setGalleryProfileData(null);
+        }
+      } else {
+        // No cache, start galleryProfileData as null so ProfileHeader shows its skeleton
+        setGalleryProfileData(null);
+        console.log('⚡ GalleryApp: No cached profile, galleryProfileData is initially null.');
       }
 
-      // IMMEDIATE: Set gallery data instantly, then update with Firebase if needed
-      console.log('🧹 Clearing old gallery profile data');
-      
-      // INSTANT: Set immediate data to prevent loading skeleton
-      const immediateProfile = {
-        name: gallery.eventName,
-        bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-        countdownDate: null,
-        countdownEndMessage: 'Der große Tag ist da! 🎉',
-        countdownMessageDismissed: false,
-        profilePicture: null
-      };
-      setGalleryProfileData(immediateProfile);
-      console.log('⚡ Set immediate profile data:', immediateProfile.name);
-
-      // THEN: Load Firebase and update if admin customizations exist
-      const loadGalleryProfile = async () => {
-        try {
-          const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-          const profileDoc = await getDoc(profileDocRef);
-
-          if (profileDoc.exists()) {
-            const firebaseData = profileDoc.data();
-            setGalleryProfileData(firebaseData);
-          } else {
-            // Keep the immediate profile we already set
-          }
-        } catch (error) {
-          // Keep the immediate profile we already set
+      if (!gallery.id) {
+        console.log('❌ GalleryApp: No gallery ID. Cannot set up Firestore listener.');
+        // If no gallery.id AND no valid localStorage, set a basic default to avoid prolonged null state.
+        if (!localProfileSet) {
+            const basicDefault = {
+                name: gallery.eventName,
+                bio: `${gallery.eventName} - Profil wird geladen...`,
+                countdownDate: gallery.eventDate || null,
+                profilePicture: null
+            };
+            setGalleryProfileData(basicDefault);
+            console.log('⚡ GalleryApp: Setting basic default due to no gallery.id and no cache.');
         }
-      };
+        return; // Cannot proceed without gallery.id for Firestore listener
+      }
 
-      // Load Firebase in background
-      loadGalleryProfile();
-
-      // Setup real-time listener for admin customizations ONLY
       const realtimeProfileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
       const unsubscribe = onSnapshot(realtimeProfileDocRef, (docSnapshot: any) => {
         if (docSnapshot.exists()) {
           const firebaseData = docSnapshot.data();
+          console.log('🔄 GalleryApp: galleryProfileData snapshot from Firestore (exists):', firebaseData);
+          setGalleryProfileData({ ...firebaseData }); // Ensure new object reference
+
+          // Clear old localStorage entries to prevent cross-contamination - only if needed.
+          const allKeys = Object.keys(localStorage);
+            const oldGalleryKeys = allKeys.filter(key =>
+              key.startsWith('gallery_profile_') && key !== `gallery_profile_${gallery.id}`
+            );
+          oldGalleryKeys.forEach(key => localStorage.removeItem(key));
           
-          // Always use Firebase data when it exists - it's the current admin settings
-          setGalleryProfileData({ ...firebaseData });
-
-          // Clear old localStorage to prevent stale data issues
-          const oldKeys = Object.keys(localStorage).filter(key => 
-            key.startsWith('gallery_profile_') && key !== `gallery_profile_${gallery.id}`
-          );
-          oldKeys.forEach(key => {
-            localStorage.removeItem(key);
-          });
-
-          // Save current data to localStorage
           localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(firebaseData));
+        } else {
+          console.log('🔄 GalleryApp: galleryProfileData snapshot from Firestore (does NOT exist). Setting default fallback.');
+          const defaultFallbackProfile = {
+            name: gallery.eventName,
+            bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+            countdownDate: gallery.eventDate || null,
+            countdownEndMessage: 'Der große Tag ist da! 🎉',
+            countdownMessageDismissed: false,
+            profilePicture: null
+          };
+          setGalleryProfileData(defaultFallbackProfile);
+          localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(defaultFallbackProfile));
         }
-        // Document doesn't exist - keep the default profile we already set above
+      }, (error) => {
+        console.error('❌ GalleryApp: Error in galleryProfileData snapshot listener:', error);
+        // If Firestore errors and we didn't set from valid localStorage, use a basic default.
+        if (!localProfileSet) {
+            const basicDefaultOnError = {
+                name: gallery.eventName,
+                bio: "Fehler beim Laden des Profils.",
+                countdownDate: gallery.eventDate || null,
+                profilePicture: null
+            };
+            setGalleryProfileData(basicDefaultOnError);
+            console.log('⚡ GalleryApp: Setting basic default due to Firestore error and no cache.');
+        }
+        // If localProfileSet was true, we keep the localStorage data on error.
       });
 
       return () => {
+        console.log('🔄 GalleryApp: Cleaning up gallery profile listener for gallery ID:', gallery.id);
         unsubscribe();
       };
     }, [gallery.id, gallery.eventName]);
