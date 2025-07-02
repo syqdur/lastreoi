@@ -1,4 +1,3 @@
-export { TaggableMedia } from './TaggableMedia';
-export { TagCreator } from './TagCreator';
-export { TagRenderer } from './TagRenderer';
-export { PlacePicker } from './PlacePicker';
+export { default as InstagramTagging } from './InstagramTagging';
+export { default as TagRenderer } from './TagRenderer';
+export { default as UploadTagging } from './UploadTagging';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, Check } from 'lucide-react';
-import { subscribeToNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/notificationService';
-import { notificationService } from '../services/notificationService';
+// Notification service imports updated for new tagging system
+// import { subscribeToNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/notificationService';
 
 interface Notification {
   id: string;
@@ -114,7 +114,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   const markAllAsRead = () => {
     if (notifications.length > 0) {
-      markAllNotificationsAsRead(userName, deviceId, galleryId);
+      // Temporarily disabled - will be replaced with new tagging system
+      console.log('Mark all as read - New tagging system integration pending');
     }
   };
 

@@ -1,538 +1,185 @@
-import { addDoc, collection, query, where, onSnapshot, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { PersonTag, LocationTag, TextTag, MediaTag } from '../types/tagging';
 
-export interface Notification {
-  id: string;
-  type: 'tag' | 'tagged' | 'comment' | 'like' | 'mention';
-  title: string;
-  message: string;
-  targetUser: string;
-  targetDeviceId: string;
+interface NotificationData {
+  type: 'tag' | 'comment' | 'like' | 'story_mention';
   fromUser: string;
-  fromDeviceId: string;
+  fromDisplayName?: string;
+  toUser: string;
+  toDeviceId: string;
+  galleryId: string;
   mediaId?: string;
-  mediaType?: string;
   mediaUrl?: string;
-  read: boolean;
-  createdAt: string;
+  mediaType?: 'image' | 'video';
+  message: string;
+  isRead: boolean;
+  createdAt: any;
 }
 
-export interface PushSubscription {
-  endpoint: string;
-  keys: {
-    p256dh: string;
-    auth: string;
-  };
-}
-
-class NotificationService {
-  private registration: ServiceWorkerRegistration | null = null;
-  private vapidPublicKey = 'BEl62iUYgUivxIkv69yViEuiBIa40HuWukJyLO-AqAKv-cq2WlJhKONHQLU6R2WJN4YEOGMfWb2OFy3pR8JI-6U'; // Replace with your VAPID key
-
-  async init() {
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      try {
-        // Register service worker with proper scope
-        this.registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/'
-        });
-        
-        console.log('✅ Service Worker registered successfully');
-        
-        // Wait for service worker to be ready
-        await navigator.serviceWorker.ready;
-        
-        // Request notification permission with better error handling
-        const permissionGranted = await this.requestPermission();
-        
-        if (!permissionGranted) {
-          console.warn('⚠️ Notification permission denied');
-          return false;
-        }
-        
-        console.log('✅ Notification system initialized');
-        return true;
-      } catch (error) {
-        console.error('❌ Service Worker registration failed:', error);
-        return false;
-      }
-    } else {
-      console.warn('⚠️ Push notifications not supported in this browser');
-      return false;
-    }
-  }
-
-  async requestPermission(): Promise<boolean> {
-    if (!('Notification' in window)) {
-      console.warn('This browser does not support notifications');
-      return false;
-    }
-
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
-  }
-
-  async subscribeToPush(userName: string, deviceId: string): Promise<boolean> {
-    if (!this.registration) {
-      console.error('Service Worker not registered');
-      return false;
-    }
-
-    try {
-      const subscription = await this.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
-      });
-
-      // Store subscription in Firebase
-      await addDoc(collection(db, 'pushSubscriptions'), {
-        userName,
-        deviceId,
-        subscription: JSON.stringify(subscription),
-        createdAt: new Date().toISOString()
-      });
-
-      console.log('✅ Push subscription created');
-      return true;
-    } catch (error) {
-      console.error('❌ Push subscription failed:', error);
-      return false;
-    }
-  }
-
-  async sendTagNotification(
-    taggedUser: string,
-    taggedDeviceId: string,
-    taggerUser: string,
-    taggerDeviceId: string,
-    mediaId: string,
-    mediaType: string,
-    mediaUrl?: string
-  ): Promise<void> {
-    try {
-      // Create notification in Firebase
-      const notification = {
-        type: 'tag',
-        title: 'Du wurdest markiert!',
-        message: `${taggerUser} hat dich in einem ${mediaType === 'video' ? 'Video' : 'Foto'} markiert`,
-        targetUser: taggedUser,
-        targetDeviceId: taggedDeviceId,
-        fromUser: taggerUser,
-        fromDeviceId: taggerDeviceId,
-        mediaId: mediaId,
-        mediaType: mediaType,
-        mediaUrl: mediaUrl || '',
-        read: false,
-        createdAt: new Date().toISOString()
-      };
-
-      await addDoc(collection(db, 'notifications'), notification);
-
-      // Send browser notification if permission granted
-      if (Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/icon-192x192.png',
-          badge: '/icon-72x72.png',
-          tag: `tag-${mediaId}`,
-          data: {
-            mediaId,
-            type: 'tag'
-          }
-        });
-      }
-
-      console.log('✅ Tag notification sent');
-    } catch (error) {
-      console.error('❌ Failed to send tag notification:', error);
-    }
-  }
-
-  async sendCommentNotification(
-    mediaOwner: string,
-    mediaOwnerDeviceId: string,
-    commenterUser: string,
-    commenterDeviceId: string,
-    mediaId: string,
-    commentText: string
-  ): Promise<void> {
-    if (mediaOwner === commenterUser && mediaOwnerDeviceId === commenterDeviceId) {
-      return; // Don't notify yourself
-    }
-
-    try {
-      const notification: Omit<Notification, 'id'> = {
-        type: 'comment',
-        title: 'Neuer Kommentar',
-        message: `${commenterUser} hat dein Foto kommentiert: "${commentText.substring(0, 50)}${commentText.length > 50 ? '...' : ''}"`,
-        targetUser: mediaOwner,
-        targetDeviceId: mediaOwnerDeviceId,
-        fromUser: commenterUser,
-        fromDeviceId: commenterDeviceId,
-        mediaId,
-        read: false,
-        createdAt: new Date().toISOString()
-      };
-
-      await addDoc(collection(db, 'notifications'), notification);
-
-      if (Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/icon-192x192.png',
-          badge: '/icon-72x72.png',
-          tag: `comment-${mediaId}`,
-          data: {
-            mediaId,
-            type: 'comment'
-          }
-        });
-      }
-
-      console.log('✅ Comment notification sent');
-    } catch (error) {
-      console.error('❌ Failed to send comment notification:', error);
-    }
-  }
-
-  async sendLikeNotification(
-    mediaOwner: string,
-    mediaOwnerDeviceId: string,
-    likerUser: string,
-    likerDeviceId: string,
-    mediaId: string
-  ): Promise<void> {
-    if (mediaOwner === likerUser && mediaOwnerDeviceId === likerDeviceId) {
-      return; // Don't notify yourself
-    }
-
-    try {
-      const notification: Omit<Notification, 'id'> = {
-        type: 'like',
-        title: 'Neues Like',
-        message: `${likerUser} gefällt dein Foto`,
-        targetUser: mediaOwner,
-        targetDeviceId: mediaOwnerDeviceId,
-        fromUser: likerUser,
-        fromDeviceId: likerDeviceId,
-        mediaId,
-        read: false,
-        createdAt: new Date().toISOString()
-      };
-
-      await addDoc(collection(db, 'notifications'), notification);
-
-      if (Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/icon-192x192.png',
-          badge: '/icon-72x72.png',
-          tag: `like-${mediaId}`,
-          data: {
-            mediaId,
-            type: 'like'
-          }
-        });
-      }
-
-      console.log('✅ Like notification sent');
-    } catch (error) {
-      console.error('❌ Failed to send like notification:', error);
-    }
-  }
-
-  subscribeToNotifications(
-    userName: string,
-    deviceId: string,
-    callback: (notifications: Notification[]) => void
-  ) {
-    console.log('🔔 Creating notification query for:', userName, `(${deviceId})`);
-    
-    // Simplified query without orderBy to avoid index issues
-    const q = query(
-      collection(db, 'notifications'),
-      where('targetUser', '==', userName),
-      where('targetDeviceId', '==', deviceId),
-      limit(50)
-    );
-
-    return onSnapshot(q, (snapshot) => {
-      const notifications: Notification[] = [];
-      snapshot.forEach((doc) => {
-        notifications.push({
-          id: doc.id,
-          ...doc.data()
-        } as Notification);
-      });
-      
-      // Sort manually by createdAt descending (newest first)
-      notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      console.log('📬 Loaded and sorted notifications:', notifications.length);
-      callback(notifications);
-    }, (error) => {
-      console.error('❌ Notification subscription error:', error);
-      // Fallback with even simpler query
-      const fallbackQ = query(
-        collection(db, 'notifications'),
-        where('targetUser', '==', userName),
-        limit(20)
-      );
-      
-      return onSnapshot(fallbackQ, (snapshot) => {
-        const fallbackNotifications: Notification[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.targetDeviceId === deviceId) {
-            fallbackNotifications.push({
-              id: doc.id,
-              ...data
-            } as Notification);
-          }
-        });
-        
-        fallbackNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        console.log('📬 Fallback notifications loaded:', fallbackNotifications.length);
-        callback(fallbackNotifications);
-      });
-    });
-  }
-
-  async getUnreadCount(userName: string, deviceId: string): Promise<number> {
-    try {
-      const q = query(
-        collection(db, 'notifications'),
-        where('targetUser', '==', userName),
-        where('targetDeviceId', '==', deviceId),
-        where('read', '==', false)
-      );
-      
-      const snapshot = await getDocs(q);
-      return snapshot.size;
-    } catch (error) {
-      console.error('❌ Failed to get unread count:', error);
-      return 0;
-    }
-  }
-
-  // Gallery-specific notification subscription
-  subscribeToGalleryNotifications(
+export class NotificationService {
+  // Send tagging notifications
+  static async sendTaggingNotifications(
     galleryId: string,
-    userName: string,
-    deviceId: string,
-    callback: (notifications: Notification[]) => void
+    mediaId: string,
+    mediaUrl: string,
+    mediaType: 'image' | 'video',
+    tags: MediaTag[],
+    fromUser: string,
+    fromDisplayName?: string
   ) {
-    // Simple query for gallery-scoped notifications
-    const q = query(
-      collection(db, `galleries/${galleryId}/notifications`),
-      where('targetUser', '==', userName),
-      where('targetDeviceId', '==', deviceId),
-      limit(20)
-    );
+    try {
+      // Filter only person tags for notifications
+      const personTags = tags.filter(tag => tag.type === 'person') as PersonTag[];
+      
+      if (personTags.length === 0) return;
 
-    return onSnapshot(q, (snapshot) => {
-      const notifications: Notification[] = [];
-      
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        notifications.push({
-          id: doc.id,
-          ...data
-        } as Notification);
+      // Create notification collection reference
+      const notificationsRef = collection(db, 'galleries', galleryId, 'notifications');
+
+      // Send notification to each tagged person
+      const notificationPromises = personTags.map(async (tag) => {
+        // Skip notification if user is tagging themselves
+        if (tag.deviceId === localStorage.getItem('deviceId')) {
+          return;
+        }
+
+        const notificationData: NotificationData = {
+          type: 'tag',
+          fromUser,
+          fromDisplayName,
+          toUser: tag.userName,
+          toDeviceId: tag.deviceId,
+          galleryId,
+          mediaId,
+          mediaUrl,
+          mediaType,
+          message: `${fromDisplayName || fromUser} hat dich in einem ${mediaType === 'image' ? 'Bild' : 'Video'} markiert`,
+          isRead: false,
+          createdAt: serverTimestamp()
+        };
+
+        return addDoc(notificationsRef, notificationData);
       });
-      
-      callback(notifications);
-    }, (error) => {
-      console.error('❌ Gallery notification subscription error:', error);
-      callback([]);
-    });
+
+      await Promise.all(notificationPromises);
+      console.log(`✅ Sent ${personTags.length} tagging notifications`);
+    } catch (error) {
+      console.error('❌ Error sending tagging notifications:', error);
+    }
   }
 
-  private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
+  // Send story mention notifications
+  static async sendStoryMentionNotifications(
+    galleryId: string,
+    storyId: string,
+    storyUrl: string,
+    tags: MediaTag[],
+    fromUser: string,
+    fromDisplayName?: string
+  ) {
+    try {
+      const personTags = tags.filter(tag => tag.type === 'person') as PersonTag[];
+      
+      if (personTags.length === 0) return;
 
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
+      const notificationsRef = collection(db, 'galleries', galleryId, 'notifications');
 
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
+      const notificationPromises = personTags.map(async (tag) => {
+        if (tag.deviceId === localStorage.getItem('deviceId')) {
+          return;
+        }
+
+        const notificationData: NotificationData = {
+          type: 'story_mention',
+          fromUser,
+          fromDisplayName,
+          toUser: tag.userName,
+          toDeviceId: tag.deviceId,
+          galleryId,
+          mediaId: storyId,
+          mediaUrl: storyUrl,
+          mediaType: 'image',
+          message: `${fromDisplayName || fromUser} hat dich in einer Story erwähnt`,
+          isRead: false,
+          createdAt: serverTimestamp()
+        };
+
+        return addDoc(notificationsRef, notificationData);
+      });
+
+      await Promise.all(notificationPromises);
+      console.log(`✅ Sent ${personTags.length} story mention notifications`);
+    } catch (error) {
+      console.error('❌ Error sending story mention notifications:', error);
     }
-    return outputArray;
+  }
+
+  // Send bulk tagging notifications (for multiple media items)
+  static async sendBulkTaggingNotifications(
+    galleryId: string,
+    mediaItems: { id: string; url: string; type: 'image' | 'video' }[],
+    allTags: MediaTag[],
+    fromUser: string,
+    fromDisplayName?: string
+  ) {
+    try {
+      // Collect all unique person tags across all media
+      const allPersonTags = allTags.filter(tag => tag.type === 'person') as PersonTag[];
+      const uniqueUsers = new Map<string, PersonTag>();
+      
+      allPersonTags.forEach(tag => {
+        if (tag.deviceId !== localStorage.getItem('deviceId')) {
+          uniqueUsers.set(tag.deviceId, tag);
+        }
+      });
+
+      if (uniqueUsers.size === 0) return;
+
+      const notificationsRef = collection(db, 'galleries', galleryId, 'notifications');
+      const mediaCount = mediaItems.length;
+      
+      // Send one notification per user for all media they're tagged in
+      const notificationPromises = Array.from(uniqueUsers.values()).map(async (tag) => {
+        const notificationData: NotificationData = {
+          type: 'tag',
+          fromUser,
+          fromDisplayName,
+          toUser: tag.userName,
+          toDeviceId: tag.deviceId,
+          galleryId,
+          mediaId: mediaItems[0].id, // Use first media item as reference
+          mediaUrl: mediaItems[0].url,
+          mediaType: mediaItems[0].type,
+          message: `${fromDisplayName || fromUser} hat dich in ${mediaCount} ${mediaCount === 1 ? 'Beitrag' : 'Beiträgen'} markiert`,
+          isRead: false,
+          createdAt: serverTimestamp()
+        };
+
+        return addDoc(notificationsRef, notificationData);
+      });
+
+      await Promise.all(notificationPromises);
+      console.log(`✅ Sent bulk tagging notifications to ${uniqueUsers.size} users for ${mediaCount} media items`);
+    } catch (error) {
+      console.error('❌ Error sending bulk tagging notifications:', error);
+    }
+  }
+
+  // Get user's device ID for notifications
+  static getCurrentDeviceId(): string | null {
+    return localStorage.getItem('deviceId');
+  }
+
+  // Get user's name for notifications
+  static getCurrentUserName(): string | null {
+    return localStorage.getItem('userName');
+  }
+
+  // Get user's display name for notifications
+  static getCurrentDisplayName(): string | null {
+    return localStorage.getItem('displayName');
   }
 }
 
-export const notificationService = new NotificationService();
-
-// Export standalone functions for easier use in components
-export const subscribeToNotifications = (
-  userName: string,
-  deviceId: string,
-  callback: (notifications: Notification[]) => void
-) => {
-  return notificationService.subscribeToNotifications(userName, deviceId, callback);
-};
-
-export const markNotificationAsRead = async (notificationId: string, galleryId?: string) => {
-  try {
-    const { doc, updateDoc } = await import('firebase/firestore');
-    
-    // Use gallery-scoped notifications if galleryId is provided
-    const collectionPath = galleryId ? `galleries/${galleryId}/notifications` : 'notifications';
-    
-    await updateDoc(doc(db, collectionPath, notificationId), {
-      read: true
-    });
-    console.log('✅ Notification marked as read:', notificationId);
-  } catch (error) {
-    console.error('❌ Failed to mark notification as read:', error);
-  }
-};
-
-export const markAllNotificationsAsRead = async (userName: string, deviceId: string, galleryId?: string) => {
-  try {
-    const { query, where, getDocs, doc, updateDoc } = await import('firebase/firestore');
-    
-    // Use gallery-scoped notifications if galleryId is provided
-    const collectionPath = galleryId ? `galleries/${galleryId}/notifications` : 'notifications';
-    
-    const q = query(
-      collection(db, collectionPath),
-      where('targetUser', '==', userName),
-      where('targetDeviceId', '==', deviceId),
-      where('read', '==', false)
-    );
-    
-    const snapshot = await getDocs(q);
-    console.log(`📬 Marking ${snapshot.size} notifications as read`);
-    
-    const updatePromises = snapshot.docs.map(docSnapshot => 
-      updateDoc(doc(db, collectionPath, docSnapshot.id), { read: true })
-    );
-    
-    await Promise.all(updatePromises);
-    console.log('✅ All notifications marked as read');
-  } catch (error) {
-    console.error('❌ Failed to mark all notifications as read:', error);
-  }
-};
-
-// Initialize push notifications for Android/iPhone
-export const initializePushNotifications = async (): Promise<boolean> => {
-  try {
-    // Check if service workers and notifications are supported
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.warn('❌ Push notifications not supported on this device');
-      return false;
-    }
-
-    // Request notification permission with better UX
-    let permission = Notification.permission;
-    
-    if (permission === 'default') {
-      permission = await Notification.requestPermission();
-    }
-    
-    if (permission !== 'granted') {
-      console.warn('❌ Notification permission denied');
-      return false;
-    }
-
-    // Register enhanced service worker
-    const registration = await navigator.serviceWorker.register('/sw.js', {
-      scope: '/'
-    });
-    
-    // Wait for service worker to be ready
-    await navigator.serviceWorker.ready;
-    console.log('✅ Service Worker registered and ready');
-
-    // For real Android/iPhone notifications, you would normally subscribe here
-    // with VAPID keys, but for local testing we'll setup the foundation
-    try {
-      // Check if already subscribed
-      const existingSubscription = await registration.pushManager.getSubscription();
-      
-      if (!existingSubscription) {
-        // For production, add your VAPID public key here
-        // const subscription = await registration.pushManager.subscribe({
-        //   userVisibleOnly: true,
-        //   applicationServerKey: urlBase64ToUint8Array('YOUR_VAPID_PUBLIC_KEY')
-        // });
-        
-        console.log('✅ Ready for push notifications (VAPID setup needed for production)');
-      } else {
-        console.log('✅ Already subscribed to push notifications');
-      }
-      
-      // Listen for messages from service worker
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data?.type === 'NAVIGATE_TO_MEDIA') {
-          handleServiceWorkerNavigation(event.data);
-        }
-      });
-      
-      return true;
-    } catch (subscriptionError) {
-      console.error('❌ Push subscription setup failed:', subscriptionError);
-      // Still return true as local notifications work
-      return true;
-    }
-  } catch (error) {
-    console.error('❌ Failed to initialize push notifications:', error);
-    return false;
-  }
-};
-
-// Handle navigation messages from service worker
-const handleServiceWorkerNavigation = (data: any) => {
-  const { mediaId, url } = data;
-  
-  if (mediaId) {
-    // Trigger navigation to specific media
-    window.dispatchEvent(new CustomEvent('navigateToMedia', {
-      detail: { mediaId }
-    }));
-  } else if (url) {
-    // Navigate to specific URL
-    window.location.href = url;
-  }
-};
-
-// Send real push notification (for production with backend)
-export const sendPushNotification = async (
-  subscription: PushSubscription,
-  payload: {
-    title: string;
-    message: string;
-    mediaId?: string;
-    type: string;
-    icon?: string;
-    image?: string;
-  }
-) => {
-  // This would be called from your backend server with proper VAPID keys
-  // Here's the structure for when you implement the backend push service
-  
-  const notificationPayload = {
-    title: payload.title,
-    body: payload.message,
-    icon: payload.icon || '/icon-192x192.png',
-    badge: '/icon-72x72.png',
-    image: payload.image,
-    data: {
-      mediaId: payload.mediaId,
-      type: payload.type,
-      url: payload.mediaId ? `/?media=${payload.mediaId}` : '/'
-    },
-    tag: `wedding-${payload.type}`,
-    requireInteraction: false,
-    vibrate: [200, 100, 200]
-  };
-
-  // In production, send this to your backend push service
-  console.log('📱 Push notification payload ready:', notificationPayload);
-  return notificationPayload;
-};
+export default NotificationService;

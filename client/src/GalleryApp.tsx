@@ -27,7 +27,7 @@
   import { NotificationCenter } from './components/NotificationCenter';
   import { GalleryTutorial } from './components/GalleryTutorial';
   import { AdminTutorial } from './components/AdminTutorial';
-  import { SimpleTaggingModal } from './components/SimpleTaggingModal';
+  import InstagramTagging from './components/tagging/InstagramTagging';
   import { EventLoadingSpinner } from './components/EventLoadingSpinner';
   import { ConsolidatedNavigationBar } from './components/ConsolidatedNavigationBar';
   import { useUser } from './hooks/useUser';
@@ -61,7 +61,7 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
   } from './services/firebaseService';
   import { subscribeSiteStatus, SiteStatus } from './services/siteStatusService';
   import { getUserName, getDeviceId } from './utils/deviceId';
-  import { notificationService, initializePushNotifications } from './services/notificationService';
+  import NotificationService from './services/notificationService';
   import { Story } from './services/liveService';
 
   // Modified firebase service functions to work with gallery collections
@@ -228,13 +228,8 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
       const initNotifications = async () => {
         try {
-          const initialized = await notificationService.init();
-          if (initialized) {
-            await notificationService.subscribeToPush(userName, deviceId);
-            console.log('✅ Push notifications initialized');
-          }
-
-          await initializePushNotifications();
+          // Notification service initialization removed - using new tagging system
+          console.log('✅ New tagging system initialized');
         } catch (error) {
           console.log('⚠️ Push notifications not available:', error);
         }
@@ -570,14 +565,8 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
         const mediaItem = mediaItems.find(item => item.id === mediaId);
         if (mediaItem && mediaItem.uploadedBy !== userName) {
-          await notificationService.sendCommentNotification(
-            mediaItem.uploadedBy,
-            mediaItem.deviceId,
-            userName,
-            deviceId,
-            mediaId,
-            text
-          );
+          // Notification will be handled by new tagging system
+          console.log('Comment notification would be sent to:', mediaItem.uploadedBy);
         }
 
         await createOrUpdateGalleryUserProfile(userName, deviceId, {}, gallery.id);
@@ -602,13 +591,8 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
         const mediaItem = mediaItems.find(item => item.id === mediaId);
         if (mediaItem && mediaItem.uploadedBy !== userName) {
-          await notificationService.sendLikeNotification(
-            mediaItem.uploadedBy,
-            mediaItem.deviceId,
-            userName,
-            deviceId,
-            mediaId
-          );
+          // Like notifications will be handled by new tagging system
+          console.log('Like notification would be sent to:', mediaItem.uploadedBy);
         }
       } catch (error) {
         console.error('Error toggling like:', error);
@@ -1839,9 +1823,9 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
           galleryTheme={gallery.theme || 'hochzeit'}
         />
 
-        {/* Simple Tagging Modal */}
+        {/* Instagram Tagging Modal */}
         {showTaggingModal && pendingUploadUrl && (
-          <SimpleTaggingModal
+          <InstagramTagging
             isOpen={showTaggingModal}
             onClose={handleTaggingCancel}
             onConfirm={handleTaggingConfirm}

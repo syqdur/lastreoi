@@ -8,7 +8,7 @@ import { EventLoadingSpinner } from './EventLoadingSpinner';
 import { galleryService, Gallery } from '../services/galleryService';
 import { subscriptionService } from '../services/subscriptionService';
 import { getUserName, getDeviceId } from '../utils/deviceId';
-import InstagramTaggingTest from './InstagramTaggingTest';
+// import InstagramTaggingTest from './InstagramTaggingTest';
 
 // Import the main App component (we'll rename the current one to GalleryApp)
 import { GalleryApp } from '../GalleryApp';
@@ -32,7 +32,7 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
   // Check if we're on the landing page
   const isLandingPage = location === '/' || location === '';
   const isRootAdminPage = location === '/root-admin';
-  const isTaggingTestPage = location === '/tagging-test';
+  // const isTaggingTestPage = location === '/tagging-test';
   
   // Check if we're handling a Spotify callback
   const urlParams = new URLSearchParams(window.location.search);
@@ -49,13 +49,13 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
     if (match && params?.slug) {
       if (params.slug === 'root-admin') {
         setShowRootAdmin(true);
-      } else if (params.slug === 'tagging-test') {
+      // } else if (params.slug === 'tagging-test') {
         // Handle tagging test page
-        return;
+        // return;
       } else {
         loadGallery(params.slug);
       }
-    } else if (!isLandingPage && !isTaggingTestPage) {
+    } else if (!isLandingPage) {
       // Invalid route, redirect to landing
       setLocation('/');
     }
@@ -270,10 +270,10 @@ export const GalleryRouter: React.FC<GalleryRouterProps> = ({ isDarkMode, onTogg
     );
   }
 
-  // Render tagging test page
-  if (isTaggingTestPage) {
-    return <InstagramTaggingTest />;
-  }
+  // Removed tagging test page
+  // if (isTaggingTestPage) {
+  //   return <InstagramTaggingTest />;
+  // }
 
   // Render landing page
   if (isLandingPage) {

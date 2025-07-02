@@ -1,107 +1,137 @@
-import React from 'react';
-import { X, User, MapPin, Type } from 'lucide-react';
-import { MediaTag } from '../../types/tagging';
+import React, { useState } from 'react';
+import { MediaTag, TagPosition } from '../../types/tagging';
 
 interface TagRendererProps {
-  tag: MediaTag;
-  onClick?: (tag: MediaTag) => void;
-  onDelete?: (tagId: string) => void;
-  isDarkMode?: boolean;
-  isTagMode?: boolean;
+  tags: MediaTag[];
+  mediaType: 'image' | 'video';
+  showLabels?: boolean;
+  interactive?: boolean;
+  onTagClick?: (tag: MediaTag) => void;
+  onTagRemove?: (tagId: string) => void;
 }
 
-export const TagRenderer: React.FC<TagRendererProps> = ({
-  tag,
-  onClick,
-  onDelete,
-  isDarkMode = false,
-  isTagMode = false
+const TagRenderer: React.FC<TagRendererProps> = ({
+  tags,
+  mediaType,
+  showLabels = false,
+  interactive = true,
+  onTagClick,
+  onTagRemove
 }) => {
-  const getTagContent = () => {
+  const [hoveredTag, setHoveredTag] = useState<string | null>(null);
+
+  // Tag position calculations
+  const getTagStyle = (position: TagPosition) => ({
+    left: `${position.x}%`,
+    top: `${position.y}%`,
+    transform: 'translate(-50%, -50%)'
+  });
+
+  const getLabelPosition = (position: TagPosition) => {
+    const isRight = position.x > 50;
+    const isBottom = position.y > 70;
+    
+    return {
+      [isRight ? 'right' : 'left']: '100%',
+      [isBottom ? 'bottom' : 'top']: '50%',
+      transform: `translateY(${isBottom ? '50%' : '-50%'})`,
+      marginLeft: isRight ? '-8px' : '8px'
+    };
+  };
+
+  const getTagContent = (tag: MediaTag) => {
     switch (tag.type) {
-      case 'user':
-        const userData = tag.data as { userName: string; displayName?: string };
-        return {
-          icon: <User className="w-3 h-3" />,
-          text: userData.displayName || userData.userName,
-          className: 'bg-blue-500/90 text-white'
-        };
-      case 'place':
-        const placeData = tag.data as { name: string };
-        return {
-          icon: <MapPin className="w-3 h-3" />,
-          text: placeData.name,
-          className: 'bg-green-500/90 text-white'
-        };
-      case 'custom':
-        const customData = tag.data as { text: string };
-        return {
-          icon: <Type className="w-3 h-3" />,
-          text: customData.text,
-          className: 'bg-purple-500/90 text-white'
-        };
+      case 'person':
+        return tag.displayName || tag.userName;
+      case 'location':
+        return tag.name;
+      case 'text':
+        return tag.text;
       default:
-        return {
-          icon: <Type className="w-3 h-3" />,
-          text: 'Unknown',
-          className: 'bg-gray-500/90 text-white'
-        };
+        return '';
     }
   };
 
-  const { icon, text, className } = getTagContent();
+  const getTagColor = (tag: MediaTag) => {
+    switch (tag.type) {
+      case 'person':
+        return 'border-purple-500';
+      case 'location':
+        return 'border-green-500';
+      case 'text':
+        return 'border-blue-500';
+      default:
+        return 'border-gray-500';
+    }
+  };
+
+  if (tags.length === 0) return null;
 
   return (
-    <div
-      className="absolute transform -translate-x-1/2 -translate-y-1/2 z-30 group"
-      style={{
-        left: `${tag.position.x}%`,
-        top: `${tag.position.y}%`
-      }}
-    >
-      {/* Instagram-Style Tag Point */}
-      <div className="relative">
-        {/* Pulsing Animation Ring */}
-        <div className="absolute inset-0 w-4 h-4 bg-white rounded-full animate-ping opacity-75 -translate-x-0.5 -translate-y-0.5" />
-        
-        {/* Main Tag Point */}
-        <div className="relative w-3 h-3 bg-white rounded-full border-2 border-white shadow-lg transform transition-all duration-200 group-hover:scale-110" />
-        
-        {/* Instagram-Style Tag Label */}
+    <div className="absolute inset-0 pointer-events-none">
+      {tags.map(tag => (
         <div
-          className={`absolute ${
-            tag.position.x > 70 ? 'right-2' : 'left-2'
-          } ${
-            tag.position.y > 70 ? 'bottom-2' : 'top-2'
-          } px-3 py-1.5 bg-black/80 text-white text-xs font-medium rounded-full backdrop-blur-md transition-all duration-200 cursor-pointer hover:bg-black/90 ${
-            isTagMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-          }`}
-          onClick={() => onClick?.(tag)}
+          key={tag.id}
+          className={`absolute group ${interactive ? 'pointer-events-auto' : ''}`}
+          style={getTagStyle(tag.position)}
+          onMouseEnter={() => interactive && setHoveredTag(tag.id)}
+          onMouseLeave={() => interactive && setHoveredTag(null)}
+          onClick={() => interactive && onTagClick?.(tag)}
         >
-          <div className="flex items-center gap-1.5 max-w-32">
-            {tag.type === 'user' && <User className="w-3 h-3 flex-shrink-0" />}
-            {tag.type === 'place' && <MapPin className="w-3 h-3 flex-shrink-0" />}
-            {tag.type === 'custom' && <Type className="w-3 h-3 flex-shrink-0" />}
+          {/* Tag Dot */}
+          <div className="relative">
+            <div 
+              className={`w-6 h-6 bg-white border-2 ${getTagColor(tag)} rounded-full shadow-lg transition-all duration-200 ${
+                interactive ? 'hover:scale-110 cursor-pointer' : ''
+              } ${
+                hoveredTag === tag.id || showLabels ? 'animate-pulse' : ''
+              }`}
+            />
             
-            <span className="whitespace-nowrap truncate">{text}</span>
-            
-            {onDelete && isTagMode && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(tag.id);
-                }}
-                className="ml-1 p-0.5 rounded-full hover:bg-white/20 transition-colors flex-shrink-0"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
+            {/* Tag Label */}
+            <div 
+              className={`absolute z-10 px-2 py-1 bg-black/80 text-white text-xs rounded-md whitespace-nowrap transition-opacity duration-200 ${
+                showLabels || hoveredTag === tag.id ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={getLabelPosition(tag.position)}
+            >
+              {getTagContent(tag)}
+              {onTagRemove && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTagRemove(tag.id);
+                  }}
+                  className="ml-1 text-red-400 hover:text-red-300"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Touch Target for Mobile */}
-        <div className="absolute -inset-4 cursor-pointer" onClick={() => onClick?.(tag)} />
-      </div>
+          {/* Text Tag Overlay (for text tags only) */}
+          {tag.type === 'text' && (
+            <div 
+              className="absolute pointer-events-none"
+              style={{
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                fontSize: tag.fontSize || 16,
+                color: tag.color || '#ffffff',
+                textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                fontWeight: 'bold',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {tag.text}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };
+
+export default TagRenderer;
