@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { ArrowLeft, Search, X, MapPin, Navigation } from 'lucide-react';
+import { ArrowLeft, Search, X, MapPin, Navigation, Building, Home, ShoppingBag, Coffee, Camera, TreePine } from 'lucide-react';
 
 interface PersonTag {
   id: string;
@@ -66,6 +66,8 @@ interface SimpleTaggingModalProps {
   galleryUsers: GalleryUser[];
 }
 
+
+
 export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
   isOpen,
   onClose,
@@ -123,26 +125,64 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
     });
   }, []);
 
-  // Reverse geocoding
+  // Enhanced reverse geocoding with smart location detection
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&extratags=1`
       );
       const data = await response.json();
       
-      if (data.display_name) {
-        const name = data.name || data.display_name.split(',')[0];
-        return name;
+      if (data) {
+        // Prioritize meaningful location names
+        if (data.name) {
+          return data.name;
+        }
+        
+        // Check for specific place types
+        const address = data.address || {};
+        const placeName = 
+          address.restaurant || 
+          address.hotel || 
+          address.shop || 
+          address.attraction ||
+          address.building ||
+          address.house_name ||
+          address.amenity ||
+          address.leisure ||
+          address.tourism;
+          
+        if (placeName) {
+          return placeName;
+        }
+        
+        // Fall back to neighborhood or area
+        const areaName = 
+          address.suburb ||
+          address.neighbourhood ||
+          address.hamlet ||
+          address.village ||
+          address.town ||
+          address.city;
+          
+        if (areaName) {
+          return areaName;
+        }
+        
+        // Last resort: first part of display_name
+        if (data.display_name) {
+          return data.display_name.split(',')[0];
+        }
       }
       
       return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     } catch (error) {
+      console.error('Reverse geocoding error:', error);
       return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     }
   }, []);
 
-  // Search locations
+  // Enhanced location search with better filtering
   const searchLocations = useCallback(async (query: string) => {
     if (!query.trim()) {
       setLocationSuggestions([]);
@@ -151,11 +191,26 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
     
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1&extratags=1`
       );
       const data = await response.json();
-      setLocationSuggestions(data);
+      
+      // Filter and prioritize meaningful locations
+      const filteredLocations = data
+        .filter((item: any) => {
+          // Prioritize places with names over just addresses
+          return item.name || item.display_name;
+        })
+        .map((item: any) => ({
+          ...item,
+          priority: item.name ? 1 : 0, // Named places get higher priority
+          category: item.category || 'place'
+        }))
+        .sort((a: any, b: any) => b.priority - a.priority);
+      
+      setLocationSuggestions(filteredLocations);
     } catch (error) {
+      console.error('Location search error:', error);
       setLocationSuggestions([]);
     }
   }, []);
@@ -581,28 +636,125 @@ export const SimpleTaggingModal: React.FC<SimpleTaggingModalProps> = ({
 
           {/* Location Suggestions */}
           <div className="overflow-y-auto max-h-[30vh]">
-            {locationSuggestions.map((location, index) => (
-              <button
-                key={index}
-                onClick={() => addLocationTag(location.display_name, {
-                  lat: parseFloat(location.lat),
-                  lng: parseFloat(location.lon)
-                })}
-                className="w-full flex items-center px-4 py-3 hover:bg-gray-50 transition-colors min-h-[64px]"
-              >
-                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                  <MapPin className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1 text-left min-w-0">
-                  <p className="font-semibold text-gray-900 truncate">
-                    {location.name || location.display_name.split(',')[0]}
-                  </p>
-                  <p className="text-sm text-gray-500 truncate">
-                    {location.display_name}
-                  </p>
-                </div>
-              </button>
-            ))}
+            {locationSuggestions.map((location, index) => {
+              // Get location type for better categorization
+              const locationType = location.type || location.category || 'place';
+              
+              // Get appropriate icon for location type
+              const getIcon = () => {
+                switch (locationType) {
+                  case 'restaurant':
+                  case 'cafe':
+                  case 'bar':
+                  case 'food':
+                    return <Coffee className="w-5 h-5 text-white" />;
+                  case 'shop':
+                  case 'retail':
+                  case 'mall':
+                    return <ShoppingBag className="w-5 h-5 text-white" />;
+                  case 'building':
+                  case 'office':
+                    return <Building className="w-5 h-5 text-white" />;
+                  case 'house':
+                  case 'residential':
+                    return <Home className="w-5 h-5 text-white" />;
+                  case 'tourism':
+                  case 'attraction':
+                  case 'museum':
+                    return <Camera className="w-5 h-5 text-white" />;
+                  case 'park':
+                  case 'natural':
+                  case 'leisure':
+                    return <TreePine className="w-5 h-5 text-white" />;
+                  default:
+                    return <MapPin className="w-5 h-5 text-white" />;
+                }
+              };
+              
+              // Get color for location type
+              const getColor = () => {
+                switch (locationType) {
+                  case 'restaurant':
+                  case 'cafe':
+                  case 'bar':
+                  case 'food':
+                    return 'bg-orange-500 group-hover:bg-orange-600';
+                  case 'shop':
+                  case 'retail':
+                  case 'mall':
+                    return 'bg-purple-500 group-hover:bg-purple-600';
+                  case 'building':
+                  case 'office':
+                    return 'bg-gray-500 group-hover:bg-gray-600';
+                  case 'house':
+                  case 'residential':
+                    return 'bg-blue-500 group-hover:bg-blue-600';
+                  case 'tourism':
+                  case 'attraction':
+                  case 'museum':
+                    return 'bg-red-500 group-hover:bg-red-600';
+                  case 'park':
+                  case 'natural':
+                  case 'leisure':
+                    return 'bg-green-500 group-hover:bg-green-600';
+                  default:
+                    return 'bg-green-500 group-hover:bg-green-600';
+                }
+              };
+              
+              // Get label for location type  
+              const getLabel = () => {
+                switch (locationType) {
+                  case 'restaurant': return 'Restaurant';
+                  case 'cafe': return 'Café';
+                  case 'bar': return 'Bar';
+                  case 'food': return 'Gastronomie';
+                  case 'shop':
+                  case 'retail': return 'Geschäft';
+                  case 'mall': return 'Einkaufszentrum';
+                  case 'building': return 'Gebäude';
+                  case 'office': return 'Büro';
+                  case 'house':
+                  case 'residential': return 'Wohnhaus';
+                  case 'tourism':
+                  case 'attraction': return 'Sehenswürdigkeit';
+                  case 'museum': return 'Museum';
+                  case 'park': return 'Park';
+                  case 'natural': return 'Natur';
+                  case 'leisure': return 'Freizeit';
+                  default: return 'Ort';
+                }
+              };
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => addLocationTag(
+                    location.name || location.display_name.split(',')[0], 
+                    {
+                      lat: parseFloat(location.lat),
+                      lng: parseFloat(location.lon)
+                    }
+                  )}
+                  className="w-full flex items-center px-4 py-3 hover:bg-gray-50 transition-colors min-h-[64px] group"
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 flex-shrink-0 transition-colors ${getColor()}`}>
+                    {getIcon()}
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="font-semibold text-gray-900 truncate group-hover:text-gray-700">
+                      {location.name || location.display_name.split(',')[0]}
+                    </p>
+                    <p className="text-sm text-gray-500 truncate">
+                      {getLabel()} • {location.display_name.split(',').slice(1, 3).join(', ')}
+                    </p>
+                  </div>
+                  <div className="text-xs text-gray-400 ml-2">
+                    {Math.round(parseFloat(location.importance || 0) * 100) || ''}
+                  </div>
+                </button>
+              );
+            })}
             
             {searchTerm && locationSuggestions.length === 0 && (
               <button

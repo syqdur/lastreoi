@@ -222,9 +222,25 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <button
                 onClick={() => onEditGalleryProfile?.()}
                 className={`w-8 h-8 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center ring-2 ${
-                  isDarkMode 
-                    ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-gray-600/40 hover:ring-gray-500/60' 
-                    : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-gray-300/40 hover:ring-gray-400/60'
+                  gallery?.theme === 'hochzeit' 
+                    ? isDarkMode 
+                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-pink-500/40 hover:ring-pink-400/60' 
+                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-pink-500/40 hover:ring-pink-400/60'
+                    : gallery?.theme === 'geburtstag'
+                    ? isDarkMode 
+                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-purple-500/40 hover:ring-purple-400/60' 
+                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-purple-500/40 hover:ring-purple-400/60'
+                    : gallery?.theme === 'urlaub'
+                    ? isDarkMode 
+                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-blue-500/40 hover:ring-blue-400/60' 
+                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-blue-500/40 hover:ring-blue-400/60'
+                    : gallery?.theme === 'eigenes'
+                    ? isDarkMode 
+                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-green-500/40 hover:ring-green-400/60' 
+                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-green-500/40 hover:ring-green-400/60'
+                    : isDarkMode 
+                      ? 'bg-gray-800/60 hover:bg-gray-700/70 backdrop-blur-sm ring-pink-500/40 hover:ring-pink-400/60' 
+                      : 'bg-white/60 hover:bg-gray-50/70 backdrop-blur-sm ring-pink-500/40 hover:ring-pink-400/60'
                 }`}
                 title="Galerie-Profil bearbeiten"
               >

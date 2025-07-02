@@ -87,13 +87,22 @@ This is a comprehensive wedding gallery application with the following architect
 
 ## Recent Changes
 
+### July 2, 2025 (Enhanced Geo-Tagging System & Event-Themed Button Colors - COMPLETED)
+- **Event-Themed Button Colors**: Updated ProfileHeader gallery settings button with event-specific ring colors - Pink for weddings (hochzeit), Purple for birthdays (geburtstag), Blue for vacations (urlaub), Green for custom events (eigenes) to match the selected gallery theme
+- **Enhanced Geo-Tagging Functionality**: Improved location tagging system with intelligent location categorization, smart location type detection, and enhanced reverse geocoding that prioritizes meaningful location names (restaurants, hotels, shops, attractions, buildings) over generic addresses
+- **Smart Location Search**: Enhanced location search with better filtering that prioritizes named places over addresses, extends results to 8 locations, and includes location importance scoring for better relevance
+- **Location Type Categorization**: Added comprehensive location type system with color-coded icons - Orange for restaurants/cafes, Purple for shops, Gray for buildings, Blue for residential, Red for attractions, Green for parks/nature - providing visual distinction between different types of locations
+- **Improved Address Detection**: Enhanced reverse geocoding to intelligently extract restaurant names, hotel names, shop names, attraction names, and building names from GPS coordinates instead of showing generic street addresses
+- **Location UI Enhancement**: Improved location suggestion interface with categorized icons (Coffee, ShoppingBag, Building, Home, Camera, TreePine), type labels in German (Restaurant, Café, Geschäft, Sehenswürdigkeit, etc.), and importance scoring display
+
 ### July 2, 2025 (ProfileHeader Data Loading Critical Fix - COMPLETED)
 - **Successful Replit Agent Migration**: Completed migration from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration
-- **ProfileHeader Old Data Problem Fixed**: Resolved critical issue where ProfileHeader showed outdated gallery data ("Mauros JGA") instead of current gallery information when switching between galleries or refreshing page
-- **localStorage Cache Clearing**: Implemented automatic clearing of old localStorage gallery profile data during gallery changes to prevent stale data from persisting across gallery switches
-- **Enhanced Data Flow Logic**: Improved ProfileHeader to always prioritize current gallery data over potentially outdated Firebase cache, ensuring immediate display of correct gallery information
-- **Real-time Firebase Synchronization**: Enhanced Firebase listeners to properly reset and reload gallery-specific profile data without carrying over information from previous galleries
-- **Gallery Data Isolation**: Fixed data isolation between galleries by clearing all related state data (galleryProfileData, mediaItems, comments, likes, stories, userProfiles) when switching galleries
+- **ProfileHeader Old Data Problem Fixed**: Resolved critical issue where ProfileHeader showed outdated gallery data ("Mauros JGA") instead of current gallery information ("Mauros JGA - war geil!") when new visitors registered and set username/profile picture
+- **Firebase Listener Logic Fixed**: Updated Firebase real-time listener to always use current Firebase admin settings data instead of checking if data differs from gallery defaults, ensuring latest admin profile customizations always display correctly
+- **localStorage Cache Clearing Enhanced**: Implemented comprehensive clearing of old localStorage gallery profile data during gallery changes and Firebase updates to prevent stale data from persisting across gallery switches
+- **Cross-Gallery Data Contamination Prevented**: Added automatic cleanup of old gallery profile cache keys to prevent data from previous galleries showing in current gallery ProfileHeader
+- **Real-time Firebase Synchronization**: Enhanced Firebase listeners to properly load current gallery-specific profile data and immediately clear any outdated localStorage cache from other galleries
+- **Gallery Data Isolation**: Fixed data isolation between galleries by clearing all related state data (galleryProfileData, mediaItems, comments, likes, stories, userProfiles) when switching galleries and preventing localStorage cross-contamination
 
 ### July 2, 2025 (Replit Migration Complete & ProfileHeader Data Loading Fix - COMPLETED)
 - **Successful Migration from Replit Agent**: Completed migration from Replit Agent to Replit environment with all core functionality preserved including gallery creation, profile management, admin controls, real-time users, and Firebase integration

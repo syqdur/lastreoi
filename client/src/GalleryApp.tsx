@@ -955,20 +955,25 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
         console.log('📡 Admin customizations snapshot received for:', gallery.id);
         if (docSnapshot.exists()) {
           const firebaseData = docSnapshot.data();
-          console.log('✅ Admin customizations updated:', firebaseData.name);
+          console.log('✅ Firebase admin data found:', firebaseData.name);
 
-          // Only update if this is actual admin customizations data
-          if (firebaseData.name && firebaseData.name !== gallery.eventName) {
-            console.log('🎨 Applying admin customizations');
-            setGalleryProfileData({ ...firebaseData });
-            
-            // Save to localStorage for faster loading next time
-            localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(firebaseData));
-          } else {
-            console.log('📝 Firebase data matches gallery defaults, keeping current profile');
-          }
+          // Always use Firebase data when it exists - it's the current admin settings
+          console.log('🎨 Applying current Firebase admin settings');
+          setGalleryProfileData({ ...firebaseData });
+          
+          // Clear old localStorage to prevent stale data issues
+          const oldKeys = Object.keys(localStorage).filter(key => 
+            key.startsWith('gallery_profile_') && key !== `gallery_profile_${gallery.id}`
+          );
+          oldKeys.forEach(key => {
+            console.log('🗑️ Clearing old gallery profile cache:', key);
+            localStorage.removeItem(key);
+          });
+          
+          // Save current data to localStorage
+          localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(firebaseData));
         } else {
-          console.log('📝 No admin customizations found, keeping gallery defaults');
+          console.log('📝 No Firebase admin settings found, keeping gallery defaults');
           // Document doesn't exist - keep the default profile we already set above
         }
       }, (error: any) => {
@@ -982,12 +987,23 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
       };
     }, [gallery.id, gallery.eventName]);
 
-    // Save gallery profile data to localStorage
+    // Save gallery profile data to localStorage with cleanup
     useEffect(() => {
       if (galleryProfileData && gallery.id) {
-        // Save to localStorage as backup
+        // Clear all old gallery profile data first to prevent cross-contamination
+        const allKeys = Object.keys(localStorage);
+        const oldGalleryKeys = allKeys.filter(key => 
+          key.startsWith('gallery_profile_') && key !== `gallery_profile_${gallery.id}`
+        );
+        
+        oldGalleryKeys.forEach(key => {
+          console.log('🧹 Clearing stale gallery profile data:', key);
+          localStorage.removeItem(key);
+        });
+        
+        // Save current gallery's profile data
         localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(galleryProfileData));
-        console.log('💾 Saved profile to localStorage');
+        console.log('💾 Saved current gallery profile to localStorage:', galleryProfileData.name);
       }
     }, [galleryProfileData, gallery.id]);
 
