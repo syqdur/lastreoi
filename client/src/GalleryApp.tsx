@@ -510,6 +510,11 @@
       try {
         await deleteGalleryMediaItem(item, gallery.id);
         setStatus(`✅ ${itemType} erfolgreich gelöscht!`);
+
+        // Call refresh here to update the mediaItems list
+        await refresh();
+        console.log('Gallery refreshed after deletion.');
+
         setTimeout(() => setStatus(''), 3000);
       } catch (error) {
         setStatus(`❌ Fehler beim Löschen des ${itemType}s.`);
@@ -1512,33 +1517,27 @@
             onSave={async (profileData) => {
               try {
                 console.log('🔄 Saving gallery profile...', profileData);
-                let profilePictureUrl = galleryProfileData?.profilePicture;
+                let finalProfilePictureUrl = galleryProfileData?.profilePicture; // Keep existing if not changed
 
                 // Handle profile picture update
                 if (profileData.profilePicture instanceof File) {
-                  console.log('📸 Processing gallery profile picture...');
+                  console.log('📸 Processing gallery profile picture for Storage upload...');
+                  // It's a new file, upload it to Firebase Storage
+                  const file = profileData.profilePicture;
+                  // Path for the profile picture in Storage:
+                  const storagePath = `galleries/${gallery.id}/profile_pictures/main_profile_${Date.now()}_${file.name}`;
+                  const storageRef = ref(storage, storagePath);
 
-                  // Since ProfileEditModal already compresses the image, the File should already be compressed
-                  // But let's ensure it's under Firebase limits by converting to base64
-                  const reader = new FileReader();
-                  profilePictureUrl = await new Promise((resolve, reject) => {
-                    reader.onload = () => {
-                      const result = reader.result as string;
-                      // Check if the base64 is under Firebase limit (900KB)
-                      if (result.length > 900000) {
-                        console.warn('⚠️ Profile picture still too large after compression:', Math.round(result.length / 1024), 'KB');
-                        reject(new Error('Profilbild ist zu groß für Firebase. Bitte wählen Sie ein kleineres Bild.'));
-                      } else {
-                        console.log('✅ Gallery profile picture processed successfully:', Math.round(result.length / 1024), 'KB');
-                        resolve(result);
-                      }
-                    };
-                    reader.onerror = reject;
-                    reader.readAsDataURL(profileData.profilePicture as File);
-                  });
-                } else if (typeof profileData.profilePicture === 'string') {
-                  profilePictureUrl = profileData.profilePicture;
+                  await uploadBytes(storageRef, file);
+                  finalProfilePictureUrl = await getDownloadURL(storageRef);
+                  console.log('✅ Gallery profile picture uploaded to Storage:', finalProfilePictureUrl);
+
+                } else if (profileData.profilePicture === null || profileData.profilePicture === '') {
+                    // User wants to remove the profile picture
+                    finalProfilePictureUrl = null;
                 }
+                // If profileData.profilePicture is an existing URL (string), finalProfilePictureUrl retains it.
+
 
                 const updatedGalleryProfile: any = {
                   name: profileData.name,
@@ -1548,37 +1547,28 @@
                   updatedAt: new Date().toISOString()
                 };
 
-                // Only include profilePicture if it has a value (not undefined)
-                if (profilePictureUrl) {
-                  updatedGalleryProfile.profilePicture = profilePictureUrl;
+                if (finalProfilePictureUrl) {
+                  updatedGalleryProfile.profilePicture = finalProfilePictureUrl;
+                } else {
+                  updatedGalleryProfile.profilePicture = null; // Ensure it's explicitly set to null if removed
                 }
 
-                // Handle countdownDate explicitly - include it if it has a value, otherwise explicitly set to null to remove it
                 if (profileData.countdownDate && profileData.countdownDate.trim() !== '') {
                   updatedGalleryProfile.countdownDate = profileData.countdownDate;
                 } else {
-                  updatedGalleryProfile.countdownDate = null; // Explicitly remove countdown
+                  updatedGalleryProfile.countdownDate = null;
                 }
 
-                console.log('📝 Profile data to save:', updatedGalleryProfile);
-                console.log('🎯 Gallery ID:', gallery.id);
-
-                // Save to gallery profile collection using setDoc
+                console.log('📝 Profile data to save to Firestore:', updatedGalleryProfile);
                 const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-                console.log('📍 Document path:', `galleries/${gallery.id}/profile/main`);
-
                 await setDoc(profileDocRef, updatedGalleryProfile, { merge: true });
 
-                // Update local state immediately for better UX
-                // The onSnapshot listener will also update it, but this prevents delay
-                setGalleryProfileData(updatedGalleryProfile);
-
-                // The onSnapshot listener should automatically update galleryProfileData
+                // Local state update is handled by the onSnapshot listener already configured for galleryProfileData
                 setShowProfileEditModal(false);
+                console.log('✅ Gallery profile updated successfully in Firestore.');
+
               } catch (error: any) {
                 console.error('❌ Error updating gallery profile:', error);
-                console.error('❌ Error message:', error.message);
-                console.error('❌ Error code:', error.code);
                 alert(`Fehler beim Aktualisieren des Galerie-Profils: ${error.message}`);
               }
             }}

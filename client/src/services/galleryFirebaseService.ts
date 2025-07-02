@@ -124,46 +124,40 @@ export const loadGalleryMedia = (
 
 // Gallery-specific file upload
 export const uploadGalleryFiles = async (
-  files: FileList, 
-  userName: string, 
+  files: FileList,
+  userName: string,
   deviceId: string,
   galleryId: string,
   onProgress: (progress: number) => void,
   tags?: any[]
 ): Promise<void> => {
   let uploaded = 0;
-  
+
   for (const file of Array.from(files)) {
     console.log(`📸 Processing media file: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
-    
+
     let processedFile = file;
-    
-    // Enhanced compression for Firebase document size limits
     const isVideo = file.type.startsWith('video/');
-    
+    const isImage = file.type.startsWith('image/');
+
     let mediaUrl: string;
-    let storageFileName: string | undefined;
-    
+    let storagePath: string | undefined; // Will store the path in Firebase Storage
+
     if (isVideo) {
-      // Use Firebase Storage for videos (supports large files)
       console.log(`🎬 Uploading video to Firebase Storage...`);
-      
-      // Check reasonable video size limit (100MB)
-      const maxVideoSizeForStorage = 100 * 1024 * 1024; // 100MB limit for videos
+      const maxVideoSizeForStorage = 100 * 1024 * 1024; // 100MB
       if (file.size > maxVideoSizeForStorage) {
         throw new Error(`Video zu groß: ${(file.size / 1024 / 1024).toFixed(1)}MB (max. 100MB für Video-Upload)\n\nTipp: Verwende ein kürzeres Video oder reduziere die Qualität vor dem Upload.`);
       }
-      
-      // Upload to Firebase Storage
-      storageFileName = `galleries/${galleryId}/videos/${Date.now()}-${file.name}`;
-      const storageRef = ref(storage, storageFileName);
-      
+      // CORRECTED PATH for videos to fit under /uploads/
+      storagePath = `galleries/${galleryId}/uploads/videos/${Date.now()}-${file.name}`;
+      const storageRef = ref(storage, storagePath);
       try {
         const snapshot = await uploadBytes(storageRef, file);
         mediaUrl = await getDownloadURL(snapshot.ref);
         console.log(`✅ Video uploaded to Firebase Storage successfully (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
       } catch (error: any) {
-        console.error('Firebase Storage upload failed:', error);
+        console.error('Firebase Storage upload failed for video:', error);
         
         if (error?.code === 'storage/unauthorized') {
           throw new Error(`Video-Upload nicht möglich: Firebase Storage-Berechtigung fehlt.\n\nLösung: Bitte den Administrator kontaktieren, um Firebase Storage-Regeln zu aktualisieren.\n\nAlternativ: Verwende die Video-Aufnahme-Funktion der App für kleinere Videos.`);
@@ -171,65 +165,68 @@ export const uploadGalleryFiles = async (
           throw new Error(`Video-Upload fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}\n\nBitte versuche es erneut oder verwende ein kleineres Video.`);
         }
       }
-    } else if (file.type.startsWith('image/')) {
-      // Use base64 for images (smaller files, better for comments/likes)
+    } else if (isImage) {
+      // MODIFIED BEHAVIOR FOR IMAGES: Upload to Firebase Storage
+      console.log(`🖼️ Uploading image to Firebase Storage...`);
       if (shouldCompress(file)) {
         console.log(`🗜️ Compressing image file...`);
         try {
-          processedFile = await compressImage(file, { targetSizeKB: 150, maxWidth: 1000, maxHeight: 800 });
+          // Keep compression, but target size can be more generous for storage
+          processedFile = await compressImage(file, { targetSizeKB: 500, maxWidth: 1920, maxHeight: 1080 });
           console.log(`✅ Image compression complete: ${(processedFile.size / 1024).toFixed(1)}KB`);
         } catch (error) {
           console.warn(`⚠️ Image compression failed, using original file:`, error);
-          processedFile = file;
+          processedFile = file; // Use original if compression fails
         }
       }
-      
-      // Convert to base64 for images
-      const reader = new FileReader();
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(processedFile);
-      });
-      
-      // Check base64 size
-      const base64SizeKB = base64Data.length * 0.75 / 1024;
-      const maxBase64Size = 800; // 800KB limit for images
-      
-      if (base64SizeKB > maxBase64Size) {
-        throw new Error(`Bild zu groß für Firebase: ${base64SizeKB.toFixed(0)}KB (max. ${maxBase64Size}KB)\n\nTipp: Verwende ein kleineres Bild oder reduziere die Qualität`);
+      // Max image size for storage (e.g., 10MB, adjust as needed)
+      const maxImageSizeForStorage = 10 * 1024 * 1024;
+      if (processedFile.size > maxImageSizeForStorage) {
+          throw new Error(`Bild zu groß für Storage: ${(processedFile.size / 1024 / 1024).toFixed(1)}MB (max. 10MB)`);
       }
-      
-      mediaUrl = base64Data;
-      console.log(`✅ Image converted to base64 successfully (${base64SizeKB.toFixed(0)}KB)`);
+
+      // CORRECTED PATH for images to fit under /uploads/
+      storagePath = `galleries/${galleryId}/uploads/images/${Date.now()}-${processedFile.name}`;
+      const storageRef = ref(storage, storagePath);
+      try {
+        const snapshot = await uploadBytes(storageRef, processedFile);
+        mediaUrl = await getDownloadURL(snapshot.ref);
+        console.log(`✅ Image uploaded to Firebase Storage successfully (${(processedFile.size / 1024).toFixed(1)}KB)`);
+      } catch (error: any) {
+        console.error('Firebase Storage upload failed for image:', error);
+         if (error?.code === 'storage/unauthorized') {
+          throw new Error(`Bild-Upload nicht möglich: Firebase Storage-Berechtigung fehlt...`);
+        } else {
+          throw new Error(`Bild-Upload fehlgeschlagen: ${error?.message || 'Unbekannter Fehler'}...`);
+        }
+      }
     } else {
       throw new Error(`Dateityp nicht unterstützt: ${file.type}`);
     }
-    
+
     // Add metadata to gallery-specific collection
     const mediaCollection = `galleries/${galleryId}/media`;
-    const docRef = await addDoc(collection(db, mediaCollection), {
-      name: `${Date.now()}-${file.name}`,
+    const docData: any = {
+      name: `${Date.now()}-${file.name}`, // Use original file name for metadata name
       uploadedBy: userName,
       deviceId: deviceId,
       uploadedAt: new Date().toISOString(),
       type: isVideo ? 'video' : 'image',
-      mediaUrl: mediaUrl,
-      size: file.size,
-      mimeType: file.type,
-      // FIXED: Store tags in correct format for gallery display
+      mediaUrl: mediaUrl, // This is now always a Firebase Storage URL
+      storagePath: storagePath, // Store the path for potential future management (e.g., deletion)
+      size: processedFile.size, // Store the size of the (potentially compressed) file
+      mimeType: processedFile.type,
       textTags: tags?.filter(tag => tag.type === 'text') || [],
       personTags: tags?.filter(tag => tag.type === 'person' || tag.type === 'user') || [],
       locationTags: tags?.filter(tag => tag.type === 'location').map(tag => ({
         ...tag,
-        locationName: (tag as any).name || (tag as any).locationName // Convert name to locationName for consistency
+        locationName: (tag as any).name || (tag as any).locationName
       })) || [],
-      tags: tags || [], // Keep original tags for backwards compatibility
-      ...(storageFileName && { fileName: storageFileName }) // Store Firebase Storage path for videos
-    });
+      tags: tags || [],
+    };
 
-    console.log(`📝 Media uploaded successfully with ID: ${docRef.id}`);
-    console.log(`📝 Tags to process: ${tags?.length || 0}`);
+    const docRef = await addDoc(collection(db, mediaCollection), docData);
+    console.log(`📝 Media metadata saved to Firestore with ID: ${docRef.id}`);
     
     // Process notifications after upload is complete
     if (tags && tags.length > 0) {
@@ -264,7 +261,7 @@ export const uploadGalleryFiles = async (
                 fromDeviceId: deviceId,
                 mediaId: docRef.id,
                 mediaType: isVideo ? 'video' : 'image',
-                mediaUrl: mediaUrl,
+                mediaUrl: mediaUrl, // This is the storage URL
                 read: false,
                 createdAt: new Date().toISOString()
               };
