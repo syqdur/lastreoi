@@ -895,56 +895,66 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
     // Real-time gallery profile data synchronization
     useEffect(() => {
+      console.log('🔄 Gallery profile listener starting for:', gallery.id);
+      
       if (!gallery.id) {
         console.log('❌ No gallery ID available for profile listener');
         return;
       }
 
-      // PERFORMANCE FIX: Removed redundant loading state resets
-      
-      // Immediately set fallback data based on current gallery
-      const immediateProfile = {
-        name: gallery.eventName,
-        bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-        countdownDate: null,
-        countdownEndMessage: 'Der große Tag ist da! 🎉',
-        countdownMessageDismissed: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      // IMMEDIATE: Load Firebase profile data
+      const loadGalleryProfile = async () => {
+        try {
+          const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
+          console.log('📡 Loading gallery profile from:', profileDocRef.path);
+          
+          const profileDoc = await getDoc(profileDocRef);
+          
+          if (profileDoc.exists()) {
+            const firebaseData = profileDoc.data();
+            console.log('✅ Firebase profile loaded:', firebaseData.name);
+            setGalleryProfileData(firebaseData);
+          } else {
+            console.log('📝 No Firebase profile found, using gallery defaults');
+            // Only use defaults if NO Firebase data exists
+            const defaultProfile = {
+              name: gallery.eventName,
+              bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
+              countdownDate: null,
+              countdownEndMessage: 'Der große Tag ist da! 🎉',
+              countdownMessageDismissed: false,
+              profilePicture: null
+            };
+            setGalleryProfileData(defaultProfile);
+          }
+        } catch (error) {
+          console.error('❌ Error loading gallery profile:', error);
+        }
       };
-      console.log('📋 Setting immediate gallery profile:', immediateProfile);
-      setGalleryProfileData(immediateProfile);
 
-      console.log('🔄 Setting up real-time gallery profile listener for:', gallery.id);
-      console.log('🎪 Gallery event name:', gallery.eventName);
+      // Load immediately
+      loadGalleryProfile();
 
-      const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-
-      const unsubscribe = onSnapshot(profileDocRef, (docSnapshot: any) => {
+      // Setup real-time listener with same path as save function
+      const realtimeProfileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
+      const unsubscribe = onSnapshot(realtimeProfileDocRef, (docSnapshot: any) => {
         console.log('📡 Gallery profile snapshot received for:', gallery.id);
         if (docSnapshot.exists()) {
           const firebaseData = docSnapshot.data();
-          console.log('✅ Gallery profile updated via real-time listener:', firebaseData);
-          console.log('🔍 Current gallery name:', gallery.eventName);
-          console.log('🔍 Firebase profile name:', firebaseData.name);
-          console.log('🎯 Setting galleryProfileData state with Firebase data');
+          console.log('✅ Loading customized gallery profile from Firebase:', firebaseData.name);
 
           // Always apply Firebase data if it exists - this contains customized gallery settings
-          setGalleryProfileData(firebaseData);
+          setGalleryProfileData({ ...firebaseData });
           
-          // Force re-render to ensure ProfileHeader gets the update
-          setTimeout(() => {
-            console.log('🔄 Verifying galleryProfileData was set:', firebaseData);
-          }, 100);
+          // Save to localStorage for faster loading next time
+          localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(firebaseData));
         } else {
-          console.log('📝 No Firebase profile found, will keep immediate profile');
-          // Don't override the immediate profile if no Firebase data exists
-          // The immediate profile was already set above
+          console.log('📝 No custom gallery profile found, keeping default profile');
+          // Document doesn't exist - default profile was already set above
         }
       }, (error: any) => {
         console.error('❌ Error in gallery profile listener:', error);
-        // Don't set default profile on error - keep the immediate profile
-        console.log('📋 Keeping immediate profile after error');
+        console.log('📋 Keeping default profile after error');
       });
 
       return () => {
@@ -952,6 +962,15 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
         unsubscribe();
       };
     }, [gallery.id, gallery.eventName]);
+
+    // Save gallery profile data to localStorage
+    useEffect(() => {
+      if (galleryProfileData && gallery.id) {
+        // Save to localStorage as backup
+        localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(galleryProfileData));
+        console.log('💾 Saved profile to localStorage');
+      }
+    }, [galleryProfileData, gallery.id]);
 
     // Subscribe to site status changes
     useEffect(() => {
@@ -1408,6 +1427,14 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
 
         <div className="max-w-md mx-auto px-2 sm:px-0">
           {/* Profile Header */}
+          {(() => {
+            console.log('🎯 Passing to ProfileHeader:', {
+              galleryProfileData,
+              galleryId: gallery.id,
+              galleryName: gallery.eventName
+            });
+            return null;
+          })()}
           <ProfileHeader
             isDarkMode={isDarkMode}
             isAdmin={isAdmin}

@@ -1,0 +1,50 @@
+AUFGABE: ProfileHeader zeigt alte Daten statt aktuelle Firebase-Daten - ERWEITERTE LÖSUNG
+Das Problem: ProfileHeader zeigt Fallback-Daten statt die aktuellen Daten aus Firebase.
+ZUSÄTZLICHE ÄNDERUNGEN IN DATEI: GalleryApp.tsx
+Änderung 3.1: Immediate Profile Data Fix
+FINDE den useEffect Block für gallery profile data (suche nach "Setting up real-time gallery profile listener"):
+FÜGE DIREKT VOR dem onSnapshot Listener folgendes hinzu:
+javascript// First, try to load existing data from Firebase immediately
+const loadExistingProfile = async () => {
+  try {
+    const profileDoc = await getDoc(profileDocRef);
+    if (profileDoc.exists()) {
+      const existingData = profileDoc.data();
+      console.log('🔥 Loaded existing profile data:', existingData);
+      setGalleryProfileData(existingData);
+    }
+  } catch (error) {
+    console.error('Error loading existing profile:', error);
+  }
+};
+
+// Load existing data first
+loadExistingProfile();
+Änderung 3.2: Force State Update
+FINDE in der gleichen useEffect die Zeile:
+javascriptsetGalleryProfileData(firebaseData);
+ERSETZE mit:
+javascript// Force state update with new object to ensure React detects the change
+setGalleryProfileData({ ...firebaseData });
+Änderung 3.3: Debug Gallery ID
+FÜGE am Anfang des gleichen useEffect Blocks hinzu:
+javascriptconsole.log('🆔 Gallery ID for profile listener:', gallery.id);
+console.log('🔍 Full gallery object:', gallery);
+Änderung 3.4: ProfileHeader Props Debugging
+FINDE wo ProfileHeader aufgerufen wird und FÜGE direkt DAVOR hinzu:
+javascriptconsole.log('🎯 Passing to ProfileHeader:', {
+  galleryProfileData,
+  galleryId: gallery.id,
+  galleryName: gallery.eventName
+});
+Änderung 3.5: Import getDoc
+FINDE die Firebase imports am Anfang der Datei:
+javascriptimport { doc, updateDoc, getDoc, setDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
+STELLE SICHER dass getDoc importiert wird. Falls nicht, füge es zur Import-Liste hinzu.
+WICHTIG: Diese Änderungen sorgen dafür, dass:
+
+Existierende Firebase-Daten sofort beim Mount geladen werden
+Der State korrekt aktualisiert wird
+Debugging-Informationen zeigen, wo das Problem liegt
+
+Nach diesen Änderungen sollte der ProfileHeader die korrekten Daten aus Firebase anzeigen (Bio, Profilbild, etc.) statt der Fallback-Daten.

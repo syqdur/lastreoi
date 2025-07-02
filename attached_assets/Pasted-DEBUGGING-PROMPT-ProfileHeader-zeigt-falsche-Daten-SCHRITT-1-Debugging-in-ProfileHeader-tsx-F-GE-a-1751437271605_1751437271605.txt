@@ -1,0 +1,96 @@
+DEBUGGING PROMPT: ProfileHeader zeigt falsche Daten
+SCHRITT 1: Debugging in ProfileHeader.tsx
+FÜGE am Anfang der ProfileHeader Komponente (direkt nach der Funktionsdeklaration) hinzu:
+javascriptexport const ProfileHeader: React.FC<ProfileHeaderProps> = ({ 
+  isDarkMode, 
+  isAdmin, 
+  userName, 
+  mediaItems = [], 
+  onToggleAdmin, 
+  currentUserProfile, 
+  onOpenUserProfile, 
+  showTopBarControls = true, 
+  showProfileEditModal = false, 
+  onCloseProfileEditModal,
+  galleryProfileData,
+  onEditGalleryProfile,
+  gallery
+}) => {
+  // DEBUG: Log all props
+  console.log('🔴 ProfileHeader Props:', {
+    galleryProfileData,
+    gallery,
+    hasGalleryProfileData: !!galleryProfileData,
+    galleryProfileDataKeys: galleryProfileData ? Object.keys(galleryProfileData) : 'null',
+    galleryProfileDataValues: galleryProfileData
+  });
+
+  // Rest of the component...
+SCHRITT 2: Vereinfachte Lösung - Direkte Anzeige
+ERSETZE in ProfileHeader.tsx den GESAMTEN displayData Block mit dieser EINFACHEN Version:
+javascript// Directly use galleryProfileData if available, otherwise use gallery defaults
+const displayData = galleryProfileData || {
+  name: gallery?.eventName || 'Gallery',
+  bio: gallery ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : '',
+  countdownDate: gallery?.eventDate || null,
+  countdownEndMessage: 'Der große Tag ist da! 🎉',
+  countdownMessageDismissed: false,
+  profilePicture: null
+};
+
+console.log('🟢 DisplayData being used:', displayData);
+SCHRITT 3: State Reset beim Gallery Wechsel
+In GalleryApp.tsx, FINDE den useEffect der auf gallery.id reagiert (etwa Zeile 200-230) und STELLE SICHER dass dort steht:
+javascriptuseEffect(() => {
+  console.log('🔄 Gallery changed - resetting state for:', gallery.id);
+
+  // Clear gallery profile data to force reload
+  setGalleryProfileData(null);
+  
+  // ... rest of the reset code
+}, [gallery.id]);
+SCHRITT 4: Firebase Path Verification
+In GalleryApp.tsx, FINDE wo der profileDocRef erstellt wird und ERSETZE mit:
+javascriptconst profilePath = `galleries/${gallery.id}/profile/main`;
+console.log('🔥 Firebase profile path:', profilePath);
+const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
+
+// Immediately check if document exists
+const checkDoc = async () => {
+  try {
+    const docSnap = await getDoc(profileDocRef);
+    console.log('📄 Profile document exists:', docSnap.exists());
+    if (docSnap.exists()) {
+      console.log('📄 Profile document data:', docSnap.data());
+    }
+  } catch (error) {
+    console.error('❌ Error checking profile doc:', error);
+  }
+};
+checkDoc();
+SCHRITT 5: Alternative - LocalStorage als Fallback
+Falls Firebase nicht funktioniert, FÜGE in GalleryApp.tsx hinzu:
+javascript// After setting galleryProfileData from Firebase
+useEffect(() => {
+  if (galleryProfileData) {
+    // Save to localStorage as backup
+    localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(galleryProfileData));
+    console.log('💾 Saved profile to localStorage');
+  }
+}, [galleryProfileData, gallery.id]);
+
+// When loading, check localStorage first
+useEffect(() => {
+  const savedProfile = localStorage.getItem(`gallery_profile_${gallery.id}`);
+  if (savedProfile) {
+    const parsed = JSON.parse(savedProfile);
+    console.log('💾 Loaded profile from localStorage:', parsed);
+    setGalleryProfileData(parsed);
+  }
+}, [gallery.id]);
+BITTE FÜHRE DIESE ÄNDERUNGEN AUS UND TEILE MIR DIE CONSOLE LOGS MIT!
+Das wird uns zeigen:
+
+Ob die Daten überhaupt an ProfileHeader ankommen
+Ob Firebase die Daten korrekt lädt
+Wo genau das Problem liegt

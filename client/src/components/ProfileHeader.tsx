@@ -34,6 +34,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onEditGalleryProfile,
   gallery
 }) => {
+  // DEBUG: ProfileHeader data monitoring (can be removed in production)
+  console.log('✅ ProfileHeader rendering with:', {
+    hasGalleryProfileData: !!galleryProfileData,
+    galleryName: galleryProfileData?.name || 'Using fallback',
+    profileSource: galleryProfileData ? 'Firebase data' : 'Fallback data'
+  });
+
   const [showEditModal, setShowEditModal] = useState(false);
   const [countdown, setCountdown] = useState<{
     days: number;
@@ -46,34 +53,21 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-  // Use gallery profile data from admin panel "Galerie Einstellungen"
-  // Provide default data immediately while waiting for Firebase data
-  const displayData = React.useMemo(() => {
-    console.log('🔍 ProfileHeader displayData memo:', {
-      galleryProfileData,
-      galleryName: gallery?.eventName,
-      hasGalleryProfileData: !!galleryProfileData
-    });
-    
-    // If we have gallery profile data from Firebase, use it
-    if (galleryProfileData) {
-      console.log('✅ Using Firebase gallery profile data:', galleryProfileData);
-      return galleryProfileData;
-    }
-    
-    // Otherwise, provide default data based on gallery info
-    // This ensures the header is always visible, even on first load
-    const fallbackData = {
-      name: gallery?.eventName || 'Gallery',
-      bio: gallery ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : '',
-      countdownDate: gallery?.eventDate || null,
-      countdownEndMessage: 'Der große Tag ist da! 🎉',
-      countdownMessageDismissed: false,
-      profilePicture: null
-    };
-    console.log('📋 Using fallback data:', fallbackData);
-    return fallbackData;
-  }, [galleryProfileData, gallery]);
+  // ALWAYS prioritize galleryProfileData over gallery defaults
+  // Only show gallery defaults if NO galleryProfileData exists at all
+  const displayData = galleryProfileData ? galleryProfileData : {
+    name: gallery?.eventName || 'Gallery',
+    bio: gallery ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : '',
+    countdownDate: gallery?.eventDate || null,
+    countdownEndMessage: 'Der große Tag ist da! 🎉',
+    countdownMessageDismissed: false,
+    profilePicture: null
+  };
+
+  console.log('🟢 ProfileHeader displaying:', {
+    source: galleryProfileData ? 'Firebase-Profildaten' : 'Standard-Galerie-Daten',
+    name: displayData.name
+  });
 
   // Countdown timer effect with memoized calculation
   useEffect(() => {
