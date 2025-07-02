@@ -46,16 +46,25 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   // Get theme configuration for event-specific styling
   const themeConfig = getThemeConfig(gallery?.theme || 'hochzeit');
   
-  // Use gallery profile data from admin panel "Galerie Einstellungen"
-  // Wait for real galleryProfileData to load - don't show old gallery creation data
-  const displayData = React.useMemo(() => {
-    // Only show data when we have actual gallery profile data loaded
-    if (galleryProfileData) {
-      return galleryProfileData;
-    }
-    // Return null to show loading state until real data arrives
-    return null;
-  }, [galleryProfileData]);
+// Use gallery profile data from admin panel "Galerie Einstellungen"
+// Provide default data immediately while waiting for Firebase data
+const displayData = React.useMemo(() => {
+  // If we have gallery profile data from Firebase, use it
+  if (galleryProfileData) {
+    return galleryProfileData;
+  }
+  
+  // Otherwise, provide default data based on gallery info
+  // This ensures the header is always visible, even on first load
+  return {
+    name: gallery?.eventName || 'Gallery',
+    bio: gallery ? `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸` : '',
+    countdownDate: gallery?.eventDate || null,
+    countdownEndMessage: 'Der große Tag ist da! 🎉',
+    countdownMessageDismissed: false,
+    profilePicture: null
+  };
+}, [galleryProfileData, gallery]);
 
   // Countdown timer effect with memoized calculation
   useEffect(() => {
@@ -101,11 +110,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
     return () => clearInterval(interval);
   }, [displayData?.countdownDate]);
-
-  // Show loading state while waiting for real gallery profile data
-  if (!displayData) {
-    return <HeaderLoadingSkeleton isDarkMode={isDarkMode} />;
-  }
 
   return (
     <>
