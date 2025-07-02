@@ -27,7 +27,7 @@
   import { NotificationCenter } from './components/NotificationCenter';
   import { GalleryTutorial } from './components/GalleryTutorial';
   import { AdminTutorial } from './components/AdminTutorial';
-  import { InstagramTaggingModal } from './components/InstagramTaggingModal';
+  import { SimpleTaggingModal } from './components/SimpleTaggingModal';
   import { EventLoadingSpinner } from './components/EventLoadingSpinner';
   import { ConsolidatedNavigationBar } from './components/ConsolidatedNavigationBar';
   import { useUser } from './hooks/useUser';
@@ -1839,15 +1839,14 @@ import { initializePerformanceOptimizations as initQuickFix, FAST_LOAD_CONFIG, p
           galleryTheme={gallery.theme || 'hochzeit'}
         />
 
-        {/* Instagram 2.0 Tagging Modal */}
+        {/* Simple Tagging Modal */}
         {showTaggingModal && pendingUploadUrl && (
-          <InstagramTaggingModal
+          <SimpleTaggingModal
             isOpen={showTaggingModal}
             onClose={handleTaggingCancel}
             onConfirm={handleTaggingConfirm}
             mediaUrl={pendingUploadUrl}
             mediaType={pendingUploadFiles?.[0]?.type.startsWith('video') ? 'video' : 'image'}
-            isDarkMode={isDarkMode}
             galleryUsers={galleryUsers}
           />
         )}

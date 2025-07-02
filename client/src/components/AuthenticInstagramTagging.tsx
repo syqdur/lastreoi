@@ -267,7 +267,7 @@ const AuthenticInstagramTagging: React.FC<AuthenticInstagramTaggingProps> = ({
                   
                   {/* User Info */}
                   <div className="flex-1 text-left">
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-medium text-gray-900">
                       {user.displayName || user.userName}
                     </p>
                     <p className="text-sm text-gray-500">@{user.userName}</p>

@@ -30,11 +30,12 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
   themeStyles,
   galleryTheme = 'hochzeit'
 }) => {
-  const [files, setFiles] = useState<FileList | null>(null);
+  // PERFORMANCE FIX: Early return optimierung für bessere Modal-Performance
   const [showUploadOptions, setShowUploadOptions] = useState(false);
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [showVideoRecorder, setShowVideoRecorder] = useState(false);
   const [noteText, setNoteText] = useState('');
+  const [files, setFiles] = useState<FileList | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFiles(e.target.files);
@@ -57,6 +58,219 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
     setShowVideoRecorder(false);
     await onVideoUpload(videoBlob);
   };
+
+  // PERFORMANCE FIX: Memoized Modal Content für bessere Performance
+  const modalContent = React.useMemo(() => {
+    if (!showUploadOptions) return null;
+
+    return (
+      <div 
+        className="fixed inset-0 flex items-center justify-center p-3 sm:p-4"
+        style={{ 
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 2147483647
+        }}
+        onClick={() => setShowUploadOptions(false)}
+      >
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className={`relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-md w-full mx-2 sm:mx-4 transform transition-all duration-300 max-h-[90vh] overflow-y-auto ${
+            isDarkMode 
+              ? 'bg-gray-800 border border-gray-600 shadow-2xl' 
+              : 'bg-white border border-gray-200 shadow-2xl'
+          }`}
+          style={{ zIndex: 2147483647 }}
+        >
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className={`w-16 h-16 mx-auto mb-4 p-4 rounded-2xl ${
+              isDarkMode ? `bg-${themeStyles?.primaryColor || 'pink-500'}/20` : `bg-${themeStyles?.primaryColor || 'pink-500'}/10`
+            }`}>
+              <Plus className={`w-full h-full ${
+                isDarkMode ? `text-${themeStyles?.secondaryColor || 'pink-400'}` : `text-${themeStyles?.accentColor || 'pink-600'}`
+              }`} />
+            </div>
+            <h3 className={`text-xl font-bold mb-2 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              {themeTexts?.momentsText || 'Neuer Beitrag'}
+            </h3>
+            <p className={`text-sm ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {themeTexts?.uploadPrompt || 'Teilt eure schönsten Momente'}
+            </p>
+          </div>
+          
+          {/* Upload Options */}
+          <div className="space-y-2 sm:space-y-3">
+            <label className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] touch-manipulation ${
+              isDarkMode 
+                ? 'bg-blue-600/10 hover:bg-blue-600/20 active:bg-blue-600/30 border border-blue-500/30' 
+                : 'bg-blue-50 hover:bg-blue-100 active:bg-blue-200 border border-blue-200'
+            }`}
+            style={{ minHeight: '60px' }}
+            >
+              <input
+                type="file"
+                multiple
+                accept="image/*,video/*,.heic,.heif,.avif"
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setFiles(e.target.files);
+                    setShowUploadOptions(false);
+                  }
+                }}
+                className="hidden"
+              />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                isDarkMode ? 'bg-blue-500/20' : 'bg-blue-500/10'
+              }`}>
+                <Image className={`w-6 h-6 ${
+                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                }`} />
+              </div>
+              <div className="flex-1 text-center">
+                <h4 className={`font-semibold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  {themeTexts?.uploadPhoto || 'Foto oder Video'}
+                </h4>
+                <p className={`text-sm ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Fotos & Videos aus der Galerie
+                </p>
+              </div>
+              <Camera className={`w-5 h-5 ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+              }`} />
+            </label>
+
+            <button
+              onClick={() => {
+                setShowVideoRecorder(true);
+                setShowUploadOptions(false);
+              }}
+              className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] w-full touch-manipulation ${
+                isDarkMode 
+                  ? 'bg-red-600/10 hover:bg-red-600/20 active:bg-red-600/30 border border-red-500/30' 
+                  : 'bg-red-50 hover:bg-red-100 active:bg-red-200 border border-red-200'
+              }`}
+              style={{ minHeight: '60px' }}
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                isDarkMode ? 'bg-red-500/20' : 'bg-red-500/10'
+              }`}>
+                <Video className={`w-6 h-6 ${
+                  isDarkMode ? 'text-red-400' : 'text-red-600'
+                }`} />
+              </div>
+              <div className="flex-1 text-center">
+                <h4 className={`font-semibold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Video aufnehmen
+                </h4>
+                <p className={`text-sm ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Direkt mit der Kamera (max. 10s)
+                </p>
+              </div>
+              <Zap className={`w-5 h-5 ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+              }`} />
+            </button>
+
+            <button
+              onClick={() => {
+                setShowNoteInput(true);
+                setShowUploadOptions(false);
+              }}
+              className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] w-full touch-manipulation ${
+                isDarkMode 
+                  ? `bg-${themeStyles?.primaryColor || 'purple-500'}/10 hover:bg-${themeStyles?.primaryColor || 'purple-500'}/20 active:bg-${themeStyles?.primaryColor || 'purple-500'}/30 border border-${themeStyles?.primaryColor || 'purple-500'}/30` 
+                  : `bg-${themeStyles?.primaryColor || 'purple-500'}/10 hover:bg-${themeStyles?.primaryColor || 'purple-500'}/20 active:bg-${themeStyles?.primaryColor || 'purple-500'}/30 border border-${themeStyles?.primaryColor || 'purple-500'}/30`
+              }`}
+              style={{ minHeight: '60px' }}
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                isDarkMode ? 'bg-purple-500/20' : 'bg-purple-500/10'
+              }`}>
+                <MessageSquare className={`w-6 h-6 ${
+                  isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                }`} />
+              </div>
+              <div className="flex-1 text-center">
+                <h4 className={`font-semibold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Notiz hinterlassen
+                </h4>
+                <p className={`text-sm ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Schreibe deine Wünsche und Gedanken
+                </p>
+              </div>
+              <span className="text-2xl">💕</span>
+            </button>
+
+            {storiesEnabled && (
+              <button
+                onClick={() => {
+                  onAddStory();
+                  setShowUploadOptions(false);
+                }}
+                className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] w-full touch-manipulation ${
+                  isDarkMode 
+                    ? 'bg-pink-600/10 hover:bg-pink-600/20 active:bg-pink-600/30 border border-pink-500/30' 
+                    : 'bg-pink-50 hover:bg-pink-100 active:bg-pink-200 border border-pink-200'
+                }`}
+                style={{ minHeight: '60px' }}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  isDarkMode ? 'bg-pink-500/20' : 'bg-pink-500/10'
+                }`}>
+                  <Zap className={`w-6 h-6 ${
+                    isDarkMode ? 'text-pink-400' : 'text-pink-600'
+                  }`} />
+                </div>
+                <div className="flex-1 text-center">
+                  <h4 className={`font-semibold ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Story hinzufügen
+                  </h4>
+                  <p className={`text-sm ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Teile einen besonderen Moment (24h sichtbar)
+                  </p>
+                </div>
+                <span className="text-2xl">✨</span>
+              </button>
+            )}
+          </div>
+          
+          {/* Cancel Button */}
+          <button
+            onClick={() => setShowUploadOptions(false)}
+            className={`w-full mt-6 py-3 px-4 rounded-xl text-sm font-medium transition-colors ${
+              isDarkMode 
+                ? 'bg-gray-700/50 hover:bg-gray-600/50 text-gray-300' 
+                : 'bg-gray-100/50 hover:bg-gray-200/50 text-gray-700'
+            }`}
+          >
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    );
+  }, [showUploadOptions, isDarkMode, themeTexts, themeStyles, storiesEnabled, onAddStory]);
 
   return (
     <>
@@ -137,209 +351,9 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
         </div>
       </div>
       
-      {/* Upload Options Modal - Jetzt außerhalb des Containers */}
-      {showUploadOptions && (
-        <div 
-          className="fixed inset-0 flex items-center justify-center p-3 sm:p-4"
-          style={{ 
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            zIndex: 2147483647
-          }}
-          onClick={() => setShowUploadOptions(false)}
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className={`relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-md w-full mx-2 sm:mx-4 transform transition-all duration-300 max-h-[90vh] overflow-y-auto ${
-              isDarkMode 
-                ? 'bg-gray-800 border border-gray-600 shadow-2xl' 
-                : 'bg-white border border-gray-200 shadow-2xl'
-            }`}
-            style={{ zIndex: 2147483647 }}
-          >
-            {/* Header */}
-            <div className="text-center mb-6">
-              <div className={`w-16 h-16 mx-auto mb-4 p-4 rounded-2xl ${
-                isDarkMode ? 'bg-pink-500/20' : 'bg-pink-500/10'
-              }`}>
-                <Plus className={`w-full h-full ${
-                  isDarkMode ? `text-${themeStyles?.secondaryColor || 'pink-400'}` : `text-${themeStyles?.accentColor || 'pink-600'}`
-                }`} />
-              </div>
-              <h3 className={`text-xl font-bold mb-2 ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                {themeTexts?.momentsText || 'Neuer Beitrag'}
-              </h3>
-              <p className={`text-sm ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                {themeTexts?.uploadPrompt || 'Teilt eure schönsten Momente'}
-              </p>
-            </div>
-            
-            {/* Upload Options */}
-            <div className="space-y-2 sm:space-y-3">
-              <label className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] touch-manipulation ${
-                isDarkMode 
-                  ? 'bg-blue-600/10 hover:bg-blue-600/20 active:bg-blue-600/30 border border-blue-500/30' 
-                  : 'bg-blue-50 hover:bg-blue-100 active:bg-blue-200 border border-blue-200'
-              }`}
-              style={{ minHeight: '60px' }}
-              >
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,video/*,.heic,.heif,.avif"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  isDarkMode ? 'bg-blue-500/20' : 'bg-blue-500/10'
-                }`}>
-                  <Image className={`w-6 h-6 ${
-                    isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                  }`} />
-                </div>
-                <div className="flex-1 text-center">
-                  <h4 className={`font-semibold ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    {themeTexts?.uploadPhoto || 'Foto oder Video'}
-                  </h4>
-                  <p className={`text-sm ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Fotos & Videos aus der Galerie
-                  </p>
-                </div>
-                <Camera className={`w-5 h-5 ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                }`} />
-              </label>
+      {/* PERFORMANCE FIX: Memoized Modal Content */}
+      {modalContent}
 
-              <button
-                onClick={() => {
-                  setShowVideoRecorder(true);
-                  setShowUploadOptions(false);
-                }}
-                className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] w-full touch-manipulation ${
-                  isDarkMode 
-                    ? 'bg-red-600/10 hover:bg-red-600/20 active:bg-red-600/30 border border-red-500/30' 
-                    : 'bg-red-50 hover:bg-red-100 active:bg-red-200 border border-red-200'
-                }`}
-                style={{ minHeight: '60px' }}
-              >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  isDarkMode ? 'bg-red-500/20' : 'bg-red-500/10'
-                }`}>
-                  <Video className={`w-6 h-6 ${
-                    isDarkMode ? 'text-red-400' : 'text-red-600'
-                  }`} />
-                </div>
-                <div className="flex-1 text-center">
-                  <h4 className={`font-semibold ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    Video aufnehmen
-                  </h4>
-                  <p className={`text-sm ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Direkt mit der Kamera (max. 10s)
-                  </p>
-                </div>
-                <Zap className={`w-5 h-5 ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                }`} />
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowNoteInput(true);
-                  setShowUploadOptions(false);
-                }}
-                className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] w-full touch-manipulation ${
-                  isDarkMode 
-                    ? `bg-${themeStyles?.primaryColor || 'purple-500'}/10 hover:bg-${themeStyles?.primaryColor || 'purple-500'}/20 active:bg-${themeStyles?.primaryColor || 'purple-500'}/30 border border-${themeStyles?.primaryColor || 'purple-500'}/30` 
-                    : `bg-${themeStyles?.primaryColor || 'purple-500'}/10 hover:bg-${themeStyles?.primaryColor || 'purple-500'}/20 active:bg-${themeStyles?.primaryColor || 'purple-500'}/30 border border-${themeStyles?.primaryColor || 'purple-500'}/30`
-                }`}
-                style={{ minHeight: '60px' }}
-              >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  isDarkMode ? 'bg-purple-500/20' : 'bg-purple-500/10'
-                }`}>
-                  <MessageSquare className={`w-6 h-6 ${
-                    isDarkMode ? 'text-purple-400' : 'text-purple-600'
-                  }`} />
-                </div>
-                <div className="flex-1 text-center">
-                  <h4 className={`font-semibold ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    Notiz hinterlassen
-                  </h4>
-                  <p className={`text-sm ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    Schreibe deine Wünsche und Gedanken
-                  </p>
-                </div>
-                <span className="text-2xl">💕</span>
-              </button>
-
-              {storiesEnabled && (
-                <button
-                  onClick={() => {
-                    onAddStory();
-                    setShowUploadOptions(false);
-                  }}
-                  className={`group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] w-full touch-manipulation ${
-                    isDarkMode 
-                      ? 'bg-pink-600/10 hover:bg-pink-600/20 active:bg-pink-600/30 border border-pink-500/30' 
-                      : 'bg-pink-50 hover:bg-pink-100 active:bg-pink-200 border border-pink-200'
-                  }`}
-                  style={{ minHeight: '60px' }}
-                >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    isDarkMode ? 'bg-pink-500/20' : 'bg-pink-500/10'
-                  }`}>
-                    <Zap className={`w-6 h-6 ${
-                      isDarkMode ? 'text-pink-400' : 'text-pink-600'
-                    }`} />
-                  </div>
-                  <div className="flex-1 text-center">
-                    <h4 className={`font-semibold ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      Story hinzufügen
-                    </h4>
-                    <p className={`text-sm ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      Teile einen besonderen Moment (24h sichtbar)
-                    </p>
-                  </div>
-                  <span className="text-2xl">✨</span>
-                </button>
-              )}
-            </div>
-            
-            {/* Cancel Button */}
-            <button
-              onClick={() => setShowUploadOptions(false)}
-              className={`w-full mt-6 py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
-                isDarkMode 
-                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600' 
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
-              }`}
-            >
-              Abbrechen
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Note Input Modal - Auch außerhalb */}
       {showNoteInput && (
