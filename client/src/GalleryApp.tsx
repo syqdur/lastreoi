@@ -266,8 +266,7 @@
       isLoadingMore,
       hasMore,
       loadMore,
-      refresh,
-      removeItemLocally // Destructure the new function
+      refresh
     } = useSimpleGallery({
       galleryId: gallery.id,
       userName: userName || '', // Empty string is fine for loading
@@ -511,11 +510,6 @@
       try {
         await deleteGalleryMediaItem(item, gallery.id);
         setStatus(`✅ ${itemType} erfolgreich gelöscht!`);
-
-        // Call removeItemLocally here to update the mediaItems list instantly
-        removeItemLocally(item.id);
-        console.log('Item removed locally after deletion.');
-
         setTimeout(() => setStatus(''), 3000);
       } catch (error) {
         setStatus(`❌ Fehler beim Löschen des ${itemType}s.`);
@@ -824,92 +818,23 @@
       loadCurrentUserProfile();
     }, [userName, deviceId, gallery.id]);
 
-    // Real-time gallery profile data synchronization
+    // Real-time gallery profile data synchronization - TEMPORARILY SIMPLIFIED FOR DEBUGGING
     useEffect(() => {
-      console.log('🔄 GalleryApp: Initializing gallery profile listener for gallery ID:', gallery.id);
-      let localProfileSet = false; // Flag to see if we set from localStorage
+      console.log('🚧 TEMPORARY DEBUG: Setting very basic galleryProfileData. Gallery Event Name:', gallery?.eventName);
+      // Ensure gallery and gallery.eventName exist before trying to use them
+      const eventName = gallery && gallery.eventName ? gallery.eventName : "Event";
+      const eventDate = gallery && gallery.eventDate ? gallery.eventDate : null;
 
-      const cachedProfile = localStorage.getItem(`gallery_profile_${gallery.id}`);
-      if (cachedProfile) {
-        try {
-          console.log('⚡ GalleryApp: Using cached profile data from localStorage.');
-          setGalleryProfileData(JSON.parse(cachedProfile));
-          localProfileSet = true;
-        } catch (e) {
-          console.warn('GalleryApp: Failed to parse cached profile. Initializing galleryProfileData to null.', e);
-          setGalleryProfileData(null);
-        }
-      } else {
-        // No cache, start galleryProfileData as null so ProfileHeader shows its skeleton
-        setGalleryProfileData(null);
-        console.log('⚡ GalleryApp: No cached profile, galleryProfileData is initially null.');
-      }
-
-      if (!gallery.id) {
-        console.log('❌ GalleryApp: No gallery ID. Cannot set up Firestore listener.');
-        // If no gallery.id AND no valid localStorage, set a basic default to avoid prolonged null state.
-        if (!localProfileSet) {
-            const basicDefault = {
-                name: gallery.eventName,
-                bio: `${gallery.eventName} - Profil wird geladen...`,
-                countdownDate: gallery.eventDate || null,
-                profilePicture: null
-            };
-            setGalleryProfileData(basicDefault);
-            console.log('⚡ GalleryApp: Setting basic default due to no gallery.id and no cache.');
-        }
-        return; // Cannot proceed without gallery.id for Firestore listener
-      }
-
-      const realtimeProfileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
-      const unsubscribe = onSnapshot(realtimeProfileDocRef, (docSnapshot: any) => {
-        if (docSnapshot.exists()) {
-          const firebaseData = docSnapshot.data();
-          console.log('🔄 GalleryApp: galleryProfileData snapshot from Firestore (exists):', firebaseData);
-          setGalleryProfileData({ ...firebaseData }); // Ensure new object reference
-
-          // Clear old localStorage entries to prevent cross-contamination - only if needed.
-          const allKeys = Object.keys(localStorage);
-            const oldGalleryKeys = allKeys.filter(key =>
-              key.startsWith('gallery_profile_') && key !== `gallery_profile_${gallery.id}`
-            );
-          oldGalleryKeys.forEach(key => localStorage.removeItem(key));
-          
-          localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(firebaseData));
-        } else {
-          console.log('🔄 GalleryApp: galleryProfileData snapshot from Firestore (does NOT exist). Setting default fallback.');
-          const defaultFallbackProfile = {
-            name: gallery.eventName,
-            bio: `${gallery.eventName} - Teilt eure schönsten Momente mit uns! 📸`,
-            countdownDate: gallery.eventDate || null,
-            countdownEndMessage: 'Der große Tag ist da! 🎉',
-            countdownMessageDismissed: false,
-            profilePicture: null
-          };
-          setGalleryProfileData(defaultFallbackProfile);
-          localStorage.setItem(`gallery_profile_${gallery.id}`, JSON.stringify(defaultFallbackProfile));
-        }
-      }, (error) => {
-        console.error('❌ GalleryApp: Error in galleryProfileData snapshot listener:', error);
-        // If Firestore errors and we didn't set from valid localStorage, use a basic default.
-        if (!localProfileSet) {
-            const basicDefaultOnError = {
-                name: gallery.eventName,
-                bio: "Fehler beim Laden des Profils.",
-                countdownDate: gallery.eventDate || null,
-                profilePicture: null
-            };
-            setGalleryProfileData(basicDefaultOnError);
-            console.log('⚡ GalleryApp: Setting basic default due to Firestore error and no cache.');
-        }
-        // If localProfileSet was true, we keep the localStorage data on error.
+      setGalleryProfileData({
+        name: eventName,
+        bio: `Willkommen zu ${eventName}! Profil wird geladen...`,
+        profilePicture: null,
+        countdownDate: eventDate,
+        // Add other fields expected by ProfileHeader with default values if necessary
+        countdownEndMessage: 'Der große Tag ist da! 🎉',
+        countdownMessageDismissed: false,
       });
-
-      return () => {
-        console.log('🔄 GalleryApp: Cleaning up gallery profile listener for gallery ID:', gallery.id);
-        unsubscribe();
-      };
-    }, [gallery.id, gallery.eventName]);
+    }, [gallery?.eventName, gallery?.eventDate]); // Using optional chaining for safety
 
     // Save gallery profile data to localStorage with cleanup
     useEffect(() => {
@@ -1532,27 +1457,33 @@
             onSave={async (profileData) => {
               try {
                 console.log('🔄 Saving gallery profile...', profileData);
-                let finalProfilePictureUrl = galleryProfileData?.profilePicture; // Keep existing if not changed
+                let profilePictureUrl = galleryProfileData?.profilePicture;
 
                 // Handle profile picture update
                 if (profileData.profilePicture instanceof File) {
-                  console.log('📸 Processing gallery profile picture for Storage upload...');
-                  // It's a new file, upload it to Firebase Storage
-                  const file = profileData.profilePicture;
-                  // Path for the profile picture in Storage:
-                  const storagePath = `galleries/${gallery.id}/profile_pictures/main_profile_${Date.now()}_${file.name}`;
-                  const storageRef = ref(storage, storagePath);
+                  console.log('📸 Processing gallery profile picture...');
 
-                  await uploadBytes(storageRef, file);
-                  finalProfilePictureUrl = await getDownloadURL(storageRef);
-                  console.log('✅ Gallery profile picture uploaded to Storage:', finalProfilePictureUrl);
-
-                } else if (profileData.profilePicture === null || profileData.profilePicture === '') {
-                    // User wants to remove the profile picture
-                    finalProfilePictureUrl = null;
+                  // Since ProfileEditModal already compresses the image, the File should already be compressed
+                  // But let's ensure it's under Firebase limits by converting to base64
+                  const reader = new FileReader();
+                  profilePictureUrl = await new Promise((resolve, reject) => {
+                    reader.onload = () => {
+                      const result = reader.result as string;
+                      // Check if the base64 is under Firebase limit (900KB)
+                      if (result.length > 900000) {
+                        console.warn('⚠️ Profile picture still too large after compression:', Math.round(result.length / 1024), 'KB');
+                        reject(new Error('Profilbild ist zu groß für Firebase. Bitte wählen Sie ein kleineres Bild.'));
+                      } else {
+                        console.log('✅ Gallery profile picture processed successfully:', Math.round(result.length / 1024), 'KB');
+                        resolve(result);
+                      }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(profileData.profilePicture as File);
+                  });
+                } else if (typeof profileData.profilePicture === 'string') {
+                  profilePictureUrl = profileData.profilePicture;
                 }
-                // If profileData.profilePicture is an existing URL (string), finalProfilePictureUrl retains it.
-
 
                 const updatedGalleryProfile: any = {
                   name: profileData.name,
@@ -1562,28 +1493,37 @@
                   updatedAt: new Date().toISOString()
                 };
 
-                if (finalProfilePictureUrl) {
-                  updatedGalleryProfile.profilePicture = finalProfilePictureUrl;
-                } else {
-                  updatedGalleryProfile.profilePicture = null; // Ensure it's explicitly set to null if removed
+                // Only include profilePicture if it has a value (not undefined)
+                if (profilePictureUrl) {
+                  updatedGalleryProfile.profilePicture = profilePictureUrl;
                 }
 
+                // Handle countdownDate explicitly - include it if it has a value, otherwise explicitly set to null to remove it
                 if (profileData.countdownDate && profileData.countdownDate.trim() !== '') {
                   updatedGalleryProfile.countdownDate = profileData.countdownDate;
                 } else {
-                  updatedGalleryProfile.countdownDate = null;
+                  updatedGalleryProfile.countdownDate = null; // Explicitly remove countdown
                 }
 
-                console.log('📝 Profile data to save to Firestore:', updatedGalleryProfile);
+                console.log('📝 Profile data to save:', updatedGalleryProfile);
+                console.log('🎯 Gallery ID:', gallery.id);
+
+                // Save to gallery profile collection using setDoc
                 const profileDocRef = doc(db, 'galleries', gallery.id, 'profile', 'main');
+                console.log('📍 Document path:', `galleries/${gallery.id}/profile/main`);
+
                 await setDoc(profileDocRef, updatedGalleryProfile, { merge: true });
 
-                // Local state update is handled by the onSnapshot listener already configured for galleryProfileData
-                setShowProfileEditModal(false);
-                console.log('✅ Gallery profile updated successfully in Firestore.');
+                // Update local state immediately for better UX
+                // The onSnapshot listener will also update it, but this prevents delay
+                setGalleryProfileData(updatedGalleryProfile);
 
+                // The onSnapshot listener should automatically update galleryProfileData
+                setShowProfileEditModal(false);
               } catch (error: any) {
                 console.error('❌ Error updating gallery profile:', error);
+                console.error('❌ Error message:', error.message);
+                console.error('❌ Error code:', error.code);
                 alert(`Fehler beim Aktualisieren des Galerie-Profils: ${error.message}`);
               }
             }}
