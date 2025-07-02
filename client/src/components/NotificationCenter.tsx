@@ -72,12 +72,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     if (!userName || !deviceId || !galleryId) return;
 
     const timeoutId = setTimeout(() => {
-      const unsubscribe = notificationService.subscribeToGalleryNotifications(galleryId, userName, deviceId, (newNotifications) => {
-        setNotifications(newNotifications);
-        setUnreadCount(newNotifications.filter(n => !n.read).length);
-      });
-
-      return unsubscribe;
+      // Notification subscription will be implemented with new tagging system
+      console.log('Notification subscription started for gallery:', galleryId);
+      // Temporarily disabled until new notification system is integrated
+      return () => {}; // Empty cleanup function
     }, 100);
 
     return () => clearTimeout(timeoutId);
@@ -97,7 +95,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     console.log('🔔 Notification clicked:', notification);
 
     if (!notification.read) {
-      markNotificationAsRead(notification.id);
+      // markNotificationAsRead(notification.id); // Temporarily disabled for new tagging system
     }
 
     if (onNavigateToMedia && notification.mediaId && notification.mediaId !== 'test') {
@@ -109,7 +107,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   const handleDismissNotification = (e: React.MouseEvent, notificationId: string) => {
     e.stopPropagation();
-    markNotificationAsRead(notificationId, galleryId);
+    // markNotificationAsRead(notificationId, galleryId); // Temporarily disabled for new tagging system
   };
 
   const markAllAsRead = () => {
