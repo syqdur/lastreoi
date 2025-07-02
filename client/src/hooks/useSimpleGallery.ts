@@ -41,6 +41,7 @@ interface UseSimpleGalleryReturn {
   // Actions
   loadMore: () => void;
   refresh: () => Promise<void>;
+  removeItemLocally: (itemId: string) => void;
 }
 
 export const useSimpleGallery = ({
@@ -262,6 +263,7 @@ export const useSimpleGallery = ({
     isLoadingMore,
     hasMore,
     loadMore,
-    refresh
+    refresh,
+    removeItemLocally // Add the new function here
   };
 };

@@ -335,8 +335,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRoo
         {/* Simple gradient base */}
         <div className="absolute inset-0" 
           style={{
-            background: `linear-gradient(135deg, #667eea 0%, #764ba2 50%, #ff6b6b 100%)`,
-            animation: 'gradientShift 8s ease-in-out infinite alternate'
+            background: `linear-gradient(135deg, #667eea 0%, #764ba2 50%, #ff6b6b 100%)`
+            // animation: 'gradientShift 8s ease-in-out infinite alternate' // Removed animation
           }}
         />
         
@@ -350,9 +350,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRoo
                 width: `${20 + i * 10}px`,
                 height: `${20 + i * 10}px`,
                 left: `${10 + i * 20}%`,
-                top: `${20 + i * 15}%`,
-                animation: `floatUpDown ${4 + i}s ease-in-out infinite alternate`,
-                animationDelay: `${i * 0.5}s`
+                top: `${20 + i * 15}%`
+                // animation: `floatUpDown ${4 + i}s ease-in-out infinite alternate`, // Removed animation
+                // animationDelay: `${i * 0.5}s` // Removed animation
               }}
             />
           ))}
@@ -366,9 +366,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateGallery, onRoo
               className="absolute text-white/30"
               style={{
                 left: `${10 + i * 15}%`,
-                top: `${20 + i * 12}%`,
-                animation: `sparkle ${2 + i * 0.5}s ease-in-out infinite`,
-                animationDelay: `${i * 0.8}s`
+                top: `${20 + i * 12}%`
+                // animation: `sparkle ${2 + i * 0.5}s ease-in-out infinite`, // Removed animation
+                // animationDelay: `${i * 0.8}s` // Removed animation
               }}
             >
               <Sparkles size={6} />

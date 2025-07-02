@@ -266,7 +266,8 @@
       isLoadingMore,
       hasMore,
       loadMore,
-      refresh
+      refresh,
+      removeItemLocally // Destructure the new function
     } = useSimpleGallery({
       galleryId: gallery.id,
       userName: userName || '', // Empty string is fine for loading
@@ -511,9 +512,9 @@
         await deleteGalleryMediaItem(item, gallery.id);
         setStatus(`✅ ${itemType} erfolgreich gelöscht!`);
 
-        // Call refresh here to update the mediaItems list
-        await refresh();
-        console.log('Gallery refreshed after deletion.');
+        // Call removeItemLocally here to update the mediaItems list instantly
+        removeItemLocally(item.id);
+        console.log('Item removed locally after deletion.');
 
         setTimeout(() => setStatus(''), 3000);
       } catch (error) {
