@@ -510,6 +510,11 @@
       try {
         await deleteGalleryMediaItem(item, gallery.id);
         setStatus(`✅ ${itemType} erfolgreich gelöscht!`);
+
+        // Call refresh here to update the mediaItems list
+        await refresh();
+        console.log('Gallery refreshed after deletion.');
+
         setTimeout(() => setStatus(''), 3000);
       } catch (error) {
         setStatus(`❌ Fehler beim Löschen des ${itemType}s.`);
